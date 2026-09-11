@@ -1,0 +1,98 @@
+{
+  "ui": "tui",
+  "globalDependencies": [".env.local", ".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "VERCEL_ENV",
+    "CI"
+  ],
+  "globalPassThroughEnv": [
+    "NEXT_PUBLIC_*",
+    "PAYLOAD_*",
+    "DATABASE_URL",
+    "DATABASE_URI",
+    "POSTGRES_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "lib/**", "src/**/*.js", "src/**/*.d.ts"],
+      "inputs": ["$TURBO_DEFAULT$", ".env.local", ".env"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "PAYLOAD_*",
+        "DATABASE_URL",
+        "DATABASE_URI",
+        "POSTGRES_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
+    },
+    "@encreasl/cms-types#build": {
+      "outputs": []
+    },
+    "@encreasl/redux#build": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "NEXT_PUBLIC_*",
+        "PAYLOAD_*",
+        "DATABASE_URL",
+        "DATABASE_URI",
+        "POSTGRES_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
+    },
+    "dev:turbo": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "NEXT_PUBLIC_*",
+        "PAYLOAD_*",
+        "DATABASE_URL",
+        "DATABASE_URI",
+        "POSTGRES_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "lint:functions": {
+      "outputs": [],
+      "inputs": ["src/**", ".eslintrc.*"],
+      "env": []
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    },
+    "type-check:functions": {
+      "outputs": [],
+      "inputs": ["src/**", "tsconfig.json"],
+      "env": []
+    },
+    "test:functions": {
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "**/*.test.ts", "**/*.spec.ts", "jest.config.*"],
+      "env": ["NODE_ENV"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "ios": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
+    "android": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    }
+  }
+}

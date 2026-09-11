@@ -1,0 +1,262 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules/
+**/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+coverage/
+.nyc_output/
+
+# Next.js
+.next/
+out/
+apps/web/.next/
+apps/web/out/
+
+# React Native / Expo
+apps/mobile/.expo/
+apps/mobile/dist/
+*.orig.*
+web-build/
+
+# Production builds
+build/
+dist/
+
+# Turborepo
+.turbo/
+**/.turbo/
+**/turbo-build.log
+**/turbo-type-check.log
+**/turbo-lint.log
+*.turbo-build.log
+*.turbo-type-check.log
+*.turbo-lint.log
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment variables
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+functions/lib/
+functions/node_modules/
+
+# Vercel
+.vercel
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+pids/
+
+# Optional npm cache directory
+.npm/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Storybook build outputs
+storybook-static/
+
+# Temporary folders
+tmp/
+temp/
+
+# Expo
+.expo/
+web-build/
+
+# Metro
+.metro-health-check*
+.metro-cache/
+**/.metro-cache/
+apps/mobile/.metro-cache/
+
+# React Native / Expo Development Files
+apps/mobile/expo-start.js
+apps/mobile/fix-expo-cache.js
+apps/mobile/metro.config.fallback.js
+apps/mobile/metro.config.simple.js
+apps/mobile/postcss.config.js
+apps/mobile/scripts/
+apps/mobile/start-*.bat
+apps/mobile/start-*.ps1
+apps/mobile/start-*.js
+
+# Web Development Files
+apps/web/fix-*.js
+apps/web/src/types/components.ts
+apps/web/src/types/react-fixes.d.ts
+
+# Package Manager Files
+.npmrc
+**/pnpm-debug.log*
+
+# Prevent npm lockfile conflicts with pnpm
+package-lock.json
+**/package-lock.json
+
+# Xcode
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+
+# Android/IntelliJ
+build/
+.idea/
+.gradle/
+local.properties
+*.iml
+*.hprof
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Bundle artifacts
+*.jsbundle
+
+# CocoaPods
+ios/Pods/
+
+# Flipper
+ios/Flipper/
+
+# Watchman
+.watchmanconfig
+
+# Sensitive / local-only (never push to GitHub)
+keys/
+*.jks
+*.pem
+passwords.txt
+*.tar.gz
+*.backup
+*.backup.*
+tsc_out.txt
+**/backups/*.gz
+**/backups/*.json

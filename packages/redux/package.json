@@ -1,0 +1,64 @@
+{
+  "name": "@encreasl/redux",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise-level Redux Toolkit state management for Encreasl monorepo",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./store": "./src/store/index.ts",
+    "./slices": "./src/slices/index.ts",
+    "./slices/auth": "./src/slices/auth.ts",
+    "./slices/ui": "./src/slices/ui.ts",
+    "./api": "./src/api/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./providers": "./src/providers/index.tsx",
+    "./types": "./src/types/index.ts",
+    "./utils": "./src/utils/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --skipLibCheck",
+    "dev": "tsc --watch",
+    "lint": "eslint . --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.2.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-redux": "^9.1.0",
+    "redux-persist": "^6.0.0",
+    "immer": "^10.0.3"
+  },
+  "devDependencies": {
+    "@encreasl/eslint-config": "workspace:*",
+    "@encreasl/typescript-config": "workspace:*",
+    "@types/minimatch": "^6.0.0",
+    "eslint": "^9",
+    "typescript": "^5",
+    "vitest": "^2",
+    "@vitest/coverage-v8": "^1.6.0"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@types/react": "^19"
+  },
+  "keywords": [
+    "redux",
+    "redux-toolkit",
+    "state-management",
+    "monorepo",
+    "turborepo",
+    "enterprise"
+  ],
+  "author": "Encreasl Team",
+  "license": "MIT"
+}

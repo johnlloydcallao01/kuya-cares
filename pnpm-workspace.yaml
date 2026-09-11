@@ -1,0 +1,58 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm 11+ no longer reads the `pnpm` field in package.json or non-auth
+# settings from .npmrc — project config must live here. The package.json
+# `pnpm` block and .npmrc `node-linker` are kept for pnpm 9 local devs.
+# Hostinger runs Corepack pnpm@11 under which pnpm cannot auto-switch to the
+# pinned 9.12.3, so bypass that version check (hostinger-build.sh reinstalls
+# deterministically with 9.12.3 via npx afterwards).
+pmOnFail: ignore
+
+# Preserve pnpm 9 behaviour: unlisted postinstall scripts warn, don't fail.
+strictDepBuilds: false
+
+# Hostinger's shared-host glibc is older than what @next/swc-linux-x64-gnu
+# requires (GLIBC_2.29), so Next's native loader fails there. Installing the
+# musl variant too (statically linked) gives Next a working fallback —
+# without it the build dies with "Failed to load SWC binary for linux/x64".
+supportedArchitectures:
+  libc: [glibc, musl]
+
+# Stop pnpm 10/11 from auto-spawning `pnpm install` before every `pnpm run`.
+# On Hostinger the bare `pnpm` binary is not on PATH (pnpm only exists via a
+# Corepack shim), so that pre-run check crashes the build with
+# `spawnSync pnpm ENOENT`. Installs are run explicitly anyway.
+verifyDepsBeforeRun: false
+
+# Replaces `onlyBuiltDependencies` (removed in pnpm 11) from package.json.
+allowBuilds:
+  sharp: true
+  esbuild: true
+  unrs-resolver: true
+  # Reviewed: no build needed (polyfill notice / optional DTrace bindings).
+  core-js-pure: false
+  dtrace-provider: false
+
+# Replaces `.npmrc` node-linker (pnpm 11 ignores non-auth .npmrc settings).
+nodeLinker: hoisted
+
+# Mirrors `pnpm.overrides` in root package.json (pnpm 11 ignores that location).
+overrides:
+  "@react-native-async-storage/async-storage": "2.2.0"
+  "@types/react": "~19.1.17"
+  "babel-preset-expo": "~54.0.10"
+  "baseline-browser-mapping": "2.11.18"
+  "tailwindcss@<4": "3.3.2"
+  "nativewind>tailwindcss": "3.3.2"
+  "react": "19.1.0"
+  "react-dom": "19.1.0"
+  "react-native-worklets": "0.5.1"
+
+# Peer dependency configuration for React 19 compatibility
+peerDependencyRules:
+  allowedVersions:
+    react: "19.x"
+  ignoreMissing:
+    - "@react-native-async-storage/async-storage"

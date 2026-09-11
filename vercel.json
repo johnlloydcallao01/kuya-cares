@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+
+  "env": {
+    "VERCEL": "1",
+    "NODE_VERSION": "20",
+    "PNPM_VERSION": "9.12.3",
+    "COREPACK_ENABLE_STRICT": "0"
+  },
+  "build": {
+    "env": {
+      "VERCEL": "1",
+      "NEXT_TELEMETRY_DISABLED": "1",
+      "COREPACK_ENABLE_STRICT": "0",
+      "NODE_VERSION": "20",
+      "PNPM_VERSION": "9.12.3"
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}

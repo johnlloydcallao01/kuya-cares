@@ -1,0 +1,459 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --muted-text: #6b7280;
+  --accent: #111111;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card-background: #171717;
+  --card-border: #262626;
+  --muted-text: #a1a1aa;
+  --accent: #eba236;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-background);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted-text);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light dark;
+  scrollbar-gutter: stable;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156,163,175,0.4) transparent;
+}
+.dark body {
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+body::-webkit-scrollbar { width: 6px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb { background: rgba(156,163,175,0.4); border-radius: 999px; }
+.dark body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
+main {
+  will-change: transform, opacity;
+}
+
+/* Thin scrollbar for sidebar - minimal 4px, hidden until hover, dark-aware, matches merchant */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+.sidebar-scroll:hover {
+  scrollbar-color: rgba(156,163,175,0.5) transparent;
+}
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(156,163,175,0.5);
+}
+.dark .sidebar-scroll {
+  scrollbar-color: transparent transparent;
+}
+.dark .sidebar-scroll:hover {
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.dark .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Accessibility - Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .content-transition,
+  .content-wrapper,
+  aside[data-sidebar="main"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ========================================
+   FACEBOOK META-STYLE LOADING SCREEN
+   ======================================== */
+
+/* Main Loading Screen Container */
+.facebook-loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: block; /* Ensure consistent initial state */
+}
+
+/* Full Screen Overlay */
+.facebook-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #c88a20 0%, #eba336 50%, #c88a20 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Main Content Container */
+.facebook-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 2;
+  position: relative;
+}
+
+/* Logo Container */
+.facebook-logo-container {
+  position: relative;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Company Logo */
+.facebook-logo {
+  width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 40px rgba(235, 163, 54, 0.3), 0 4px 16px rgba(200, 138, 32, 0.2);
+  animation: logoFloat 3s ease-in-out infinite;
+  z-index: 3;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.facebook-logo-image {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Pulsing Ring Animation */
+.facebook-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  animation: pulseRing 2s ease-out infinite;
+}
+
+.facebook-pulse-ring-delay {
+  animation-delay: 1s;
+  border-color: rgba(235, 163, 54, 0.3);
+}
+
+/* Loading Text */
+.facebook-loading-text {
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.facebook-loading-text h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  animation: textFade 2s ease-in-out infinite alternate;
+}
+
+.facebook-loading-text p {
+  font-size: 0.875rem;
+  margin: 0;
+  opacity: 0.8;
+  animation: textFade 2s ease-in-out infinite alternate;
+  animation-delay: 0.5s;
+}
+
+/* Progress Container */
+.facebook-progress-container {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Progress Bar */
+.facebook-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.facebook-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffffff 0%, rgba(235, 163, 54, 0.8) 50%, #ffffff 100%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  position: relative;
+  animation: progressShimmer 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(235, 163, 54, 0.4);
+}
+
+/* Progress Dots */
+.facebook-progress-dots {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.facebook-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: dotBounce 1.4s ease-in-out infinite both;
+}
+
+.facebook-dot-1 {
+  animation-delay: -0.32s;
+}
+
+.facebook-dot-2 {
+  animation-delay: -0.16s;
+}
+
+.facebook-dot-3 {
+  animation-delay: 0s;
+}
+
+/* Background Pattern */
+.facebook-bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.facebook-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatCircle 20s linear infinite;
+}
+
+.facebook-bg-circle-1 {
+  width: 200px;
+  height: 200px;
+  top: 10%;
+  left: 10%;
+  background: rgba(255, 255, 255, 0.05);
+  animation-delay: 0s;
+}
+
+.facebook-bg-circle-2 {
+  width: 150px;
+  height: 150px;
+  top: 60%;
+  right: 15%;
+  background: rgba(235, 163, 54, 0.08);
+  animation-delay: -7s;
+}
+
+.facebook-bg-circle-3 {
+  width: 100px;
+  height: 100px;
+  bottom: 20%;
+  left: 20%;
+  background: rgba(200, 138, 32, 0.06);
+  animation-delay: -14s;
+}
+
+/* ========================================
+   FACEBOOK LOADING SCREEN ANIMATIONS
+   ======================================== */
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Logo Float Animation */
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Pulse Ring Animation */
+@keyframes pulseRing {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Text Fade Animation */
+@keyframes textFade {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Progress Shimmer Animation */
+@keyframes progressShimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+/* Dot Bounce Animation */
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Background Circle Float Animation */
+@keyframes floatCircle {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: translateY(-20px) rotate(360deg);
+    opacity: 0.05;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .facebook-logo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .facebook-logo-image {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .facebook-pulse-ring {
+    width: 64px;
+    height: 64px;
+  }
+
+  .facebook-loading-text h2 {
+    font-size: 1.25rem;
+  }
+
+  .facebook-progress-container {
+    width: 160px;
+  }
+
+  .facebook-bg-circle-1 {
+    width: 150px;
+    height: 150px;
+  }
+
+  .facebook-bg-circle-2 {
+    width: 100px;
+    height: 100px;
+  }
+
+  .facebook-bg-circle-3 {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Accessibility - Respect reduced motion preferences for loading screen */
+@media (prefers-reduced-motion: reduce) {
+  .facebook-loading-overlay,
+  .facebook-logo,
+  .facebook-pulse-ring,
+  .facebook-loading-text h2,
+  .facebook-loading-text p,
+  .facebook-progress-fill,
+  .facebook-dot,
+  .facebook-bg-circle {
+    animation: none !important;
+  }
+
+  .facebook-pulse-ring {
+    display: none;
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "tap2go-monorepo",
+  "version": "0.1.0",
+  "framework": "nextjs",
+  "buildCommand": "cd apps/web && pnpm run build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "devCommand": "cd apps/web && pnpm run dev",
+  "rootDirectory": "./",
+  "sourceDirectory": "apps/web",
+  "nodeVersion": "18.x",
+  "environmentVariables": {
+    "NODE_VERSION": "18",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
+}

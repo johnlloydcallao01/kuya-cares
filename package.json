@@ -1,0 +1,118 @@
+{
+  "name": "tap2go-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node scripts/deploy-router.js build",
+    "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "build:apps": "turbo run build --filter=\"./apps/*\"",
+    "build:parallel": "turbo run build --parallel",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint --concurrency=6",
+    "lint:packages": "turbo run lint --filter=\"./packages/*\"",
+    "lint:apps": "turbo run lint --filter=\"./apps/*\"",
+    "lint:fix": "turbo run lint --concurrency=6 -- --fix",
+    "clean": "turbo run clean",
+    "sync-env": "node scripts/sync-env.js",
+    "postinstall": "node scripts/sync-env.js",
+    "type-check": "turbo run type-check",
+    "type-check:packages": "node scripts/type-check-packages.js",
+    "type-check:apps": "turbo run type-check --filter=\"./apps/*\"",
+    "type-check:web": "turbo run type-check --filter=web",
+    "type-check:web-driver": "turbo run type-check --filter=web-driver",
+    "type-check:web-admin": "turbo run type-check --filter=web-admin",
+    "type-check:web-merchant": "turbo run type-check --filter=@encreasl/web-merchant",
+    "type-check:mobile-customer": "turbo run type-check --filter=mobile-customer",
+    "web:dev": "turbo run dev --filter=web",
+    "web:build": "turbo run build --filter=web",
+    "web:start": "cd apps/web && pnpm start",
+    "web:deploy": "cd apps/web && pnpm run build",
+    "web-driver:dev": "turbo run dev --filter=web-driver",
+    "web-driver:build": "pnpm exec turbo run build --filter=web-driver",
+    "web-driver:start": "cd apps/web-driver && pnpm start",
+    "web-driver:deploy": "cd apps/web-driver && pnpm run build",
+    "web-admin:dev": "turbo run dev --filter=web-admin",
+    "web-admin:build": "turbo run build --filter=web-admin",
+    "web-admin:start": "cd apps/web-admin && pnpm start",
+    "web-admin:deploy": "cd apps/web-admin && pnpm run build",
+    "web-merchant:dev": "turbo run dev --filter=@encreasl/web-merchant",
+    "web-merchant:build": "turbo run build --filter=@encreasl/web-merchant",
+    "web-merchant:start": "cd apps/web-merchant && pnpm start",
+    "web-merchant:deploy": "cd apps/web-merchant && pnpm run build",
+    "web-vendor:dev": "turbo run dev --filter=web-vendor",
+    "web-vendor:build": "turbo run build --filter=web-vendor",
+    "web-vendor:start": "cd apps/web-vendor && pnpm start",
+    "web-vendor:deploy": "cd apps/web-vendor && pnpm run build",
+    "mobile:dev": "pnpm run sync-env && turbo run dev --filter=mobile-customer",
+    "mobile:build": "turbo run build --filter=mobile-customer",
+    "mobile:ios": "turbo run ios --filter=mobile-customer",
+    "mobile:android": "turbo run android --filter=mobile-customer",
+    "vercel-build": "cd apps/web && pnpm run build",
+    "hostinger-build": "bash hostinger-build.sh",
+    "hostinger-start": "bash hostinger-start.sh",
+    "start": "node scripts/deploy-router.js start",
+    "tsc-errors": "node tools/ts-error-checker/index.js"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^2.0.0",
+    "@types/minimatch": "^6.0.0",
+    "eas-cli": "^16.12.0",
+    "next": "16.0.7",
+    "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.27.6",
+    "@headlessui/react": "^2.2.4",
+    "@payloadcms/db-postgres": "3.49.0",
+    "color": "^4.2.3",
+    "turbo": "^2.0.0",
+    "color-convert": "^3.1.0",
+    "color-name": "^2.0.0",
+    "color-string": "^1.9.1",
+    "hoist-non-react-statics": "^3.3.2",
+    "nativewind": "2.0.11",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "redux-persist": "^6.0.0",
+    "scheduler": "^0.25.0",
+    "simple-swizzle": "^0.2.2",
+    "tailwindcss": "3.3.2",
+    "typescript": "5.8.3"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "pnpm": {
+    "overrides": {
+      "@react-native-async-storage/async-storage": "2.2.0",
+      "@types/react": "~19.1.17",
+      "babel-preset-expo": "~54.0.10",
+      "baseline-browser-mapping": "2.11.18",
+      "tailwindcss@<4": "3.3.2",
+      "nativewind>tailwindcss": "3.3.2",
+      "react": "19.1.0",
+      "react-dom": "19.1.0",
+      "react-native-worklets": "0.5.1"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "react": "19.x"
+      },
+      "ignoreMissing": [
+        "@react-native-async-storage/async-storage"
+      ]
+    },
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=8.0.0",
+    "pnpm": ">=9.12.3"
+  }
+}

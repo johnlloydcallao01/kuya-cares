@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <rect width="120" height="40" rx="8" fill="#0077FF"/>
+  <circle cx="24" cy="20" r="10" fill="white"/>
+  <text x="40" y="25" fill="white" font-size="18" font-weight="700" font-family="Arial, Helvetica, sans-serif">GCash</text>
+</svg>

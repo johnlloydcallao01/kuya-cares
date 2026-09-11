@@ -1,0 +1,18 @@
+[Unit]
+Description=Tap2Go CMS
+After=network.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/home/opc/tap2go
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/local/bin/pnpm --filter @encreasl/cms start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

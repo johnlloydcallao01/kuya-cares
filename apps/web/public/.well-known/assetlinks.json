@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wnapp.id1721090048598",
+      "sha256_cert_fingerprints": [
+        "F8:D2:11:7A:67:C8:AD:17:C1:FA:CA:19:2E:46:25:DC:3B:5F:B1:E4:68:99:54:5C:CF:6A:A3:5F:B3:F4:B2:D4"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wnapp.id1721090048598",
+      "sha256_cert_fingerprints": [
+        "F8:D2:11:7A:67:C8:AD:17:C1:FA:CA:19:2E:46:25:DC:3B:5F:B1:E4:68:99:54:5C:CF:6A:A3:5F:B3:F4:B2:D4"
+      ]
+    }
+  }
+]

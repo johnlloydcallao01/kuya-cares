@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: tap2go-cms
+    runtime: node
+    plan: starter
+    region: singapore
+    branch: main
+    autoDeploy: true
+    buildCommand: corepack enable && corepack prepare pnpm@9.12.3 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @encreasl/cms build
+    startCommand: pnpm --filter @encreasl/cms start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URI
+        sync: false
+      - key: PAYLOAD_SECRET
+        generateValue: true
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ADMIN_PROD_URL
+        sync: false
+      - key: WEB_PROD_URL
+        sync: false
+      - key: CMS_PROD_URL
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: PAYMONGO_PUBLIC_KEY_LIVE
+        sync: false
+      - key: PAYMONGO_SECRET_KEY_LIVE
+        sync: false
+      - key: PAYMONGO_WEBHOOK_SECRET
+        sync: false
+      - key: LALAMOVE_API_KEY
+        sync: false
+      - key: LALAMOVE_API_SECRET
+        sync: false
+      - key: LALAMOVE_MARKET
+        value: PH
+      - key: LALAMOVE_PRIORITY_FEE
+        value: "20"
+      - key: VERCEL_API_TOKEN
+        sync: false
+      - key: VERCEL_EDGE_CONFIG_ID
+        sync: false

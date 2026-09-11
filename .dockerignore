@@ -1,0 +1,70 @@
+# Exclude sensitive environment files
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# Exclude Git files (we want source code but not Git history)
+.git
+
+# Exclude OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Exclude editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Exclude temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Exclude problematic node_modules (will be reinstalled fresh)
+node_modules/
+apps/*/node_modules/
+packages/*/node_modules/
+functions/node_modules/
+
+# Exclude build outputs (always rebuilt fresh in Docker; stale Windows-built
+# .next contains absolute C:\ paths and bloats the Cloud Build context by GBs)
+.next/
+apps/*/.next/
+packages/*/.next/
+dist/
+build/
+.turbo/
+**/.turbo/
+out/
+
+# Exclude large / sensitive artifacts that must never reach Cloud Build
+apps/cms/backups/
+backups/
+*.tar.gz
+*.tgz
+*.zip
+tap2go-cms-deploy.tar.gz
+keys/
+*.pem
+
+# Exclude local-only tooling and docs bloat from the build context
+.expo/
+android/
+ios/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.turbo/

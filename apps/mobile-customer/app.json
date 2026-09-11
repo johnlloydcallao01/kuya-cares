@@ -1,0 +1,111 @@
+{
+  "expo": {
+    "name": "Tap2Go",
+    "slug": "tap2go-mobile-customer",
+    "version": "2.1.9",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f3a823"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tap2go.customer",
+      "associatedDomains": [
+        "applinks:app.tap2goph.com"
+      ],
+      "userInterfaceStyle": "light"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f3a823"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "{{ env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}"
+        }
+      },
+      "package": "com.wnapp.id1721090048598",
+      "versionCode": 15,
+      "userInterfaceStyle": "light",
+      "edgeToEdgeEnabled": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "http",
+              "host": "app.tap2goph.com",
+              "pathPrefix": "/checkout/"
+            },
+            {
+              "scheme": "https",
+              "host": "app.tap2goph.com",
+              "pathPrefix": "/checkout/"
+            }
+          ]
+        }
+      ],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "tap2go-customer",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "36.0.0",
+            "minSdkVersion": 24,
+            "enableProguardInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
+      "react-native-edge-to-edge",
+      "./plugins/withAndroidDebugSymbols",
+      "expo-asset",
+      "expo-font",
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Tap2Go uses your photo library to let you choose a profile picture.",
+          "cameraPermission": "Tap2Go uses your camera to take a profile picture.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d7681f1c-f3dc-4c48-aa50-1ab34b79ea2e"
+      }
+    },
+    "owner": "johnlloydcallao"
+  }
+}

@@ -1,0 +1,617 @@
+import type { CollectionConfig } from 'payload'
+
+export const Products: CollectionConfig = {
+  slug: 'products',
+  admin: {
+    useAsTitle: 'name',
+    defaultColumns: ['name', 'sku', 'productType', 'basePrice', 'isActive', 'catalogVisibility', 'createdByVendor', 'createdByMerchant'],
+    group: 'Food Delivery',
+    description: 'Master product catalog for vendors and merchants',
+  },
+  access: {
+    // PayloadCMS automatically authenticates API keys and populates req.user
+    read: ({ req: { user } }) => {
+      // If user exists, they've been authenticated (either via API key or login)
+      if (user) {
+        // Allow service accounts (for website display), admins, and vendors.
+        // Vendors need read access so the merchant portal (vendor JWT) can
+        // populate product_id.media.primaryImage for merchant-products search
+        // (see apps/web-merchant search routes, parity with apps/web-admin).
+        if (user.role === 'service' || user.role === 'admin' || user.role === 'vendor') {
+          return true
+        }
+      }
+
+      // Block all unauthenticated requests and other roles
+      return false
+    },
+    create: ({ req: { user } }) => {
+      // Allow both service accounts and admins to create products
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+    update: ({ req: { user } }) => {
+      // Allow both service accounts and admins to update products
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+    delete: ({ req: { user } }) => {
+      // Allow both service accounts and admins to delete products
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+  },
+  fields: [
+    // === OWNERSHIP TRACKING ===
+    {
+      name: 'createdByVendor',
+      type: 'relationship',
+      relationTo: 'vendors',
+      admin: {
+        description: 'Vendor that created this product (mutually exclusive with merchant)',
+        condition: (data) => !data.createdByMerchant,
+      },
+    },
+    {
+      name: 'createdByMerchant',
+      type: 'relationship',
+      relationTo: 'merchants',
+      admin: {
+        description: 'Merchant that created this product (mutually exclusive with vendor)',
+        condition: (data) => !data.createdByVendor,
+      },
+    },
+
+    // === PRODUCT TYPE AND HIERARCHY ===
+    {
+      name: 'productType',
+      type: 'select',
+      required: true,
+      defaultValue: 'simple',
+      options: [
+        {
+          label: 'Simple Product',
+          value: 'simple',
+        },
+        {
+          label: 'Variable Product',
+          value: 'variable',
+        },
+        {
+          label: 'Grouped Product',
+          value: 'grouped',
+        },
+      ],
+      admin: {
+        description: 'Type of product (simple, variable for variations, or grouped for bundles)',
+      },
+    },
+    {
+      name: 'parentProduct',
+      type: 'relationship',
+      relationTo: 'products',
+      admin: {
+        description: 'Parent product (for variations, points to the variable product)',
+        condition: (data) => data.productType === 'simple' && data.parentProduct,
+      },
+    },
+
+    // === BASIC INFORMATION ===
+    {
+      name: 'name',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Product name',
+      },
+    },
+    {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'URL-friendly identifier auto-generated from name',
+      },
+    },
+    {
+      name: 'description',
+      type: 'richText',
+      admin: {
+        description: 'Full product description',
+      },
+    },
+    {
+      name: 'shortDescription',
+      type: 'textarea',
+      maxLength: 500,
+      admin: {
+        description: 'Brief product description (max 500 characters)',
+      },
+    },
+    {
+      name: 'categories',
+      type: 'relationship',
+      relationTo: 'product-categories',
+      hasMany: true,
+      admin: {
+        description: 'Product categories (select multiple categories)',
+      },
+    },
+
+    // === SKU AND PRICING ===
+    {
+      name: 'sku',
+      type: 'text',
+      unique: true,
+      admin: {
+        description: 'Stock Keeping Unit (unique identifier)',
+      },
+    },
+    {
+      name: 'basePrice',
+      type: 'number',
+      min: 0,
+      validate: (
+        value: number | null | undefined,
+        { data }: { data?: { productType?: 'simple' | 'variable' | 'grouped' } }
+      ) => {
+        if (data?.productType === 'simple') {
+          if (value === null || value === undefined) return 'Base price is required for simple products'
+          if (typeof value === 'number' && value < 0) return 'Base price must be greater than or equal to 0'
+        }
+        return true
+      },
+      admin: {
+        description: 'Base price of the product',
+        step: 0.01,
+        condition: (data: { productType?: 'simple' | 'variable' | 'grouped' }) => data?.productType === 'simple',
+      },
+    },
+    {
+      name: 'compareAtPrice',
+      type: 'number',
+      min: 0,
+      admin: {
+        description: 'Original price for showing discounts',
+        step: 0.01,
+        condition: (data: { productType?: 'simple' | 'variable' | 'grouped' }) => data?.productType === 'simple',
+      },
+    },
+
+    // === MEDIA ===
+    {
+      name: 'media',
+      type: 'group',
+      fields: [
+        {
+          name: 'primaryImage',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description: 'Primary product image',
+          },
+        },
+        {
+          name: 'images',
+          type: 'array',
+          fields: [
+            {
+              name: 'image',
+              type: 'upload',
+              relationTo: 'media',
+              required: true,
+            },
+          ],
+          admin: {
+            description: 'Additional product images',
+          },
+        },
+      ],
+      admin: {
+        description: 'Product images and media',
+      },
+    },
+
+    // === STATUS ===
+    {
+      name: 'isActive',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Whether the product is currently active',
+      },
+    },
+
+    {
+      name: 'catalogVisibility',
+      type: 'select',
+      required: true,
+      defaultValue: 'visible',
+      options: [
+        { label: 'Visible (Shop + Search)', value: 'visible' },
+        { label: 'Catalog Only (Shop)', value: 'catalog' },
+        { label: 'Search Only', value: 'search' },
+        { label: 'Hidden', value: 'hidden' },
+      ],
+      admin: {
+        description: 'Controls where the product appears in catalog and search',
+      },
+    },
+
+
+    {
+      name: 'assign_to_all_vendor_merchants',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Assign this product to all merchants of the same vendor',
+      },
+    },
+
+    // === METADATA ===
+    {
+      name: 'createdAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        description: 'Creation timestamp',
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'updatedAt',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        description: 'Last update timestamp',
+        position: 'sidebar',
+      },
+    },
+  ],
+  hooks: {
+    beforeValidate: [
+      ({ data, operation: _operation }) => {
+        // beforeValidate only runs for create/update operations
+        // Ensure exactly one owner is specified
+        if (!data) {
+          throw new Error('Data is required')
+        }
+
+        const hasVendor = !!data.createdByVendor
+        const hasMerchant = !!data.createdByMerchant
+
+        if (!hasVendor && !hasMerchant) {
+          throw new Error('Product must be created by either a vendor or merchant')
+        }
+
+        if (hasVendor && hasMerchant) {
+          throw new Error('Product cannot be created by both vendor and merchant')
+        }
+
+        return data
+      },
+      ({ data }) => {
+        if (!data) throw new Error('Data is required')
+        const s = String(data.slug || '')
+        const n = String(data.name || '')
+        const base = n
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/[\s-]+/g, '-')
+        if (!s || s.trim().length === 0) {
+          data.slug = base
+        }
+        return data
+      },
+    ],
+    beforeChange: [
+      async ({ data, req, operation: _operation }) => {
+        console.log('🚀 PRODUCTS BEFORECHANGE HOOK TRIGGERED - Operation:', _operation);
+        console.log('🚀 User role:', req.user?.role);
+        console.log('🚀 assign_to_all_vendor_merchants:', data?.assign_to_all_vendor_merchants);
+
+        // beforeChange only runs for create/update operations
+        // Set timestamps
+        if (!data) {
+          throw new Error('Data is required')
+        }
+
+        const now = new Date()
+        if (!data.createdAt) {
+          data.createdAt = now
+        }
+        data.updatedAt = now
+
+        // Set createdByVendor based on the user's role and vendor association
+        if (req.user) {
+          if (req.user.role === 'vendor') {
+            // Only set createdByVendor if it's not already set (for create operations)
+            // For update operations, preserve existing createdByVendor unless it's empty
+            if (!data.createdByVendor || _operation === 'create') {
+              try {
+                const vendorResult = await req.payload.find({
+                  collection: 'vendors',
+                  where: {
+                    user: { equals: req.user.id }
+                  },
+                  limit: 1,
+                });
+
+                if (vendorResult.docs.length > 0) {
+                  data.createdByVendor = vendorResult.docs[0].id;
+                  console.log('✅ Set createdByVendor to:', vendorResult.docs[0].id, vendorResult.docs[0].businessName);
+                }
+              } catch (error) {
+                console.error('❌ Error finding vendor for user:', error);
+              }
+            } else {
+              console.log('✅ Preserving existing createdByVendor:', data.createdByVendor);
+            }
+          } else if (req.user.role === 'admin' && data.createdByVendor) {
+            // Admin can manually set the vendor
+            // Keep existing value
+          }
+        }
+
+        // Handle merchant assignment when assign_to_all_vendor_merchants is checked
+        if (data.assign_to_all_vendor_merchants && req.user?.role === 'vendor') {
+          console.log('🔄 Processing merchant assignment for vendor user:', req.user.id);
+          console.log('🔄 Checkbox is checked:', data.assign_to_all_vendor_merchants);
+          console.log('🔄 CreatedByVendor:', data.createdByVendor);
+
+          try {
+            // Use the vendor we just found or find it again if needed
+            let vendorId = data.createdByVendor;
+
+            if (!vendorId) {
+              // Find the vendor record associated with this user
+              const vendorResult = await req.payload.find({
+                collection: 'vendors',
+                where: {
+                  user: { equals: req.user.id }
+                },
+                limit: 1,
+              });
+
+              if (vendorResult.docs.length === 0) {
+                console.error('❌ No vendor found for user:', req.user.id);
+                data.assign_to_all_vendor_merchants = false;
+                return data;
+              }
+
+              vendorId = vendorResult.docs[0].id;
+              console.log('✅ Found vendor for assignment:', vendorId, vendorResult.docs[0].businessName);
+            }
+
+            // Find all active merchants for this vendor
+            const merchants = await req.payload.find({
+              collection: 'merchants',
+              where: {
+                vendor: { equals: vendorId },
+                isActive: { equals: true }
+              },
+              limit: 1000, // Reasonable limit
+            });
+
+            console.log(`📋 Found ${merchants.docs.length} active merchants for vendor ${vendorId}`);
+
+            if (merchants.docs.length === 0) {
+              console.log('ℹ️ No active merchants found for this vendor');
+              data.assign_to_all_vendor_merchants = false;
+              return data;
+            }
+
+            // Store merchant IDs in req.context for afterChange hook
+            if (!req.context) req.context = {};
+            req.context.merchantAssignmentData = merchants.docs.map(merchant => ({
+              id: merchant.id,
+              name: merchant.outletName || 'Unknown Merchant'
+            }));
+
+            // Reset the checkbox to prevent re-processing
+            data.assign_to_all_vendor_merchants = false;
+            console.log('✅ Prepared merchant assignment data and reset checkbox');
+            console.log('✅ Merchant data prepared:', req.context.merchantAssignmentData);
+
+          } catch (error) {
+            console.error('❌ Error in merchant assignment preparation:', error);
+            data.assign_to_all_vendor_merchants = false;
+          }
+        }
+
+        return data
+      },
+    ],
+    beforeDelete: [
+      async ({ req, id }) => {
+        const payload = req.payload
+        console.log(`🗑️ Cleaning up references before deleting product ${id}`)
+        try {
+          const cartItems = await payload.find({
+            collection: 'cart-items',
+            where: { product: { equals: id } },
+            limit: 1000,
+          })
+          for (const ci of cartItems.docs) {
+            await payload.delete({ collection: 'cart-items', id: ci.id })
+          }
+
+          const merchantProducts = await payload.find({
+            collection: 'merchant-products',
+            where: { product_id: { equals: id } },
+            limit: 1000,
+          })
+          for (const mp of merchantProducts.docs) {
+            await payload.delete({ collection: 'merchant-products', id: mp.id })
+          }
+
+          const modifierGroups = await payload.find({
+            collection: 'modifier-groups',
+            where: { product_id: { equals: id } },
+            limit: 1000,
+          })
+          const modifierGroupIds = modifierGroups.docs.map((doc) => doc.id)
+          if (modifierGroupIds.length > 0) {
+            const variationModifierGroupOverrides = await payload.find({
+              collection: 'variation-modifier-group-overrides',
+              where: { base_modifier_group_id: { in: modifierGroupIds } },
+              limit: 1000,
+            })
+            for (const override of variationModifierGroupOverrides.docs) {
+              await payload.delete({ collection: 'variation-modifier-group-overrides', id: override.id })
+            }
+
+            const modifierOptions = await payload.find({
+              collection: 'modifier-options',
+              where: { modifier_group_id: { in: modifierGroupIds } },
+              limit: 1000,
+            })
+            const optionOverrideIds = modifierOptions.docs.map((doc) => doc.id)
+            if (optionOverrideIds.length > 0) {
+              const variationModifierOptionOverrides = await payload.find({
+                collection: 'variation-modifier-option-overrides',
+                where: { base_modifier_option_id: { in: optionOverrideIds } },
+                limit: 1000,
+              })
+              for (const override of variationModifierOptionOverrides.docs) {
+                await payload.delete({ collection: 'variation-modifier-option-overrides', id: override.id })
+              }
+            }
+
+            for (const mg of modifierGroups.docs) {
+              await payload.delete({ collection: 'modifier-groups', id: mg.id })
+            }
+          }
+
+          const groupedParent = await payload.find({
+            collection: 'prod-grouped-items',
+            where: { parent_product_id: { equals: id } },
+            limit: 1000,
+          })
+          for (const gi of groupedParent.docs) {
+            await payload.delete({ collection: 'prod-grouped-items', id: gi.id })
+          }
+          const groupedChild = await payload.find({
+            collection: 'prod-grouped-items',
+            where: { child_product_id: { equals: id } },
+            limit: 1000,
+          })
+          for (const gi of groupedChild.docs) {
+            await payload.delete({ collection: 'prod-grouped-items', id: gi.id })
+          }
+
+          const tagsJunction = await payload.find({
+            collection: 'prod-tags-junction',
+            where: { product_id: { equals: id } },
+            limit: 1000,
+          })
+          for (const tj of tagsJunction.docs) {
+            await payload.delete({ collection: 'prod-tags-junction', id: tj.id })
+          }
+
+          const variations = await payload.find({
+            collection: 'prod-variations',
+            where: { product_id: { equals: id } },
+            limit: 1000,
+          })
+          for (const v of variations.docs) {
+            const vv = await payload.find({
+              collection: 'prod-variation-values',
+              where: { variation_id: { equals: v.id } },
+              limit: 1000,
+            })
+            for (const val of vv.docs) {
+              await payload.delete({ collection: 'prod-variation-values', id: val.id })
+            }
+            await payload.delete({ collection: 'prod-variations', id: v.id })
+          }
+
+          console.log(`✅ Cleanup complete for product ${id}`)
+        } catch (e) {
+          console.error('❌ Error cleaning up product references', e)
+          throw e
+        }
+      },
+    ],
+    afterChange: [
+      async ({ doc, previousDoc: _previousDoc, operation, req }) => {
+        console.log(`🔄 AfterChange hook triggered for operation: ${operation}, product: ${doc.id}`);
+        console.log(`🔄 Doc has _merchantAssignmentData:`, !!doc._merchantAssignmentData);
+
+        // afterChange runs for create/update/delete operations
+        // Use type assertion since PayloadCMS types don't include 'delete' in CreateOrUpdateOperation
+        if ((operation as string) === 'delete') {
+          return;
+        }
+
+        // Ensure we have valid doc and req objects
+        if (!doc || !req || !req.payload) {
+          console.warn('⚠️ Invalid doc or req object in afterChange hook');
+          return;
+        }
+
+        // Process merchant assignments if data was prepared in beforeChange
+        if (req.context?.merchantAssignmentData && Array.isArray(req.context.merchantAssignmentData)) {
+          console.log(`🔄 Processing ${req.context.merchantAssignmentData.length} merchant assignments for product ${doc.id}`);
+          console.log(`🔄 Merchant assignment data:`, req.context.merchantAssignmentData);
+
+          try {
+            let assignedCount = 0;
+            let skippedCount = 0;
+
+            // Process assignments sequentially to avoid database locks
+            for (const merchantData of req.context.merchantAssignmentData) {
+              console.log(`🔄 Processing merchant: ${merchantData.name} (${merchantData.id})`);
+
+              try {
+                // Check if assignment already exists
+                const existingAssignment = await req.payload.find({
+                  collection: 'merchant-products',
+                  where: {
+                    and: [
+                      { merchant_id: { equals: merchantData.id } },
+                      { product_id: { equals: doc.id } }
+                    ]
+                  },
+                  limit: 1,
+                });
+
+                if (existingAssignment.docs.length > 0) {
+                  console.log(`⏭️ Assignment already exists for merchant ${merchantData.name} (${merchantData.id})`);
+                  skippedCount++;
+                  continue;
+                }
+
+                // Create new assignment
+                console.log(`🔄 Creating assignment for merchant ${merchantData.name} (${merchantData.id})`);
+                await req.payload.create({
+                  collection: 'merchant-products',
+                  data: {
+                    merchant_id: merchantData.id,
+                    product_id: doc.id,
+                  },
+                });
+
+                console.log(`✅ Created assignment for merchant: ${merchantData.name} (${merchantData.id})`);
+                assignedCount++;
+              } catch (merchantError) {
+                console.error(`❌ Error creating assignment for merchant ${merchantData.name}:`, merchantError);
+              }
+            }
+
+            console.log(`✅ Merchant assignment completed: ${assignedCount} created, ${skippedCount} skipped`);
+          } catch (error) {
+            console.error('❌ Error processing merchant assignments:', error);
+          }
+        } else {
+          console.log('ℹ️ No merchant assignment data found in afterChange hook');
+        }
+
+        // Note: VendorProducts table has been removed in favor of simplified architecture
+        // Products now directly belong to vendors via createdByVendor field
+        // MerchantProducts handles the merchant-product relationships
+        console.log(`✅ Product ${operation} completed for product ${doc.id}`);
+      },
+    ],
+  },
+}

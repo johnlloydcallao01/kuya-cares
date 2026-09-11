@@ -1,0 +1,98 @@
+/**
+ * Android Autolinking Fix for Expo SDK 53+
+ * 
+ * This Gradle script fixes the ExpoModulesPackage import issue by hooking into
+ * the autolinking process and immediately correcting the generated import paths.
+ * 
+ * ROOT CAUSE: React Native CLI autolinking generates wrong import path
+ * - Generated: import expo.core.ExpoModulesPackage;
+ * - Correct:   import expo.modules.ExpoModulesPackage;
+ * 
+ * This is NOT related to AppEntry.js - it's a native Android compilation issue.
+ */
+
+// Hook into the autolinking task to fix imports immediately after generation
+afterEvaluate { project ->
+    // Find all tasks that generate autolinking
+    project.tasks.matching { task ->
+        task.name.contains("generateAutolinking") || 
+        task.name.contains("GenerateAutolinking") ||
+        task.name.contains("AutolinkingPackageList")
+    }.all { autolinkingTask ->
+        
+        // Add a doLast action to fix imports after autolinking completes
+        autolinkingTask.doLast {
+            println "🔧 APPLYING EXPO SDK 53+ AUTOLINKING FIX"
+            println "📋 Issue: React Native CLI generates wrong import path for ExpoModulesPackage"
+            
+            // Define possible locations for PackageList.java
+            def packageListLocations = [
+                "${project.buildDir}/generated/autolinking/src/main/java/com/facebook/react/PackageList.java",
+                "${project.buildDir}/generated/rncli/src/main/java/com/facebook/react/PackageList.java"
+            ]
+            
+            boolean fixedAny = false
+            
+            packageListLocations.each { location ->
+                def packageListFile = file(location)
+                if (packageListFile.exists()) {
+                    def content = packageListFile.text
+                    
+                    if (content.contains('import expo.core.ExpoModulesPackage;')) {
+                        println "🔧 Fixing wrong import in: ${location}"
+                        println "   expo.core.ExpoModulesPackage → expo.modules.ExpoModulesPackage"
+                        
+                        def fixedContent = content.replace(
+                            'import expo.core.ExpoModulesPackage;',
+                            'import expo.modules.ExpoModulesPackage;'
+                        )
+                        
+                        packageListFile.text = fixedContent
+                        println "✅ Successfully fixed import in: ${location}"
+                        fixedAny = true
+                    } else if (content.contains('import expo.modules.ExpoModulesPackage;')) {
+                        println "✅ Import already correct in: ${location}"
+                    } else {
+                        println "ℹ️  No ExpoModulesPackage import found in: ${location}"
+                    }
+                }
+            }
+            
+            if (fixedAny) {
+                println "✅ Autolinking import fix completed - Android build should now succeed"
+            } else {
+                println "ℹ️  No autolinking fixes needed"
+            }
+        }
+    }
+    
+    // Also hook into compile tasks as a safety net
+    project.tasks.matching { task ->
+        task.name.contains("compileDebugJavaWithJavac") || 
+        task.name.contains("compileReleaseJavaWithJavac")
+    }.all { compileTask ->
+        
+        compileTask.doFirst {
+            println "🔍 Pre-compile autolinking fix check..."
+            
+            // Search for any PackageList.java files in build directory
+            def buildDir = file("${project.buildDir}")
+            if (buildDir.exists()) {
+                buildDir.eachFileRecurse { file ->
+                    if (file.name == 'PackageList.java') {
+                        def content = file.text
+                        if (content.contains('import expo.core.ExpoModulesPackage;')) {
+                            println "🔧 EMERGENCY FIX: Wrong import found in ${file.path}"
+                            def fixedContent = content.replace(
+                                'import expo.core.ExpoModulesPackage;',
+                                'import expo.modules.ExpoModulesPackage;'
+                            )
+                            file.text = fixedContent
+                            println "✅ Emergency fix applied to: ${file.path}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

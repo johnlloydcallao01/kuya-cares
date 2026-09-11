@@ -1,0 +1,229 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: tap2go-git
+spec:
+  template:
+    metadata:
+      annotations:
+        # PayloadCMS + Next.js cold start compiles/imports ~50 collections.
+        # Defaults (1 CPU / 512Mi, CPU throttled) OOM or boot so slowly that
+        # Cloud Run reports "failed to start and listen on PORT=8080".
+        # Always allocate CPU during boot + give the revision room + a
+        # startup probe window against the static /api/health endpoint.
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      # Per Google docs, grant this account roles/secretmanager.secretAccessor
+      # on every secret below, otherwise the revision fails to start:
+      #   gcloud projects describe grandline-508001 --format='value(projectNumber)'
+      #   # then for each secret:
+      #   gcloud secrets add-iam-policy-binding SECRET \
+      #     --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+      #     --role="roles/secretmanager.secretAccessor"
+      # serviceAccountName: PROJECT_NUMBER-compute@developer.gserviceaccount.com
+      containers:
+        - image: asia-southeast1-docker.pkg.dev/grandline-508001/cloud-run-source-deploy/johnlloydcallao01-tap2go/tap2go-git:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          env:
+            # -----------------------------------------------------------------
+            # Plain (non-sensitive) config.
+            # Google docs: run/docs/configuring/services/environment-variables.
+            # - Max 1000 vars, max 32 KiB each. Never set PORT (Cloud Run
+            #   injects it) or GOOGLE_APPLICATION_CREDENTIALS.
+            # - Any change creates a new revision.
+            # - NEXT_PUBLIC_* are inlined by Next.js at BUILD time, so changing
+            #   them here alone does NOT update the browser bundle. Trigger a
+            #   rebuild (git push / redeploy) after changing them. See
+            #   docs/cloud-run-cms-deployment.md and run/docs/configuring/
+            #   services/build-environment-variables.
+            # -----------------------------------------------------------------
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_POOL_MAX
+              value: '20'
+            - name: DATABASE_POOL_MIN
+              value: '5'
+            - name: DATABASE_IDLE_TIMEOUT
+              value: '30000'
+            - name: DATABASE_CONNECTION_TIMEOUT
+              value: '10000'
+            - name: DATABASE_ACQUIRE_TIMEOUT
+              value: '60000'
+            - name: DATABASE_MAX_USES
+              value: '7500'
+            - name: DATABASE_STATEMENT_TIMEOUT
+              value: '20000'
+            - name: UPSTASH_REDIS_REST_URL
+              value: REPLACE_WITH_UPSTASH_REDIS_REST_URL
+            - name: NEXT_PUBLIC_SUPABASE_URL
+              value: REPLACE_WITH_NEXT_PUBLIC_SUPABASE_URL
+            - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+              value: REPLACE_WITH_NEXT_PUBLIC_SUPABASE_ANON_KEY
+            - name: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+              value: REPLACE_WITH_NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+            - name: ADMIN_LOCAL_URL
+              value: http://localhost:3002
+            - name: WEB_LOCAL_URL
+              value: http://localhost:3000
+            - name: CMS_LOCAL_URL
+              value: http://localhost:3001
+            - name: WEB_DRIVER_LOCAL_URL
+              value: REPLACE_WITH_WEB_DRIVER_LOCAL_URL
+            - name: MOBILE_CUSTOMER_LOCAL_URL
+              value: REPLACE_WITH_MOBILE_CUSTOMER_LOCAL_URL
+            - name: ADMIN_PROD_URL
+              value: https://admin.tap2goph.com
+            - name: WEB_PROD_URL
+              value: https://app.tap2goph.com
+            - name: CMS_PROD_URL
+              value: https://cms.tap2goph.com
+            - name: MERCHANT_PROD_URL
+              value: REPLACE_WITH_MERCHANT_PROD_URL
+            - name: COOKIE_DOMAIN
+              value: .tap2goph.com
+            - name: RESEND_FROM_EMAIL
+              value: REPLACE_WITH_RESEND_FROM_EMAIL
+            - name: EMAIL_FROM_NAME
+              value: Tap2Go
+            - name: EMAIL_REPLY_TO
+              value: REPLACE_WITH_EMAIL_REPLY_TO
+            - name: ENABLE_EMAIL_NOTIFICATIONS
+              value: 'false'
+            - name: PAYMONGO_SANDBOX
+              value: 'false'
+            - name: PAYMONGO_PUBLIC_KEY_LIVE
+              value: REPLACE_WITH_PAYMONGO_PUBLIC_KEY_LIVE
+            - name: LALAMOVE_SANDBOX
+              value: 'false'
+            - name: LALAMOVE_MARKET
+              value: PH
+            - name: LALAMOVE_PRIORITY_FEE
+              value: '20'
+            - name: RESET_PASSWORD_BASE_URL
+              value: https://app.tap2goph.com
+            - name: RESET_PASSWORD_TTL_MINUTES
+              value: '20'
+            - name: PAYLOAD_API_URL
+              value: REPLACE_WITH_PAYLOAD_API_URL
+            # -----------------------------------------------------------------
+            # Secrets (sensitive). Google docs:
+            # run/docs/configuring/services/secrets. Values are resolved at
+            # instance startup; if retrieval fails the instance does not start.
+            # `key: latest` tracks the newest version (simple); pin to a number
+            # (e.g. key: "1") for reproducible production releases.
+            # Create/update each secret from apps/cms/.env WITHOUT committing:
+            #   printf '%s' "$VALUE" | gcloud secrets create SECRET --data-file=-
+            #   printf '%s' "$VALUE" | gcloud secrets versions add SECRET --data-file=-
+            # Or run scripts/cloud-run-sync-env.sh (Cloud Shell) which does all
+            # of this from apps/cms/.env automatically.
+            # -----------------------------------------------------------------
+            - name: DATABASE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-database-uri
+                  key: latest
+            - name: PAYLOAD_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-payload-secret
+                  key: latest
+            - name: PAYLOAD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-payload-api-key
+                  key: latest
+            - name: UPSTASH_REDIS_REST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-upstash-redis-rest-token
+                  key: latest
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-supabase-service-role-key
+                  key: latest
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-cloudinary-api-key
+                  key: latest
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-cloudinary-api-secret
+                  key: latest
+            - name: GOOGLE_MAPS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-google-maps-api-key
+                  key: latest
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-resend-api-key
+                  key: latest
+            - name: PAYMONGO_SECRET_KEY_LIVE
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-paymongo-secret-key-live
+                  key: latest
+            - name: PAYMONGO_SANDBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-paymongo-sandbox-api-key
+                  key: latest
+            - name: PAYMONGO_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-paymongo-webhook-secret
+                  key: latest
+            - name: PAYMONGO_SANDBOX_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-paymongo-sandbox-webhook-secret
+                  key: latest
+            - name: LALAMOVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-lalamove-api-key
+                  key: latest
+            - name: LALAMOVE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-lalamove-api-secret
+                  key: latest
+            - name: LALAMOVE_SANDBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-lalamove-sandbox-api-key
+                  key: latest
+            - name: LALAMOVE_SANDBOX_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tap2go-lalamove-sandbox-api-secret
+                  key: latest
