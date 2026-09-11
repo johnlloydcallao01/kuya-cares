@@ -13,7 +13,7 @@ import {
 import { formatCMSDateTime } from '@/lib/cms'
 import type { Post } from '@encreasl/cms-types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api'
 
 function KpiCard({ title, value, sub, icon, iconBg }: { title: string; value: string; sub?: string; icon: React.ReactNode; iconBg: string }) {
   return (

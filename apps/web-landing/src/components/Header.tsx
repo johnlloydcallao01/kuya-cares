@@ -56,7 +56,7 @@ export function Header() {
               <i className="fas fa-search text-lg"></i>
             </button>
             <Link
-              href="https://app.tap2goph.com/"
+              href="https://app.kuyacares.com/"
               className="bg-gradient-to-r from-[#201a7c] to-[#ab3b43] text-white px-6 py-3 rounded-lg font-medium hover:from-[#1a1569] hover:to-[#8f2f36] transition-all duration-300 inline-flex items-center text-sm"
             >
               <i className="fas fa-user-circle mr-2"></i>
@@ -95,7 +95,7 @@ export function Header() {
                   Search
                 </button>
                 <Link
-                  href="https://app.tap2goph.com/"
+                  href="https://app.kuyacares.com/"
                   className="block w-full text-center bg-gradient-to-r from-[#201a7c] to-[#ab3b43] text-white px-6 py-4 rounded-lg font-medium hover:from-[#1a1569] hover:to-[#8f2f36] transition-all duration-300 inline-flex items-center justify-center"
                   onClick={() => setIsMenuOpen(false)}
                 >

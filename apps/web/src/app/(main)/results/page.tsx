@@ -189,7 +189,7 @@ export default function SearchResultsPage() {
         setIsProductLoading(false);
         return;
       }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers["Authorization"] = `users API-Key ${apiKey}`;

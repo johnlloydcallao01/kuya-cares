@@ -32,7 +32,7 @@ export function generateWebMetadata(params: {
   image?: string;
   path?: string;
 }): WebSEOMetadata {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://encreasl.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kuyacares.com';
   
   return {
     title: `${params.title} | Encreasl - Ecommerce Marketing Agency`,
@@ -58,7 +58,7 @@ export function generateWebStructuredData(params: {
   path?: string;
   image?: string;
 }): Record<string, unknown> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://encreasl.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kuyacares.com';
   
   return {
     '@context': 'https://schema.org',
@@ -77,7 +77,7 @@ export function generateWebStructuredData(params: {
         '@type': 'ContactPoint',
         telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE || '',
         contactType: 'customer service',
-        email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contact@encreasl.com',
+        email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'support@kuyacares.com',
       },
     },
   };
@@ -90,7 +90,7 @@ export function generateWebBreadcrumbs(breadcrumbs: Array<{
   name: string;
   path: string;
 }>): Record<string, unknown> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://encreasl.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kuyacares.com';
   
   return {
     '@context': 'https://schema.org',
@@ -135,7 +135,7 @@ export function generateWebServiceStructuredData(service: {
   areaServed?: string;
   serviceType?: string;
 }): Record<string, unknown> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://encreasl.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.kuyacares.com';
   
   return {
     '@context': 'https://schema.org',

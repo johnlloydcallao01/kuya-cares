@@ -6,7 +6,7 @@ import Image from '@/components/ui/ImageWrapper';
 import { ArrowLeft, AlertCircle, Loader2, CheckCircle, Mail } from '@/components/ui/IconWrapper';
 import { PublicRoute } from '@/components/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();

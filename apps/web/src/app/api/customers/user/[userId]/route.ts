@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * GET /api/customers/user/[userId]
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
 export async function GET(
   request: NextRequest,

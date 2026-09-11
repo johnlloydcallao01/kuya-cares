@@ -49,7 +49,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
           })()
         : null;
       if (!userId) return;
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };

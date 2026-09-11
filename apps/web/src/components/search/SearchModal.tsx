@@ -145,7 +145,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
         const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
         const userId = userStr ? (() => { try { return JSON.parse(userStr)?.id; } catch { return null; } })() : null;
         if (!userId) { setServerRecentQueries([]); return; }
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
         if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -239,7 +239,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
       if (!isOpen || !isMobile) return;
       const q = normalizeQuery(query);
       if (!q) { setProductSuggestions([]); return; }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -267,7 +267,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
       if (!isOpen || !isMobile || !hasCommittedSearch) { setProductMatchedMerchants([]); setIsProductLoading(false); return; }
       const q = normalizeQuery(query);
       if (!q) { setProductMatchedMerchants([]); setIsProductLoading(false); return; }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -405,7 +405,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
         const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
         const userId = userStr ? (() => { try { return JSON.parse(userStr)?.id; } catch { return null; } })() : null;
         if (!userId) return;
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
         if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;

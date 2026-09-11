@@ -1384,7 +1384,7 @@ function ProfileInner() {
   <Sparkles className="w-4 h-4 text-[#eba236]" /> Need help?
   </h4>
   <p className="text-sm opacity-80 mt-1 leading-relaxed">Contact support to change business details or reactivate a locked account.</p>
-  <a href="mailto:support@tap2goph.com" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold bg-white dark:bg-[#eba236] text-black px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#c88a20] transition-colors">
+  <a href="mailto:support@kuyacares.com" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold bg-white dark:bg-[#eba236] text-black px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#c88a20] transition-colors">
   <Mail className="w-4 h-4" /> Contact support
   </a>
   </div>

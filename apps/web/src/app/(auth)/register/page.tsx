@@ -195,7 +195,7 @@ export default function RegisterPage(): React.ReactNode {
       }
 
       // CORS is completely disabled on the CMS - use direct URL
-      const registrationUrl = 'https://cms.tap2goph.com/api/customer-register';
+      const registrationUrl = 'https://cms.kuyacares.com/api/customer-register';
 
       // Build payload excluding non-processed fields
       const derivedUsername = (formData.email || '').split('@')[0] || (formData.username || '');

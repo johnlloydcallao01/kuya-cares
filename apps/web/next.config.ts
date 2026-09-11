@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'cms.tap2goph.com',
+        hostname: 'cms.kuyacares.com',
         port: '',
         pathname: '/**',
       },
@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/cms/:path*',
-        destination: 'https://cms.tap2goph.com/api/:path*',
+        destination: 'https://cms.kuyacares.com/api/:path*',
       },
     ];
   },

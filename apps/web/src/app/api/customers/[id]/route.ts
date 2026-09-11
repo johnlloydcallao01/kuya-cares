@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Proxies requests to PayloadCMS customers collection
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
 /**
  * PATCH /api/customers/[id]

@@ -7,7 +7,7 @@ import { getCMSImageUrl } from '@/lib/cms';
 import { useAuth } from '@/hooks/useAuth';
 import { getStoredToken } from '@/lib/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
 interface MediaUploaderProps {
   value?: string | number; // Media ID

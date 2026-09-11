@@ -51,7 +51,7 @@ async function checkMaintenanceMode() {
 
     if (!apiUrl) {
       if (process.env.NODE_ENV === 'production') {
-        apiUrl = 'https://cms.tap2goph.com/api';
+        apiUrl = 'https://cms.kuyacares.com/api';
       } else {
         apiUrl = 'http://localhost:3001/api';
       }

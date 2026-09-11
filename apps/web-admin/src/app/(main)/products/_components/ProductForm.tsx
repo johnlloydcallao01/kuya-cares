@@ -70,7 +70,7 @@ export function ProductForm({ initial, onSuccess, onCancel }: { initial?: Produc
         if (ok && j.docs) setCategories(j.docs.map((d: any) => ({ id: d.id, name: d.name || `Category #${d.id}` })))
         else {
           // fallback to BFF via products categories? try CMS direct
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api'}/product-categories?limit=100`, { cache: 'no-store' } as any)
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api'}/product-categories?limit=100`, { cache: 'no-store' } as any)
             .then(r => r.json()).then(j2 => {
               const docs = j2.docs || j2.data || []
               if (Array.isArray(docs)) setCategories(docs.map((d: any) => ({ id: d.id || d._id, name: d.name || d.title || `Category #${d.id}` })))

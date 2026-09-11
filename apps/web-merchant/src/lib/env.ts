@@ -20,7 +20,7 @@ export const env = {
   NEXT_PUBLIC_SHOW_DEV_TOOLS: process.env.NEXT_PUBLIC_SHOW_DEV_TOOLS === 'true',
 
   // API Configuration (consistent with apps/web)
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api',
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api',
 };
 
 // Export commonly used environment variables for easy access

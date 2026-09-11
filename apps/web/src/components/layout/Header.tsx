@@ -323,7 +323,7 @@ export function Header({
       const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
       const userId = userStr ? (() => { try { return JSON.parse(userStr)?.id; } catch { return null; } })() : null;
       if (!userId) { setServerRecentQueries([]); return; }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -343,7 +343,7 @@ export function Header({
     const run = async () => {
       const q = normalizeQuery(searchQuery);
       if (!q) { setProductSuggestions([]); return; }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -409,7 +409,7 @@ export function Header({
       if (!hasCommittedSearch) { setProductMatchedMerchants([]); setIsProductLoading(false); return; }
       const q = normalizeQuery(searchQuery);
       if (!q) { setProductMatchedMerchants([]); setIsProductLoading(false); return; }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
@@ -493,7 +493,7 @@ export function Header({
         const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
         const userId = userStr ? (() => { try { return JSON.parse(userStr)?.id; } catch { return null; } })() : null;
         if (!userId) return;
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
         if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;

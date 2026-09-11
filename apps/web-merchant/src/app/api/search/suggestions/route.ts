@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { SearchCategory } from '@/lib/search-types';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api').replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 const AUTH_COOKIE = 'tap2go-merchant-token';
 // Service API key (same pattern as apps/web storefront). Production CMS blocks
 // vendor JWTs from reading `products`, so `merchant-products?depth=N` returns

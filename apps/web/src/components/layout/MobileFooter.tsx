@@ -216,7 +216,7 @@ export function MobileFooter() {
                 if (!productId || Number.isNaN(productId)) return;
 
                 const API_BASE =
-                  process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+                  process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
                 const headers: Record<string, string> = {
                   'Content-Type': 'application/json',
                 };

@@ -27,7 +27,7 @@ export default function NewlyUpdatedPage(): React.ReactNode {
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
 
   // Always use the production CMS API for address lookups
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
 
   const fetchAndSetActiveAddresses = useCallback(
     async (list: LocationBasedMerchant[]) => {

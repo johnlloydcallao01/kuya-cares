@@ -26,7 +26,7 @@ import { serverLogin, serverLogout, getServerUser, serverRefresh } from '@/app/a
 // ========================================
 
 function normalizeApiBaseUrl(raw?: string): string {
-  const fallback = 'https://cms.tap2goph.com/api';
+  const fallback = 'https://cms.kuyacares.com/api';
   const trimmed = (raw || '').trim();
   let base = trimmed || fallback;
 

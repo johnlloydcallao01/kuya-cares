@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { QUERY_KEYS, SHARED_QUERY_DEFAULTS } from '@encreasl/client-services';
 import type { Post } from '@encreasl/cms-types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
 export type PostsResponse = {
   docs: Post[];

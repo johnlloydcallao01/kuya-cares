@@ -85,7 +85,7 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
     setIsSending(true);
 
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       const headers: Record<string, string> = {

@@ -7,8 +7,8 @@ import { OrderDetailSkeleton } from '@/components/skeletons/OrdersSkeleton';
 import OrderHelpModal from '@/components/modals/OrderHelpModal';
 import OrderHeader from '@/components/orders/OrderHeader';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '1331d981-b6b7-4ff5-aab6-b9ddbb0c63ae';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
+const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '00ffd535-f53d-44d0-b86d-945c90be2729';
 
 type OrderStatus =
   | 'pending'

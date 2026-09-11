@@ -1,6 +1,6 @@
 "use client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
 const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || "";
 
 export function getCurrentUserIdFromStorage(): string | number | null {

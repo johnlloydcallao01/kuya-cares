@@ -2,7 +2,7 @@
 
 import { getServerToken, getServerUser } from './auth'
 
-const CMS_API = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api').replace(/\/+$/, '')
+const CMS_API = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '')
 
 export interface AdminNotification {
   id: number | string

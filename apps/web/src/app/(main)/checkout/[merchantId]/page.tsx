@@ -243,7 +243,7 @@ export default function CheckoutPage() {
       const returnUrl =
         typeof window !== 'undefined'
           ? `${window.location.origin}/checkout/${merchantId}/return`
-          : `https://app.tap2goph.com/checkout/${merchantId}/return`;
+          : `https://app.kuyacares.com/checkout/${merchantId}/return`;
       const resp = await fetch(
         `https://api.paymongo.com/v1/payment_intents/${intentId}/attach`,
         {
@@ -298,7 +298,7 @@ export default function CheckoutPage() {
     setClientKey(null);
     setQrImage(null);
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       console.log('Using API_BASE:', API_BASE); // Debug log
 
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;

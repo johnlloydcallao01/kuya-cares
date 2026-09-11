@@ -50,7 +50,7 @@ type CartContextValue = {
 
  const CartContext = createContext<CartContextValue | undefined>(undefined);
 
- const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
  export function CartProvider({ children }: { children: React.ReactNode }) {
    const [items, setItems] = useState<CartItem[]>([]);

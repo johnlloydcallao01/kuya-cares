@@ -2,7 +2,7 @@ import 'server-only';
 import type { Product, ModifierGroup, ModifierOption } from '@/types/product';
 
 export class ProductService {
-  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 
   static async getProductWithModifiers(productId: string): Promise<Product | null> {
     try {

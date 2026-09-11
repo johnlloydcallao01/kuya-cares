@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('https://cms.tap2goph.com/api/reset-password', {
+      const res = await fetch('https://cms.kuyacares.com/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword }),

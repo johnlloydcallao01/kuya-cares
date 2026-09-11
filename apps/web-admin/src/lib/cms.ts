@@ -10,8 +10,8 @@ import { env } from './env';
 // ========================================
 
 export const cmsConfig = {
-  apiUrl: env.NEXT_PUBLIC_API_URL || 'https://cms.tap2goph.com/api',
-  serverUrl: env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://cms.tap2goph.com',
+  apiUrl: env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api',
+  serverUrl: env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://cms.kuyacares.com',
   collections: {
     posts: 'posts',
     media: 'media',

@@ -36,7 +36,7 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
     let active = true;
     const controller = new AbortController();
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
     if (apiKey) headers["Authorization"] = `users API-Key ${apiKey}`;
@@ -129,7 +129,7 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
     const controller = new AbortController();
     try {
       setLoadingMore(true);
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
       if (apiKey) headers["Authorization"] = `users API-Key ${apiKey}`;
@@ -172,7 +172,7 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
       const ids = Array.from(collectedIds);
       let mergedCategories = [...categories];
       if (ids.length > 0) {
-        const API_BASE2 = process.env.NEXT_PUBLIC_API_URL || "https://cms.tap2goph.com/api";
+        const API_BASE2 = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
         const catUrl = `${API_BASE2}/product-categories?where[id][in]=${ids.join(",")}&limit=${ids.length}&depth=1&t=${Date.now()}`;
         const catRes = await fetch(catUrl, { headers, cache: "no-store", signal: controller.signal });
         if (catRes.ok) {
