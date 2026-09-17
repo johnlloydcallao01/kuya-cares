@@ -146,24 +146,29 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
   const initializeAuth = useCallback(async () => {
     // Simple check: if we have a valid token, get the user
     if (hasValidStoredToken()) {
-      // Try to get cached user first for instant display
+      // Show cached user instantly for a snappy first paint...
       const cachedUserData = localStorage.getItem('grandline_auth_user');
+      let hasCachedUser = false;
       if (cachedUserData) {
         try {
           const cachedUser = JSON.parse(cachedUserData);
           dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user: cachedUser } });
-          return; // Use cached data, no API call needed
+          hasCachedUser = true;
         } catch (e) {
-          // Invalid cached data, fall through to API call
+          // Invalid cached data, ignore and rely on the API call below
         }
       }
 
-      // No valid cached data, make single API call
+      // ...then always refresh from the API so fresh profile data is used,
+      // e.g. a profilePicture that was set in the CMS after the user logged in.
       try {
         const user = await getCurrentUser();
         dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user } });
       } catch (error) {
-        dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user: null } });
+        // If the API call fails but we showed a cached user, keep it.
+        if (!hasCachedUser) {
+          dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user: null } });
+        }
       }
     } else {
       // No token, user is not authenticated

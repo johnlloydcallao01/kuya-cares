@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
       return;
     }
     if (!(checks.lenOk && checks.hasUpper && checks.hasNumber && checks.hasSpecial && checks.match)) {
-      setError('Password must be 8–40 chars, include uppercase, number, special, and match.');
+      setError('Password must be 8â€“40 chars, include uppercase, number, special, and match.');
       return;
     }
 
@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
           } else if (data?.errorCode === 'TOKEN_INVALID') {
             setError('Invalid reset link. Please request a new link.');
           } else if (data?.errorCode === 'PASSWORD_POLICY_FAILED') {
-            setError('Password must be 8–40 chars, include uppercase, number, and special.');
+            setError('Password must be 8â€“40 chars, include uppercase, number, and special.');
           } else if (typeof data?.error === 'string') {
             setError(data.error);
           } else {
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
                 <div className="mb-8">
                   <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                     <Image
-                      src="/logo.png"
+                      src="/kuya-cares.png"
                       alt="Tap2Go Logo"
                       width={64}
                       height={64}
@@ -179,7 +179,7 @@ export default function ResetPasswordPage() {
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                 <div className="hidden lg:block text-center mb-8">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Tap2Go Logo"
                     width={64}
                     height={64}
@@ -192,7 +192,7 @@ export default function ResetPasswordPage() {
 
                 <div className="lg:hidden text-center mb-6">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Tap2Go Logo"
                     width={64}
                     height={64}
@@ -289,7 +289,7 @@ export default function ResetPasswordPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div className={`flex items-center gap-2 ${checks.lenOk ? 'text-green-600' : 'text-gray-600'}`}>
                       <i className={`fa ${checks.lenOk ? 'fa-check-circle' : 'fa-circle'}`}></i>
-                      8–40 characters
+                      8â€“40 characters
                     </div>
                     <div className={`flex items-center gap-2 ${checks.hasUpper ? 'text-green-600' : 'text-gray-600'}`}>
                       <i className={`fa ${checks.hasUpper ? 'fa-check-circle' : 'fa-circle'}`}></i>

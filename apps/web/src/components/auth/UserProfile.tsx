@@ -86,8 +86,16 @@ export function UserAvatar({
 
   // Get profile picture URL with fallback priority
   const getProfilePictureUrl = () => {
-    if (!user?.profilePicture) return null;
-    return user.profilePicture.cloudinaryURL || user.profilePicture.url || null;
+    const pp = user?.profilePicture as
+      | { cloudinaryURL?: string | null; url?: string | null }
+      | number
+      | string
+      | null
+      | undefined;
+    // Ignore scalar IDs or missing values — only a resolved media object has a URL.
+    if (!pp || typeof pp !== 'object') return null;
+    const url = pp.cloudinaryURL || pp.url;
+    return typeof url === 'string' && url.trim() ? url : null;
   };
 
   const profilePictureUrl = getProfilePictureUrl();

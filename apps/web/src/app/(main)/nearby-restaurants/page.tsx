@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   getCurrentCustomerId,
-  getLocationBasedMerchants,
+  getBrowsingMerchants,
   getActiveAddressNamesForMerchants,
   type LocationBasedMerchant,
 } from "@encreasl/client-services";
@@ -100,7 +100,7 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
     });
   }, []);
 
-  // Resolve customer ID locally so this page is fully independent
+  // Shopee-style: show all merchants immediately, address optional.
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -108,24 +108,19 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
         const id = await getCurrentCustomerId();
         if (!mounted) return;
         setCustomerId(id);
-        if (!id) {
-          setError("No customer session found");
-          setIsLoading(false);
-          return;
-        }
         setError(null);
         setIsLoading(true);
-        const data = await getLocationBasedMerchants({ customerId: id, limit: 50 });
+        const data = await getBrowsingMerchants({ customerId: id ?? undefined, limit: 50 });
         if (!mounted) return;
         setMerchants(data || []);
         // Fetch active address names in background to display after merchant name
         fetchAndSetActiveAddresses(data || []);
         setIsLoading(false);
       } catch (err) {
-        console.error("NearbyRestaurants: Failed to resolve customer ID", err);
+        console.error("NearbyRestaurants: Failed to load merchants", err);
         if (!mounted) return;
         setCustomerId(null);
-        setError("Failed to load nearby merchants");
+        setError("Failed to load merchants");
         setIsLoading(false);
       }
     })();
@@ -147,7 +142,7 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
           >
             <i className="fas fa-arrow-left leading-none text-[0.9rem]"></i>
           </button>
-          <h1 className="text-base font-normal text-gray-900">Nearby Restaurants</h1>
+          <h1 className="text-base font-normal text-gray-900">Restaurants</h1>
         </div>
       </div>
 
@@ -190,8 +185,8 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No nearby merchants found</h3>
-              <p className="text-gray-600">Try adjusting your address or check back later.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No merchants found</h3>
+              <p className="text-gray-600">Check back later.</p>
             </div>
           )}
 

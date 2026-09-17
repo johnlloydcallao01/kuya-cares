@@ -56,11 +56,10 @@ export async function GET(request: NextRequest) {
     const cached = await getCached<DashboardResponse>(cacheKey)
     if (cached) return NextResponse.json(cached, { headers: { 'X-Dashboard-Cache': 'HIT' } })
 
-    const [vendorsRes, merchantsRes, ordersRes, driversRes, customersRes, transactionsRes] = await Promise.all([
+    const [vendorsRes, merchantsRes, ordersRes, customersRes, transactionsRes] = await Promise.all([
       payload.find({ collection: 'vendors', limit: 1000, depth: 1, overrideAccess: true }),
       payload.find({ collection: 'merchants', limit: 1000, depth: 1, overrideAccess: true }),
       payload.find({ collection: 'orders', limit: 1000, sort: '-createdAt', depth: 1, overrideAccess: true }),
-      payload.find({ collection: 'drivers', limit: 1000, depth: 1, overrideAccess: true }),
       payload.find({ collection: 'customers', limit: 1000, overrideAccess: true }),
       payload.find({ collection: 'transactions', limit: 1000, where: { status: { equals: 'paid' } }, depth: 1, overrideAccess: true }),
     ])
@@ -68,7 +67,6 @@ export async function GET(request: NextRequest) {
     const vendorsDocs = vendorsRes.docs
     const merchantsDocs = merchantsRes.docs
     const ordersDocs = ordersRes.docs as unknown as Record<string, unknown>[]
-    const driversDocs = driversRes.docs
     const customersDocs = customersRes.docs
     const paidTransactions = transactionsRes.docs as unknown as Record<string, unknown>[]
 

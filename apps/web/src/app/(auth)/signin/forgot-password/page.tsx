@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
                 <div className="mb-8">
                   <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                     <Image
-                      src="/logo.png"
+                      src="/kuya-cares.png"
                       alt="Tap2Go Logo"
                       width={64}
                       height={64}
@@ -127,7 +127,7 @@ export default function ForgotPasswordPage() {
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                 <div className="hidden lg:block text-center mb-8">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Tap2Go Logo"
                     width={64}
                     height={64}
@@ -140,7 +140,7 @@ export default function ForgotPasswordPage() {
 
                 <div className="lg:hidden text-center mb-6">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Tap2Go Logo"
                     width={64}
                     height={64}

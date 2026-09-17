@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   getCurrentCustomerId,
-  getLocationBasedMerchants,
+  getBrowsingMerchants,
   getActiveAddressNamesForMerchants,
   sortMerchantsByRecentlyUpdated,
   type LocationBasedMerchant,
@@ -101,7 +101,7 @@ export default function NewlyUpdatedPage(): React.ReactNode {
     };
   }, []);
 
-  // Resolve customer ID and fetch merchants, then sort by updated time (desc)
+  // Shopee-style: show all merchants immediately, then sort by updated time (desc)
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -109,14 +109,9 @@ export default function NewlyUpdatedPage(): React.ReactNode {
         const id = await getCurrentCustomerId();
         if (!mounted) return;
         setCustomerId(id);
-        if (!id) {
-          setError("No customer session found");
-          setIsLoading(false);
-          return;
-        }
         setError(null);
         setIsLoading(true);
-        const data = await getLocationBasedMerchants({ customerId: id, limit: 50 });
+        const data = await getBrowsingMerchants({ customerId: id ?? undefined, limit: 50 });
         if (!mounted) return;
         // Sort by updatedAt/createdAt desc to represent "Newly Updated"
         const getUpdatedTimeMs = (m: LocationBasedMerchant): number => {

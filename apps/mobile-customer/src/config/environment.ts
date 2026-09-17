@@ -1,5 +1,3 @@
-export const firebaseConfig = {};
-
 const getPublicEnvVar = (key: string): string => {
   try {
     const value = process.env?.[key];

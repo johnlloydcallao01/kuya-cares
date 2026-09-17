@@ -8,7 +8,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const token = request.cookies.get(AUTH_COOKIE)?.value
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    const res = await fetch(`${CMS_BASE}/admin/users/${id}/dependencies`, {
+    const { searchParams } = new URL(request.url)
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : ''
+    const res = await fetch(`${CMS_BASE}/admin/users/${id}/dependencies${qs}`, {
       headers: { Authorization: `JWT ${token}` },
       cache: 'no-store',
     })

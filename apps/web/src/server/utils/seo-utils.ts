@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file apps/web/src/server/utils/seo-utils.ts
  * @description Web app specific SEO utilities and metadata generation
  */
@@ -71,7 +71,7 @@ export function generateWebStructuredData(params: {
       '@type': 'Organization',
       name: 'Encreasl',
       url: baseUrl,
-      logo: `${baseUrl}/logo.png`,
+      logo: `${baseUrl}/kuya-cares.png`,
       description: 'Ecommerce Marketing Agency',
       contactPoint: {
         '@type': 'ContactPoint',

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@encreasl/client-services';
-import { useMerchantDashboard } from '@/hooks/useMerchantDashboard';
+import { useMerchantDashboardMetrics, useMerchantDashboardCharts, useMerchantDashboardTables } from '@/hooks/useMerchantDashboard';
 import { ClientOnly } from '@/components/ClientOnly';
 import {
   MetricCard,
@@ -34,6 +34,30 @@ function DashboardError({ message, onRetry }: { message: string; onRetry: () => 
           Retry
         </button>
       </div>
+    </div>
+  );
+}
+
+function SectionError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900/40 shadow-sm p-6 text-center">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{message}</p>
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm font-medium shadow-sm"
+      >
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Retry
+      </button>
+    </div>
+  );
+}
+
+function SectionSkeleton({ className = '' }: { className?: string }) {
+  return (
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 animate-pulse ${className}`}>
+      <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-36 mb-4" />
+      <div className="h-32 bg-gray-100 dark:bg-gray-700 rounded" />
     </div>
   );
 }
@@ -162,38 +186,65 @@ function DashboardSkeleton() {
 function DashboardPageContent() {
   const queryClient = useQueryClient();
   const [hardRefreshing, setHardRefreshing] = useState(false);
-  const { data, isPending, isFetching, isError, error: queryError, refetch } = useMerchantDashboard();
+  // Three independent queries under the same merchant-dashboard/ directory —
+  // they fetch in parallel and each widget renders as soon as its own group
+  // resolves (no whole-page waterfall).
+  const metricsQuery = useMerchantDashboardMetrics();
+  const chartsQuery = useMerchantDashboardCharts();
+  const tablesQuery = useMerchantDashboardTables();
 
-  const isInitialLoading = (isPending && !data) || hardRefreshing;
+  const isFetching = metricsQuery.isFetching || chartsQuery.isFetching || tablesQuery.isFetching;
   const loading = isFetching || hardRefreshing;
-  const error = isError && !data && !hardRefreshing ? (queryError instanceof Error ? queryError.message : 'Failed to load dashboard') : null;
+  const allLoading =
+    (metricsQuery.isLoading && !metricsQuery.data) &&
+    (chartsQuery.isLoading && !chartsQuery.data) &&
+    (tablesQuery.isLoading && !tablesQuery.data);
+  const allErrored =
+    metricsQuery.isError && !metricsQuery.data &&
+    chartsQuery.isError && !chartsQuery.data &&
+    tablesQuery.isError && !tablesQuery.data;
 
   const handleHardRefresh = () => {
     if (hardRefreshing) return;
     setHardRefreshing(true);
     void (async () => {
       try {
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantDashboardMetrics });
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantDashboardCharts });
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantDashboardTables });
         queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantDashboard() });
-        await refetch({ cancelRefetch: true });
+        await Promise.all([
+          metricsQuery.refetch({ cancelRefetch: true }),
+          chartsQuery.refetch({ cancelRefetch: true }),
+          tablesQuery.refetch({ cancelRefetch: true }),
+        ]);
       } finally { setHardRefreshing(false) }
     })();
   };
 
-  if (error && !data) {
+  if (allErrored && !hardRefreshing) {
     return (
       <div className="p-4 sm:p-6">
-        <DashboardError message={error} onRetry={handleHardRefresh} />
+        <DashboardError message="Failed to load dashboard" onRetry={handleHardRefresh} />
       </div>
     );
   }
 
-  if (isInitialLoading) {
+  // Full skeleton only on cold first load (all three pending) or hard refresh.
+  // Back-nav within staleTime hits TanStack cache -> instant render, no skeleton.
+  // Otherwise each section below renders/skeletons independently (progressive).
+  if (allLoading || hardRefreshing) {
     return <DashboardSkeleton />;
   }
 
-  if (!data) return null;
-
-  const { metrics, outlets, revenueChart, orderStatusChart, topProducts, activeDeliveries, pendingOrders, recentOrders } = data;
+  const metrics = metricsQuery.data?.metrics;
+  const outlets = metricsQuery.data?.outlets;
+  const revenueChart = chartsQuery.data?.revenueChart;
+  const orderStatusChart = chartsQuery.data?.orderStatusChart;
+  const topProducts = chartsQuery.data?.topProducts;
+  const activeDeliveries = tablesQuery.data?.activeDeliveries;
+  const pendingOrders = tablesQuery.data?.pendingOrders;
+  const recentOrders = tablesQuery.data?.recentOrders;
 
   return (
     <div className="space-y-6 py-5 px-2.5">
@@ -216,58 +267,124 @@ function DashboardPageContent() {
         </div>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <MetricCard
-          title="Today's Revenue"
-          value={`₱${metrics.todayRevenue.toLocaleString('en-PH')}`}
-          change={metrics.revenueChange}
-          icon={<DollarSign className="w-5 h-5 text-white" />}
-          iconBg="bg-green-500"
-        />
-        <MetricCard
-          title="Pending Orders"
-          value={metrics.pendingOrders.toLocaleString('en-PH')}
-          change={0}
-          icon={<Clock className="w-5 h-5 text-white" />}
-          iconBg="bg-amber-500"
-        />
-        <MetricCard
-          title="Total Orders"
-          value={metrics.totalOrders.toLocaleString('en-PH')}
-          change={metrics.ordersChange}
-          icon={<ShoppingCart className="w-5 h-5 text-white" />}
-          iconBg="bg-blue-500"
-        />
-        <MetricCard
-          title="Total Revenue"
-          value={`₱${metrics.totalRevenue.toLocaleString('en-PH')}`}
-          change={metrics.revenueChange}
-          icon={<DollarSign className="w-5 h-5 text-white" />}
-          iconBg="bg-purple-500"
-        />
-      </div>
+      {/* Metric Cards + Outlets (metrics group) */}
+      {metrics && outlets ? (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <MetricCard
+              title="Today's Revenue"
+              value={`₱${metrics.todayRevenue.toLocaleString('en-PH')}`}
+              change={metrics.revenueChange}
+              icon={<DollarSign className="w-5 h-5 text-white" />}
+              iconBg="bg-green-500"
+            />
+            <MetricCard
+              title="Pending Orders"
+              value={metrics.pendingOrders.toLocaleString('en-PH')}
+              change={0}
+              icon={<Clock className="w-5 h-5 text-white" />}
+              iconBg="bg-amber-500"
+            />
+            <MetricCard
+              title="Total Orders"
+              value={metrics.totalOrders.toLocaleString('en-PH')}
+              change={metrics.ordersChange}
+              icon={<ShoppingCart className="w-5 h-5 text-white" />}
+              iconBg="bg-blue-500"
+            />
+            <MetricCard
+              title="Total Revenue"
+              value={`₱${metrics.totalRevenue.toLocaleString('en-PH')}`}
+              change={metrics.revenueChange}
+              icon={<DollarSign className="w-5 h-5 text-white" />}
+              iconBg="bg-purple-500"
+            />
+          </div>
 
-      {/* Charts Row */}
+          {/* Outlets Status */}
+          <OutletStatusGrid outlets={outlets} />
+        </>
+      ) : metricsQuery.isError ? (
+        <SectionError
+          message={metricsQuery.error instanceof Error ? metricsQuery.error.message : 'Failed to load metrics'}
+          onRetry={() => void metricsQuery.refetch({ cancelRefetch: true })}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm animate-pulse">
+                <div className="space-y-3">
+                  <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-20" />
+                  <div className="h-7 bg-gray-100 dark:bg-gray-700 rounded w-12" />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <SectionSkeleton />
+        </>
+      )}
+
+      {/* Charts Row (charts group) */}
+      {revenueChart && orderStatusChart ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <RevenueChart data={revenueChart} />
+          <OrderStatusChart data={orderStatusChart} />
+        </div>
+      ) : chartsQuery.isError ? (
+        <SectionError
+          message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load charts'}
+          onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <SectionSkeleton className="h-64 sm:h-80" />
+          <SectionSkeleton className="h-64 sm:h-80" />
+        </div>
+      )}
+
+      {/* Top Products (charts) & Active Deliveries (tables) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <RevenueChart data={revenueChart} />
-        <OrderStatusChart data={orderStatusChart} />
+        {topProducts ? (
+          <TopProductsChart data={topProducts} />
+        ) : chartsQuery.isError ? (
+          <SectionError
+            message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load top products'}
+            onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })}
+          />
+        ) : (
+          <SectionSkeleton />
+        )}
+        {activeDeliveries ? (
+          <ActiveDeliveriesList deliveries={activeDeliveries} />
+        ) : tablesQuery.isError ? (
+          <SectionError
+            message={tablesQuery.error instanceof Error ? tablesQuery.error.message : 'Failed to load deliveries'}
+            onRetry={() => void tablesQuery.refetch({ cancelRefetch: true })}
+          />
+        ) : (
+          <SectionSkeleton />
+        )}
       </div>
 
-      {/* Outlets Status */}
-      <OutletStatusGrid outlets={outlets} />
-
-      {/* Top Products & Active Deliveries */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <TopProductsChart data={topProducts} />
-        <ActiveDeliveriesList deliveries={activeDeliveries} />
-      </div>
-
-      {/* Pending Orders & Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <PendingOrdersTable orders={pendingOrders} />
-        <RecentOrdersTable orders={recentOrders} />
-      </div>
+      {/* Pending Orders & Recent Orders (tables group) */}
+      {pendingOrders && recentOrders ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <PendingOrdersTable orders={pendingOrders} />
+          <RecentOrdersTable orders={recentOrders} />
+        </div>
+      ) : tablesQuery.isError ? (
+        <SectionError
+          message={tablesQuery.error instanceof Error ? tablesQuery.error.message : 'Failed to load orders'}
+          onRetry={() => void tablesQuery.refetch({ cancelRefetch: true })}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <SectionSkeleton />
+          <SectionSkeleton />
+        </div>
+      )}
     </div>
   );
 }

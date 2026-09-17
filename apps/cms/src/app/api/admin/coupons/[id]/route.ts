@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateAdmin } from '@/utils/mediaLibrary'
+import { deleteCachedByPrefix } from '@encreasl/cache'
 import { validateCouponFields } from '@/collections/Coupons'
 
 function str(v: unknown, fb = ''): string {
@@ -153,6 +154,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         depth: 1,
         overrideAccess: true,
       })) as unknown as Record<string, any>
+      // Bust list cache so the update reflects immediately on /coupons
+      await deleteCachedByPrefix('admin:coupons:')
       return NextResponse.json({ success: true, message: 'Coupon updated successfully', doc: sanitizeCoupon(updated) })
     } catch (e: any) {
       const msg = e?.message || 'Failed to update coupon'
@@ -176,6 +179,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     } catch (e: any) {
       return NextResponse.json({ error: 'Coupon not found', details: e?.message }, { status: 404 })
     }
+    // Bust list cache so the deletion reflects immediately on /coupons
+    await deleteCachedByPrefix('admin:coupons:')
     return NextResponse.json({ success: true, message: 'Coupon deleted. Past order history keeps its snapshots.' })
   } catch (err: any) {
     console.error('[admin/coupons/[id]] DELETE error:', err)

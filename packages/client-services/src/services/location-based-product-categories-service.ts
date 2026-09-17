@@ -188,47 +188,35 @@ export class LocationBasedProductCategoriesService {
 
   /**
    * Get customer ID from current user session
-   * This integrates with the authentication system to get the customer ID
+   * Delegates to the /api/customer/me BFF endpoint which reads the session
+   * cookie. Returns null silently for guests or unauthenticated users.
    */
   static async getCurrentCustomerId(): Promise<string | null> {
     try {
-      // Check if we have a cached customer ID
       const cachedCustomerId = dataCache.get<string>('current-customer-id');
       if (cachedCustomerId) {
         return cachedCustomerId;
       }
 
-      // Get current user from localStorage (where auth context stores it)
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
-      if (!userDataStr) {
+      const url = `${this.API_BASE}/customer/me`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
         return null;
       }
 
-      let userData;
-      try {
-        userData = JSON.parse(userDataStr);
-      } catch (parseError) {
-        console.error('❌ Failed to parse user data from localStorage:', parseError);
-        return null;
+      const data = await response.json();
+      const customerId = data?.customerId ?? null;
+      if (customerId != null) {
+        dataCache.set('current-customer-id', String(customerId), CACHE_TTL.PRODUCT_CATEGORIES);
       }
 
-      const userId = userData?.id;
-      if (!userId) {
-        return null;
-      }
-
-      // Get customer ID from user ID using the same pattern as other services
-      const customerId = await LocationBasedProductCategoriesService.getCustomerIdFromUserId(userId);
-      
-      if (customerId) {
-        // Cache the customer ID for future use
-        dataCache.set('current-customer-id', customerId, CACHE_TTL.PRODUCT_CATEGORIES);
-      } else {
-      }
-      
-      return customerId;
-    } catch (error) {
-      console.error('❌ Error getting current customer ID:', error);
+      return customerId != null ? String(customerId) : null;
+    } catch {
       return null;
     }
   }

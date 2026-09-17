@@ -403,8 +403,10 @@ export async function POST(request: NextRequest) {
       depth: 2,
       overrideAccess: true,
     })
-    // Bust list cache (all admins / query variants) so the new order shows immediately
+    // Bust list cache (all admins / query variants) so the new order shows immediately.
+    // Order items embed order data, so bust that aggregate too.
     await deleteCachedByPrefix('admin:orders:')
+    await deleteCachedByPrefix('admin:order-items:')
     return NextResponse.json(
       { success: true, message: 'Order created successfully', doc: sanitizeOrderDoc(created as Record<string, any>) },
       { status: 201 },

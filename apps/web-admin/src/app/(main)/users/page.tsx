@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@encreasl/client-services'
-import { useUsers, useUserDependencies, type UserDoc } from '@/hooks/useUsers'
+import { useUsers, useUserDependencies, useUserDeleteDependencies, type UserDoc, type UsersResponse } from '@/hooks/useUsers'
 import { ClientOnly } from '@/components/ClientOnly'
 import {
   Users, Search, X, SlidersHorizontal, ChevronDown, Plus, RefreshCw, AlertCircle,
@@ -109,12 +109,11 @@ function UsersPageContent(){
   const limit = 10 // fixed 10 per page as required — pagination must display 10
   const [showFilters, setShowFilters] = useState(false)
 
-  // delete confirm — WordPress-style: offer Delete all content vs Attribute to another user
+  // delete confirm — if user has no linked records, single "Delete this user" action; otherwise require attribution
   const [deleting, setDeleting] = useState<UserDoc | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [reassignMode, setReassignMode] = useState<'delete' | 'reassign'>('reassign')
   const [reassignTo, setReassignTo] = useState<string>('')
 
   // view dependencies — enterprise inspection before delete (read-only)
@@ -144,6 +143,9 @@ function UsersPageContent(){
   const { data, isPending, isFetching, isError, error: queryError, refetch } = useUsers(qs)
   const candidatesQuery = useUsers('limit=100&isActive=true')
   const depsQuery = useUserDependencies(viewingDeps?.id ?? null)
+  // Delete-gating check has its OWN query (fresh read, never stale) so the
+  // delete modal can never render another user's data or a cached verdict.
+  const deleteDepsQuery = useUserDeleteDependencies(deleting?.id ?? null)
 
   const docs = data?.docs || []
   const pagination = data?.pagination || null
@@ -188,24 +190,30 @@ function UsersPageContent(){
 
   useEffect(() => {
     if (!deleting) {
-      setReassignMode('reassign')
       setReassignTo('')
       return
     }
-    // default to reassign to encourage safe choice (WordPress safe default is Attribute)
-    setReassignMode('reassign')
     setReassignTo((prev) => {
       if (prev) return prev
       return reassignCandidates.length > 0 ? String(reassignCandidates[0].id) : ''
     })
   }, [deleting, reassignCandidates])
 
-  // View dependencies — cached query, runs only while the modal is open
+  // View dependencies — cached query, runs only while the inspection modal is open
   const depsData = depsQuery.data || null
   const depsLoading = depsQuery.isFetching
   const depsError = depsQuery.isError && !depsQuery.data
     ? (depsQuery.error instanceof Error ? depsQuery.error.message : 'Failed to load dependencies')
     : null
+  // Delete-gating check — fresh read owned by the delete modal. Unknown means
+  // unknown: the modal must block deletion (never assume "no dependencies").
+  const delDepsData = deleteDepsQuery.data || null
+  const delDepsLoading = deleteDepsQuery.isFetching
+  const delDepsError = deleteDepsQuery.isError && !deleteDepsQuery.data
+    ? (deleteDepsQuery.error instanceof Error ? deleteDepsQuery.error.message : 'Failed to load dependencies')
+    : null
+  const delDepsKnown = !!delDepsData && !delDepsError
+  const deletingUserHasLinked = delDepsKnown && (delDepsData.totalLinked ?? 0) > 0
 
   // Auto-dismiss action error toast (professional, non-blocking)
   useEffect(() => {
@@ -219,46 +227,56 @@ function UsersPageContent(){
   const toggleCivil = (v: string) => setCivilFilter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v])
   const clearAll = () => { setQ(''); setDebouncedQ(''); setRoleFilter([]); setGenderFilter([]); setCivilFilter([]); setIsActiveFilter(null) }
 
-  const toFriendlyDeleteError = (raw: string) => {
-    const lower = raw.toLowerCase()
-    if (lower.includes('failed query') || lower.includes('params:') || lower.includes('delete from "users"') || lower.includes('delete from')) {
-      return 'Cannot delete this user — the account is still linked to other records (such as a vendor profile, orders, addresses, or activity history). Please remove or reassign those records first, or deactivate the user instead.'
-    }
-    if (lower.includes('foreign key') || lower.includes('violates') || lower.includes('constraint') || lower.includes('still referenced')) {
-      return 'Cannot delete this user — the account is still linked to other records. Please remove or reassign those linked records first, or deactivate the user instead.'
-    }
-    return raw
-  }
-
   const handleDelete = async () => {
     if (!deleting || isDeleting) return
-    // WordPress parity: validate choice
-    if (reassignMode === 'reassign' && !reassignTo) {
+    if (!delDepsKnown) {
+      setDeleteError('Linked records could not be verified. Please retry the check before deleting.')
+      return
+    }
+    if (deletingUserHasLinked && !reassignTo) {
       setDeleteError('Please select a user to attribute the content to.')
       return
     }
     setIsDeleting(true)
     setDeleteError(null)
+    const targetId = deleting.id
     try {
-      const qs = reassignMode === 'reassign' && reassignTo ? `?reassignTo=${encodeURIComponent(reassignTo)}` : reassignMode === 'delete' ? '?force=true' : ''
-      const res = await fetch(`/api/users/${deleting.id}${qs}`, { method: 'DELETE' })
+      const qsDelete = deletingUserHasLinked && reassignTo ? `?reassignTo=${encodeURIComponent(reassignTo)}` : ''
+      const res = await fetch(`/api/users/${targetId}${qsDelete}`, { method: 'DELETE' })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        // If backend says REASSIGN_REQUIRED, keep modal open and surface friendly message (don't close)
-        const code = (j as any)?.code
-        const errMsg = toFriendlyDeleteError(j.error || j.details || 'Failed to delete')
-        if (code === 'REASSIGN_REQUIRED' || j.counts) {
-          // Switch to reassign mode and show counts hint in error toast area inside modal
-          setReassignMode('reassign')
-          throw new Error(errMsg + ' Please choose “Attribute all content to” and select a user, or choose “Delete all content”.')
-        }
-        throw new Error(errMsg)
+        throw new Error(j.error || j.details || 'Failed to delete')
       }
+
+      // Optimistically remove user from ALL query keys in TanStack query cache (exact parity with vendors)
+      queryClient.setQueriesData<UsersResponse>(
+        {
+          queryKey: QUERY_KEYS.adminUsers('').slice(0, 2),
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'admin' && q.queryKey[1] === 'users',
+        },
+        (old) => {
+          if (!old || !Array.isArray(old.docs)) return old
+          const docs = old.docs.filter((d) => d.id !== targetId)
+          const removed = old.docs.length - docs.length
+          if (!removed) return old
+          const limit = Math.max(1, old.pagination?.limit ?? 10)
+          const totalDocs = Math.max(0, (old.pagination?.totalDocs ?? old.docs.length) - removed)
+          const pagination = old.pagination
+            ? { ...old.pagination, totalDocs, totalPages: Math.max(1, Math.ceil(totalDocs / limit)) }
+            : old.pagination
+          const stats = old.stats
+            ? { ...old.stats, filteredTotal: Math.max(0, old.stats.filteredTotal - removed), activeCount: Math.max(0, old.stats.activeCount - (deleting.isActive ? 1 : 0)), inactiveCount: Math.max(0, old.stats.inactiveCount - (!deleting.isActive ? 1 : 0)) }
+            : old.stats
+          return { ...old, docs, pagination, stats }
+        }
+      )
+
       setDeleting(null)
-      queryClient.removeQueries({ queryKey: QUERY_KEYS.adminUserDependencies(deleting.id) })
-      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminUsers('limit=100&isActive=true') })
+      queryClient.removeQueries({ queryKey: QUERY_KEYS.adminUserDependencies(targetId) })
+      queryClient.removeQueries({ queryKey: [...QUERY_KEYS.adminUserDependencies(targetId), 'fresh'] })
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminUsers('').slice(0, 2) })
       await refetch()
-    } catch (e: any) { setDeleteError(toFriendlyDeleteError(e?.message || 'Delete failed')) }
+    } catch (e: any) { setDeleteError(e?.message || 'Delete failed') }
     finally { setIsDeleting(false) }
   }
 
@@ -477,7 +495,7 @@ function UsersPageContent(){
         )}
       </div>
 
-      {/* Delete confirm — WordPress-style: choose Delete all content vs Attribute to another user */}
+      {/* Delete confirm — delete-only when zero linked records, attribute-only when linked */}
       {deleting && typeof document !== 'undefined' &&
         createPortal(
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { if (!isDeleting) setDeleting(null) }}>
@@ -492,40 +510,54 @@ function UsersPageContent(){
               <button onClick={() => setViewingDeps(deleting)} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-xs font-semibold transition" title="Inspect what will be deleted or reassigned"><Layers className="w-3.5 h-3.5" /> View dependencies</button>
 
               <div className="mt-5 rounded-xl border border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] p-4 space-y-4">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">What should be done with content owned by this user?</p>
-                <p className="text-xs text-gray-500 dark:text-[#a1a1aa]">This is the same choice WordPress offers when deleting a user: either delete all content or attribute it to another user.</p>
-
-                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${reassignMode === 'delete' ? 'bg-white dark:bg-[#171717] border-[#eba236] ring-1 ring-[#eba236]/30' : 'bg-white dark:bg-[#171717] border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#333]'}`}>
-                  <input type="radio" name="reassignMode" value="delete" checked={reassignMode === 'delete'} onChange={() => setReassignMode('delete')} disabled={isDeleting} className="mt-1 h-4 w-4 text-[#eba236] border-gray-300 focus:ring-[#eba236]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Delete all content</p>
-                    <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">Permanently delete all content created by this user (vendor profiles, addresses, wishlists, posts, and other linked records). <span className="text-red-600 dark:text-red-400 font-medium">Use with caution.</span></p>
+                {delDepsLoading && !delDepsData ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-[#a1a1aa]">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Checking linked records…
                   </div>
-                </label>
-
-                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${reassignMode === 'reassign' ? 'bg-white dark:bg-[#171717] border-[#eba236] ring-1 ring-[#eba236]/30' : 'bg-white dark:bg-[#171717] border-gray-200 dark:border-[#262626] hover:border-gray-300 dark:hover:border-[#333]'}`}>
-                  <input type="radio" name="reassignMode" value="reassign" checked={reassignMode === 'reassign'} onChange={() => setReassignMode('reassign')} disabled={isDeleting} className="mt-1 h-4 w-4 text-[#eba236] border-gray-300 focus:ring-[#eba236]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Attribute all content to</p>
-                    <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">Transfer all content to another user of your choosing.</p>
-                    <div className="mt-3">
-                      <select
-                        value={reassignTo}
-                        onChange={(e) => setReassignTo(e.target.value)}
-                        disabled={isDeleting || reassignMode !== 'reassign' || loadingCandidates}
-                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {loadingCandidates ? <option>Loading users…</option> : reassignCandidates.length === 0 ? <option value="">No other users available</option> : reassignCandidates.map((u) => <option key={u.id} value={String(u.id)}>{u.firstName} {u.lastName} — {u.email} (#{u.id} • {u.role})</option>)}
-                      </select>
-                      {reassignMode === 'reassign' && !loadingCandidates && reassignCandidates.length === 0 && <p className="text-xs text-red-600 mt-2">No active users available to reassign to. Please create another user first, or choose “Delete all content”.</p>}
+                ) : delDepsError || !delDepsKnown ? (
+                  <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">Could not verify linked records</p>
+                    <p className="text-xs text-red-600 dark:text-red-300 mt-1 break-words">{delDepsError || 'Dependencies are still loading.'}</p>
+                    <button onClick={() => deleteDepsQuery.refetch()} disabled={delDepsLoading} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#171717] border border-red-200 dark:border-red-800 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {delDepsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Retry check
+                    </button>
+                  </div>
+                ) : deletingUserHasLinked ? (
+                  <>
+                    <div className="flex items-start gap-3 p-3 rounded-xl border bg-white dark:bg-[#171717] border-[#eba236] ring-1 ring-[#eba236]/30">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Attribute all content to</p>
+                        <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">This user owns linked records. Transfer their content to another user before deleting.</p>
+                        <div className="mt-3">
+                          <select
+                            value={reassignTo}
+                            onChange={(e) => setReassignTo(e.target.value)}
+                            disabled={isDeleting || loadingCandidates}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loadingCandidates ? <option>Loading users…</option> : reassignCandidates.length === 0 ? <option value="">No other users available</option> : reassignCandidates.map((u) => <option key={u.id} value={String(u.id)}>{u.firstName} {u.lastName} — {u.email} (#{u.id} • {u.role})</option>)}
+                          </select>
+                          {!loadingCandidates && reassignCandidates.length === 0 && <p className="text-xs text-red-600 mt-2">No active users available to reassign to. Please create another user first.</p>}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </label>
+                    <p className="text-xs text-gray-500 dark:text-[#a1a1aa]">The user record will be deleted after their content is transferred.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3 p-3 rounded-xl border bg-white dark:bg-[#171717] border-[#eba236] ring-1 ring-[#eba236]/30">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Delete this user</p>
+                        <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">Permanently delete this user account.</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-2 mt-6">
                 <button onClick={() => setDeleting(null)} disabled={isDeleting} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] text-sm font-medium bg-white dark:bg-[#171717] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50 disabled:cursor-not-allowed transition">Cancel</button>
-                <button onClick={handleDelete} disabled={isDeleting || (reassignMode === 'reassign' && !reassignTo)} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition">
+                <button onClick={handleDelete} disabled={isDeleting || !delDepsKnown || delDepsLoading || (deletingUserHasLinked && !reassignTo)} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition">
                   {isDeleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : 'Confirm deletion'}
                 </button>
               </div>
@@ -559,7 +591,7 @@ function UsersPageContent(){
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${depsData.totalLinked > 0 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'}`}>
                       <Layers className="w-3 h-3" /> {depsData.totalLinked} linked record{depsData.totalLinked === 1 ? '' : 's'} {depsData.totalLinked > 0 ? '— requires choice' : '— safe to delete'}
                     </span>
-                    {depsData.totalLinked > 0 && <span className="text-xs text-gray-500 dark:text-[#a1a1aa]">Choose “Delete all content” or “Attribute to another user” in the delete dialog.</span>}
+                    {depsData.totalLinked > 0 && <span className="text-xs text-gray-500 dark:text-[#a1a1aa]">Choose “Delete this user” or “Attribute to another user” in the delete dialog.</span>}
                   </div>
                 )}
               </div>

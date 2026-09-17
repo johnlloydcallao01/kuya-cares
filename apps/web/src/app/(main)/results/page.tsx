@@ -6,8 +6,8 @@ import SearchModal from "@/components/search/SearchModal";
 import LocationMerchantCard from "@/components/cards/LocationMerchantCard";
 import {
   getCurrentCustomerId,
-  getLocationBasedMerchants,
-  getLocationBasedMerchantCategories,
+  getBrowsingMerchants,
+  getBrowsingMerchantCategories,
   type LocationBasedMerchant,
   type MerchantCategoryDisplay,
 } from '@encreasl/client-services';
@@ -99,17 +99,12 @@ export default function SearchResultsPage() {
       const cid = await getCurrentCustomerId();
       if (!active) return;
       setCustomerId(cid);
-      if (cid) {
-        const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
-        if (!active) return;
-        setMerchants(list || []);
-        const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
-        if (!active) return;
-        setCategories(cats || []);
-      } else {
-        setMerchants([]);
-        setCategories([]);
-      }
+      const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+      if (!active) return;
+      setMerchants(list || []);
+      const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+      if (!active) return;
+      setCategories(cats || []);
       setIsLoading(false);
     })();
     return () => {
@@ -160,13 +155,13 @@ export default function SearchResultsPage() {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!matchedCategory || !customerId) {
+      if (!matchedCategory) {
         setCategoryMerchants([]);
         return;
       }
       setIsCategoryLoading(true);
-      const list = await getLocationBasedMerchants({
-        customerId,
+      const list = await getBrowsingMerchants({
+        customerId: customerId ?? undefined,
         limit: 24,
         categoryId: String(matchedCategory.id),
       });

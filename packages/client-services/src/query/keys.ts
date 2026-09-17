@@ -96,8 +96,23 @@ export const QUERY_KEYS = {
     ['admin', 'products', params ?? 'default'] as const,
   merchantDashboard: (merchantId?: string) =>
     ['merchant', 'dashboard', merchantId ?? 'me'] as const,
+  merchantDashboardMetrics: ['merchant', 'dashboard', 'metrics'] as const,
+  merchantDashboardCharts: ['merchant', 'dashboard', 'charts'] as const,
+  merchantDashboardTables: ['merchant', 'dashboard', 'tables'] as const,
   merchantAnalytics: (params?: string) =>
     ['merchant', 'analytics', params ?? 'default'] as const,
+  merchantAnalyticsSummary: (params?: string) =>
+    ['merchant', 'analytics', 'summary', params ?? 'default'] as const,
+  merchantAnalyticsCharts: (params?: string) =>
+    ['merchant', 'analytics', 'charts', params ?? 'default'] as const,
+  merchantAnalyticsTops: (params?: string) =>
+    ['merchant', 'analytics', 'tops', params ?? 'default'] as const,
   merchantReports: (params?: string) =>
     ['merchant', 'reports', params ?? 'default'] as const,
+  merchantReportsSummary: (range?: string) =>
+    ['merchant', 'reports', 'summary', range ?? 'default'] as const,
+  merchantReportsFinancial: (range?: string) =>
+    ['merchant', 'reports', 'financial', range ?? 'default'] as const,
+  merchantReportsCatalog: (range?: string) =>
+    ['merchant', 'reports', 'catalog', range ?? 'default'] as const,
 } as const;

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import SearchField from '@/components/ui/SearchField';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
-import { AddressService, getCurrentCustomerId, getLocationBasedMerchants, getLocationBasedMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
+import { AddressService, getCurrentCustomerId, getBrowsingMerchants, getBrowsingMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
 import { getWishlistMerchantIdsForCurrentUser, addMerchantToWishlist, removeMerchantFromWishlist } from '@/lib/client-services/wishlist-service';
 import { toast } from 'react-hot-toast';
 
@@ -177,17 +177,12 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
       const cid = await getCurrentCustomerId();
       if (!active) return;
       setCustomerId(cid);
-      if (cid) {
-        const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
-        if (!active) return;
-        setMerchants(list || []);
-        const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
-        if (!active) return;
-        setCategories(cats || []);
-      } else {
-        setMerchants([]);
-        setCategories([]);
-      }
+      const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+      if (!active) return;
+      setMerchants(list || []);
+      const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+      if (!active) return;
+      setCategories(cats || []);
       setIsLoading(false);
     })();
     return () => { active = false; };
@@ -304,12 +299,12 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!matchedCategory || !customerId) {
+      if (!matchedCategory) {
         setCategoryMerchants([]);
         return;
       }
       setIsCategoryLoading(true);
-      const list = await getLocationBasedMerchants({ customerId, limit: 24, categoryId: String(matchedCategory.id) });
+      const list = await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 24, categoryId: String(matchedCategory.id) });
       if (cancel) return;
       setCategoryMerchants(list || []);
       setIsCategoryLoading(false);

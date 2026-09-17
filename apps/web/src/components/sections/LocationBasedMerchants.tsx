@@ -1,14 +1,13 @@
-'use client';
+﻿'use client';
 
 import Image from '@/components/ui/ImageWrapper';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  LocationBasedMerchantService,
   type LocationBasedMerchant,
   type Media,
-  getActiveAddressNamesForMerchants,
+  getBrowsingMerchants,
   sortMerchantsByRecentlyUpdated,
 } from '@encreasl/client-services';
 import {
@@ -16,11 +15,9 @@ import {
   addMerchantToWishlist,
   removeMerchantFromWishlist,
 } from '@/lib/client-services/wishlist-service';
-import { useAddressChange } from '@/hooks/useAddressChange';
 import { toast } from 'react-hot-toast';
 
 interface LocationBasedMerchantsProps {
-  customerId?: string;
   limit?: number;
   categoryId?: string | null;
 }
@@ -70,8 +67,9 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
   // Get vendor logo URL
   const vendorLogoUrl = getImageUrl(merchant.vendor?.logo);
 
-  // Format distance display
-  const formatDistance = (distanceKm: number): string => {
+  // Format distance display (null when address-free browsing)
+  const formatDistance = (distanceKm: number): string | null => {
+    if (typeof distanceKm !== 'number' || distanceKm <= 0) return null;
     if (distanceKm < 1) {
       return `${Math.round(distanceKm * 1000)}m`;
     }
@@ -116,10 +114,12 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
           </div>
         )}
 
-        {/* Distance Badge */}
-        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
-          {formatDistance(merchant.distanceKm)}
-        </div>
+        {/* Distance Badge - hidden when browsing without an address */}
+        {formatDistance(merchant.distanceKm) && (
+          <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+            {formatDistance(merchant.distanceKm)}
+          </div>
+        )}
 
         {/* Wishlist Heart - top-right, white circular background */}
         <button
@@ -174,7 +174,7 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
         <div className="flex items-center gap-2 text-sm text-gray-500">
           {merchant.metrics?.averageRating && (
             <div className="flex items-center gap-1">
-              <span className="text-yellow-400">★</span>
+              <span className="text-yellow-400">â˜…</span>
               <span>{merchant.metrics.averageRating.toFixed(1)}</span>
             </div>
           )}
@@ -183,25 +183,25 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
           )}
         </div>
 
-        {/* Delivery Time */}
-        <div className="text-sm text-gray-600">
-          <span className="font-medium">
-            {merchant.estimatedDeliveryTime} min delivery
-          </span>
-        </div>
+        {/* Delivery Time - hidden when unknown (address-free browsing) */}
+        {!!merchant.estimatedDeliveryTime && String(merchant.estimatedDeliveryTime).trim() !== '' && (
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">
+              {merchant.estimatedDeliveryTime} min delivery
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // Main LocationBasedMerchants Component
-export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }: LocationBasedMerchantsProps) {
+export function LocationBasedMerchants({ limit = 9999, categoryId }: LocationBasedMerchantsProps) {
   const router = useRouter();
-  const [addressMap, setAddressMap] = useState<Record<string, string>>({});
   const [merchants, setMerchants] = useState<LocationBasedMerchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(customerId || null);
 
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const toggleWishlist = useCallback((id: string | number) => {
@@ -285,49 +285,25 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
   const boundsCalculatedRefFast = useRef(false);
 
   // Helper: build headers with API key
-  const buildHeaders = useCallback((): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
-    if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
-    return headers;
-  }, []);
-
-  // Fetch active address name for a single merchant with fallback by coordinates
-  const fetchAndSetActiveAddresses = useCallback(async (list: LocationBasedMerchant[]) => {
-    if (!list || list.length === 0) return;
-    const map = await getActiveAddressNamesForMerchants(list);
-    let changed = false;
-    const next: Record<string, string> = { ...addressMap };
-    for (const id of Object.keys(map)) {
-      const name = map[id];
-      if (name && (!next[id] || next[id] !== name)) {
-        next[id] = name;
-        changed = true;
-      }
-    }
-    if (changed) setAddressMap(next);
-  }, [addressMap]);
-
-  // Function to fetch merchants
-  const fetchLocationBasedMerchants = useCallback(async (customerIdToUse: string) => {
+  // Lazada/Shopee-style: display merchants directly, no address/location required.
+  // Fetch plain active merchants without any customer/address round-trips.
+  const fetchLocationBasedMerchants = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const locationMerchants = await LocationBasedMerchantService.getLocationBasedMerchants({
-        customerId: customerIdToUse,
+      const locationMerchants = await getBrowsingMerchants({
         limit,
         categoryId: categoryId || undefined,
       });
       setMerchants(locationMerchants);
-      fetchAndSetActiveAddresses(locationMerchants);
     } catch (err) {
-      console.error('❌ Error fetching location-based merchants:', err);
+      console.error('âŒ Error fetching merchants:', err);
       setError('Failed to load merchants. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [limit, categoryId, fetchAndSetActiveAddresses]);
+  }, [limit, categoryId]);
 
 
   // Parse update timestamp robustly from updatedAt/createdAt
@@ -570,54 +546,11 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
     animateToPositionFast(finalPos, 400);
   }, [isDraggingFast, velocityXFast, translateXFast, maxTranslateFast, animateToPositionFast]);
 
-  // Listen for address changes and refetch merchants
-  useAddressChange((addressId: string) => {
-    if (resolvedCustomerId) {
-      
-      // Clear the cache first to ensure fresh data
-      LocationBasedMerchantService.clearCache(resolvedCustomerId);
-      
-      fetchLocationBasedMerchants(resolvedCustomerId);
-    } else {
-    }
-  });
-
-  // Effect to resolve customer ID if not provided
+  // Lazada/Shopee-style: fetch merchants directly on mount.
+  // No customer/address resolution â€” no location-based endpoint round-trips.
   useEffect(() => {
-    const resolveCustomerId = async () => {
-      if (customerId) {
-        setResolvedCustomerId(customerId);
-        return;
-      }
-
-      try {
-        const currentCustomerId = await LocationBasedMerchantService.getCurrentCustomerId();
-        
-        if (currentCustomerId) {
-          setResolvedCustomerId(currentCustomerId);
-        } else {
-          console.error('❌ No customer ID available');
-          setError('Customer ID is required for location-based merchants');
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('❌ Error resolving customer ID:', err);
-        setError('Failed to resolve customer information');
-        setIsLoading(false);
-      }
-    };
-
-    resolveCustomerId();
-  }, [customerId]);
-
-  // Effect to fetch merchants when customer ID is resolved
-  useEffect(() => {
-    if (!resolvedCustomerId) {
-      return;
-    }
-
-    fetchLocationBasedMerchants(resolvedCustomerId);
-  }, [resolvedCustomerId, fetchLocationBasedMerchants]);
+    fetchLocationBasedMerchants();
+  }, [fetchLocationBasedMerchants]);
 
   // Calculate bounds when merchants change or component mounts (for carousel)
   useEffect(() => {
@@ -704,12 +637,12 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
           <div className="mb-[15px]">
             <div className="flex items-center justify-between">
               <h2 className="text-[1.2rem] font-bold text-gray-900">
-                Nearby Restaurants
+                Restaurants
               </h2>
               <span
                 role="button"
                 tabIndex={0}
-                aria-label="View all nearby restaurants"
+                aria-label="View all restaurants"
                 onClick={() => router.push('/nearby-restaurants')}
                 className="min-[1025px]:hidden inline-flex w-7 h-7 items-center justify-center rounded-full bg-white text-[#333] shadow-md"
               >
@@ -717,7 +650,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
               </span>
             </div>
             <p className="text-gray-600">
-              Loading merchants near your location...
+              Loading merchants...
             </p>
           </div>
           
@@ -789,13 +722,13 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
           <div className="mb-[15px]">
             <div className="flex items-center justify-between">
               <h2 className="text-[1.2rem] font-bold text-gray-900">
-                Nearby Restaurants
+                Restaurants
               </h2>
               {merchants && merchants.length > 8 && (
                 <span
                   role="button"
                   tabIndex={0}
-                  aria-label="View all nearby restaurants"
+                  aria-label="View all restaurants"
                   onClick={() => router.push('/nearby-restaurants')}
                   className="min-[1025px]:hidden inline-flex w-7 h-7 items-center justify-center rounded-full bg-white text-[#333] shadow-md"
                 >
@@ -804,7 +737,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
               )}
             </div>
             <p className="text-gray-600">
-              Merchants near your location with delivery information
+              Browse merchants
             </p>
           </div>
           
@@ -839,12 +772,12 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
           <div className="mb-[15px]">
             <div className="flex items-center justify-between">
               <h2 className="text-[1.2rem] font-bold text-gray-900">
-                Nearby Restaurants
+                Restaurants
               </h2>
               <span
                 role="button"
                 tabIndex={0}
-                aria-label="View all nearby restaurants"
+                aria-label="View all restaurants"
                 onClick={() => router.push('/nearby-restaurants')}
                 className="min-[1025px]:hidden inline-flex w-7 h-7 items-center justify-center rounded-full bg-white text-[#333] shadow-md"
               >
@@ -852,10 +785,10 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
               </span>
             </div>
             <p className="text-gray-600">
-              Merchants near your location with delivery information
+              Browse merchants
             </p>
           </div>
-          
+
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -864,10 +797,10 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No merchants found in your area
+              No merchants found
             </h3>
             <p className="text-gray-600">
-              Try expanding your search radius or check back later.
+              Check back later.
             </p>
           </div>
         </div>
@@ -880,13 +813,13 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
       <div className="w-full px-2.5">
         <div className="mb-[15px] flex items-center justify-between">
           <h2 className="text-[1.2rem] font-bold text-gray-900">
-            {categoryId ? 'Filtered Restaurants' : 'Nearby Restaurants'}
+            {categoryId ? 'Filtered Restaurants' : 'Restaurants'}
           </h2>
           {!categoryId && merchants.length > 8 && (
             <span
               role="button"
               tabIndex={0}
-              aria-label="View all nearby restaurants"
+              aria-label="View all restaurants"
               onClick={() => router.push('/nearby-restaurants')}
               className="min-[1025px]:hidden inline-flex w-7 h-7 items-center justify-center rounded-full bg-white text-[#333] shadow-md"
             >
@@ -902,8 +835,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
               merchant={merchant}
               isWishlisted={wishlistIds.has(String(merchant.id))}
               onToggleWishlist={toggleWishlist}
-              addressName={addressMap[merchant.id] || null}
-            />
+                          />
           ))}
         </div>
 
@@ -950,8 +882,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
                     merchant={merchant}
                     isWishlisted={wishlistIds.has(String(merchant.id))}
                     onToggleWishlist={toggleWishlist}
-                    addressName={addressMap[merchant.id] || null}
-                  />
+                                      />
                 </div>
               ))}
             </div>
@@ -998,8 +929,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
                       merchant={merchant}
                       isWishlisted={wishlistIds.has(String(merchant.id))}
                       onToggleWishlist={toggleWishlist}
-                      addressName={addressMap[merchant.id] || null}
-                    />
+                                          />
               ))}
             </div>
 
@@ -1043,8 +973,7 @@ export function LocationBasedMerchants({ customerId, limit = 9999, categoryId }:
                       merchant={merchant} 
                       isWishlisted={wishlistIds.has(String(merchant.id))} 
                       onToggleWishlist={toggleWishlist}
-                      addressName={addressMap[merchant.id] || null}
-                    />
+                                          />
                   </div>
                 ))}
               </div>

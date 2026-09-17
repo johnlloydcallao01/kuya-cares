@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateAdmin } from '@/utils/mediaLibrary'
-import { getCached, setCached } from '@encreasl/cache'
+import { getCached, setCached, deleteCachedByPrefix } from '@encreasl/cache'
 import { normalizeCouponCode, validateCouponFields } from '@/collections/Coupons'
 
 function str(v: unknown, fb = ''): string {
@@ -197,6 +197,8 @@ export async function POST(request: NextRequest) {
         data: data as any,
         overrideAccess: true,
       })) as unknown as Record<string, any>
+      // Bust list cache (all admins / query variants) so the new coupon shows immediately
+      await deleteCachedByPrefix('admin:coupons:')
       return NextResponse.json({ doc: sanitizeCoupon(created) }, { status: 201 })
     } catch (e: any) {
       const msg = e?.message || 'Failed to create coupon'

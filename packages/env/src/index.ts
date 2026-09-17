@@ -39,10 +39,6 @@ const webEnvSchema = sharedEnvSchema.extend({
   NEXT_PUBLIC_HUBSPOT_PORTAL_ID: z.string().optional(),
   NEXT_PUBLIC_MAILCHIMP_LIST_ID: z.string().optional(),
 
-  // Performance
-  NEXT_PUBLIC_ENABLE_PWA: z.string().transform(val => val === 'true').default('true'),
-  NEXT_PUBLIC_ENABLE_SERVICE_WORKER: z.string().transform(val => val === 'true').default('true'),
-
   // Development
   NEXT_PUBLIC_DEBUG_MODE: z.string().transform(val => val === 'true').default('false'),
 });
@@ -83,10 +79,6 @@ const webClientEnvSchema = sharedClientEnvSchema.extend({
   // Lead Generation
   NEXT_PUBLIC_HUBSPOT_PORTAL_ID: z.string().optional(),
   NEXT_PUBLIC_MAILCHIMP_LIST_ID: z.string().optional(),
-
-  // Performance
-  NEXT_PUBLIC_ENABLE_PWA: z.string().transform(val => val === 'true').default('true'),
-  NEXT_PUBLIC_ENABLE_SERVICE_WORKER: z.string().transform(val => val === 'true').default('true'),
 
   // Development
   NEXT_PUBLIC_DEBUG_MODE: z.string().transform(val => val === 'true').default('false'),

@@ -16,6 +16,29 @@ export interface VendorKpis {
   refundedCount: number
   failedCount: number
 }
+export interface VendorSummaryGroup {
+  meta: VendorAnalyticsData['meta']
+  kpis: VendorKpis
+  outlets: VendorAnalyticsData['outlets']
+}
+
+export interface VendorChartsGroup {
+  revenueTrend: VendorAnalyticsData['revenueTrend']
+  orderStatusBreakdown: VendorAnalyticsData['orderStatusBreakdown']
+  fulfillmentMix: VendorAnalyticsData['fulfillmentMix']
+  deliveryStatusBreakdown: VendorAnalyticsData['deliveryStatusBreakdown']
+  paymentMethodBreakdown: VendorAnalyticsData['paymentMethodBreakdown']
+  revenueByOutlet: VendorAnalyticsData['revenueByOutlet']
+  hourlyDistribution: VendorAnalyticsData['hourlyDistribution']
+}
+
+export interface VendorTopsGroup {
+  revenueByCategory: VendorAnalyticsData['revenueByCategory']
+  topProducts: VendorAnalyticsData['topProducts']
+  weekdayDistribution: VendorAnalyticsData['weekdayDistribution']
+  ratingDistribution: VendorAnalyticsData['ratingDistribution']
+}
+
 export interface VendorAnalyticsData {
   meta: { range: string; days: number; generatedAt: string; vendorId: string; vendorName: string; totalOrdersAllTime: number; periodStart: string | null; periodEnd: string }
   kpis: VendorKpis

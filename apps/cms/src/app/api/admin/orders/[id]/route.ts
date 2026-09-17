@@ -529,8 +529,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const agg = await fetchAggregates(payload, updated.id)
     const sanitized = buildAggregatedDoc(updated, agg)
-    // Bust list cache so the update reflects immediately on /orders
+    // Bust list cache so the update reflects immediately on /orders.
+    // Order items embed order data, so bust that aggregate too.
     await deleteCachedByPrefix('admin:orders:')
+    await deleteCachedByPrefix('admin:order-items:')
     return NextResponse.json({ success: true, message: 'Order updated successfully', doc: sanitized })
   } catch (err: any) {
     console.error('[admin/orders/[id]] PATCH error:', err)

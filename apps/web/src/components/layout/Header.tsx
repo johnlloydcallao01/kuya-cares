@@ -1,16 +1,15 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from "@/components/ui/ImageWrapper";
 import { useRouter, usePathname } from 'next/navigation';
+import Image from "@/components/ui/ImageWrapper";
 import { HeaderProps } from '@/types';
 import { useUser, useLogout } from '@/hooks/useAuth';
 import { UserAvatar, UserInfo } from '@/components/auth';
-import { LocationSelector } from '@/components/location';
 import SearchModal from '@/components/search/SearchModal';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import SearchField from '@/components/ui/SearchField';
-import { AddressService, getCurrentCustomerId as getCustomerIdForMerchants, getLocationBasedMerchants, getLocationBasedMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
+import { AddressService, getCurrentCustomerId as getCustomerIdForMerchants, getBrowsingMerchants, getBrowsingMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
 import { getWishlistMerchantIdsForCurrentUser, addMerchantToWishlist, removeMerchantFromWishlist } from '@/lib/client-services/wishlist-service';
 import { NotificationPopup, mockNotifications } from '@/components/notifications/NotificationPopup';
 import { useCart } from '@/contexts/CartContext';
@@ -301,17 +300,12 @@ export function Header({
       const cid = await getCustomerIdForMerchants();
       if (!active) return;
       setCustomerId(cid);
-      if (cid) {
-        const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
-        if (!active) return;
-        setMerchants(list || []);
-        const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
-        if (!active) return;
-        setCategories(cats || []);
-      } else {
-        setMerchants([]);
-        setCategories([]);
-      }
+      const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+      if (!active) return;
+      setMerchants(list || []);
+      const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+      if (!active) return;
+      setCategories(cats || []);
       setIsLoading(false);
     })();
     return () => { active = false; };
@@ -389,12 +383,12 @@ export function Header({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!matchedCategory || !customerId) {
+      if (!matchedCategory) {
         setCategoryMerchants([]);
         return;
       }
       setIsCategoryLoading(true);
-      const list = await getLocationBasedMerchants({ customerId, limit: 24, categoryId: String(matchedCategory.id) });
+      const list = await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 24, categoryId: String(matchedCategory.id) });
       if (cancel) return;
       setCategoryMerchants(list || []);
       setIsCategoryLoading(false);
@@ -446,15 +440,20 @@ export function Header({
     try {
       const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
       const userId = userStr ? (() => { try { return JSON.parse(userStr)?.id; } catch { return null; } })() : null;
-      if (!userId) return;
-      const [activeAddressResponse] = await Promise.all([
-        AddressService.getActiveAddress(userId, undefined, false), // Force fresh fetch
-        AddressService.getUserAddresses(userId, undefined, false),
-      ]);
+      if (!userId) {
+        setActiveAddressName(null);
+        return;
+      }
+      // Shopee/Lazada-style: active address is optional for browsing - silently degrade to null
+      const activeAddressResponse = await AddressService.getActiveAddress(userId, undefined, true);
       if (activeAddressResponse?.success && activeAddressResponse.address?.formatted_address) {
         setActiveAddressName(activeAddressResponse.address.formatted_address);
+      } else {
+        setActiveAddressName(null);
       }
-    } catch { }
+    } catch {
+      setActiveAddressName(null);
+    }
   }, []);
 
   // Initial fetch
@@ -528,12 +527,14 @@ export function Header({
         }`} style={{ backgroundColor: '#fff' }}>
         {!pathname?.startsWith('/results') && (
           <div className="lg:hidden flex items-center justify-between px-2.5 py-2 h-14" style={{ backgroundColor: '#fff' }}>
-            <div className="flex-1 min-w-0">
-              <LocationSelector
-                onLocationSelect={(location) => {
-                  console.log('Selected location:', location);
-                }}
-                className="text-left pl-0"
+            <div className="flex-1 min-w-0 flex items-center">
+              <Image
+                src="/kuya-cares.png"
+                alt="Logo"
+                width={120}
+                height={32}
+                className="h-8 w-auto rounded-lg p-[3px]"
+                priority
               />
             </div>
             <div className="flex items-center space-x-3">
@@ -567,20 +568,12 @@ export function Header({
               </svg>
             </button>
             <Image
-              src="/logo.png"
+              src="/kuya-cares.png"
               alt="Calsiter Inc Logo"
               width={270}
               height={72}
-              className="h-16 w-auto"
+              className="h-16 w-auto rounded-lg p-[3px]"
               priority
-            />
-            {/* Location Selector - Added after logo */}
-            <LocationSelector
-              onLocationSelect={(location) => {
-                console.log('Selected location:', location);
-                // Handle location selection here
-              }}
-              className="ml-4 max-w-[200px] xl:max-w-[300px]"
             />
           </div>
 

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from '@/components/ui/ImageWrapper';
-import { BackButton } from '@/components/ui/BackButton';
 import { getMerchantById, getActiveAddressNameByMerchantId } from '@/server/services/merchant-service';
 import type { Merchant, Media } from '@encreasl/client-services';
 import MobileStickyHeader from '@/components/merchant/MobileStickyHeader';
@@ -74,8 +73,13 @@ export default async function MerchantPage({ params }: PageProps) {
 
   const heroImage = getImageUrl(merchant.media?.storeFrontImage) || getImageUrl(merchant.media?.thumbnail);
   const vendorLogo = getImageUrl(merchant.vendor?.logo);
-  const isOpenNow = merchant.isOpenNow ?? (merchant.operationalStatus === 'open' && merchant.isAcceptingOrders);
-  const operationalStatus = isOpenNow ? 'open' : 'closed';
+  const rawOperationalStatus = merchant.operationalStatus;
+  const isOpenNow = merchant.isOpenNow ?? (rawOperationalStatus === 'open' && merchant.isAcceptingOrders);
+  const operationalStatus: 'open' | 'closed' | 'busy' = isOpenNow
+    ? 'open'
+    : rawOperationalStatus === 'busy'
+      ? 'busy'
+      : 'closed';
 
   const statusColor = operationalStatus === 'open'
     ? 'bg-green-600'
@@ -87,10 +91,8 @@ export default async function MerchantPage({ params }: PageProps) {
   const addressName = id ? await getActiveAddressNameByMerchantId(id) : null;
   const displayName = addressName ? `${merchant.outletName} - ${addressName}` : merchant.outletName;
 
-  const formatPrice = (value: number | null) => {
-    if (value == null) return null;
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(Number(value));
-  };
+  const statusText = operationalStatus === 'open' ? 'Open Now' : operationalStatus === 'busy' ? 'Busy' : 'Closed';
+  const statusTextColor = operationalStatus === 'open' ? 'text-emerald-600 font-medium' : operationalStatus === 'busy' ? 'text-yellow-600 font-medium' : 'text-red-600 font-medium';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,16 +142,29 @@ export default async function MerchantPage({ params }: PageProps) {
               <section className="bg-white rounded-lg shadow-sm p-5">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg font-semibold text-gray-900">Operating Hours</h2>
-                  <span className={isOpenNow ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>{isOpenNow ? 'Open Now' : 'Closed'}</span>
+                  <span className={`inline-flex items-center gap-1.5 ${statusTextColor}`}>
+                    <span className={`inline-block h-2 w-2 rounded-full ${statusColor}`} aria-hidden="true" />
+                    {statusText}
+                  </span>
                 </div>
                 {!isOpenNow && merchant.nextOpeningAt && <p className="mt-1 text-sm text-gray-500">Next opening: {new Date(merchant.nextOpeningAt).toLocaleString()}</p>}
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-700">
-                  {Object.entries(merchant.operatingHours).map(([day, value]) => (
-                    <div key={day} className="flex justify-between">
-                      <span className="capitalize text-gray-600">{day}</span>
-                      <span className="font-medium">{value || '—'}</span>
-                    </div>
-                  ))}
+                  {Object.entries(merchant.operatingHours).map(([day, value]) => {
+                    const periods = value as unknown as { open: string; close: string }[] | null | undefined;
+                    const display = Array.isArray(periods)
+                      ? periods.length > 0
+                        ? periods.map((p) => `${p.open} - ${p.close}`).join(', ')
+                        : 'Closed'
+                      : typeof periods === 'string'
+                        ? periods || '—'
+                        : '—';
+                    return (
+                      <div key={day} className="flex justify-between">
+                        <span className="capitalize text-gray-600">{day}</span>
+                        <span className="font-medium">{display}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

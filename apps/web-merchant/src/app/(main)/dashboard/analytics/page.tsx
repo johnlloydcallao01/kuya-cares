@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@encreasl/client-services'
-import { useMerchantAnalytics } from '@/hooks/useMerchantAnalytics'
+import { useMerchantAnalyticsSummary, useMerchantAnalyticsCharts, useMerchantAnalyticsTops } from '@/hooks/useMerchantAnalytics'
 import { ClientOnly } from '@/components/ClientOnly'
 import {
   DollarSign, ShoppingCart, Store, TrendingUp, TrendingDown, BarChart3, Package,
@@ -35,6 +35,34 @@ function fmtDateTime(iso: string) { try { return new Date(iso).toLocaleString('e
 
 function AnalyticsSkeleton() {
   return <div className="space-y-[10px] py-5 px-2.5 animate-pulse"><div className="grid grid-cols-2 lg:grid-cols-4 gap-[10px]">{Array.from({length:8}).map((_,i)=><div key={i} className="h-28 bg-gray-100 dark:bg-[#171717] rounded-xl" />)}</div><div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px]"><div className="h-80 bg-gray-100 dark:bg-[#171717] rounded-xl" /><div className="h-80 bg-gray-100 dark:bg-[#171717] rounded-xl" /></div></div>;
+}
+
+function SectionError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="bg-white dark:bg-[#171717] rounded-xl border border-red-200 dark:border-red-900/40 shadow-sm p-6 text-center">
+      <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mb-4">{message}</p>
+      <button onClick={onRetry} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+        <RefreshCw className="h-4 w-4 mr-2" />Retry
+      </button>
+    </div>
+  )
+}
+
+function ChartSkeleton({ height = 300 }: { height?: number }) {
+  return (
+    <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm animate-pulse">
+      <div className="h-4 bg-gray-100 dark:bg-[#262626] rounded w-40 mb-3" />
+      <div className="bg-gray-100 dark:bg-[#262626] rounded" style={{ height }} />
+    </div>
+  )
+}
+
+function KpiSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-[10px] animate-pulse">
+      {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-28 bg-gray-100 dark:bg-[#171717] rounded-xl" />)}
+    </div>
+  )
 }
 
 function KpiCard({ title, value, sub, change, icon, iconBg }: { title: string; value: string; sub?: string; change?: number; icon: React.ReactNode; iconBg: string }) {
@@ -97,19 +125,36 @@ function AnalyticsPageContent() {
 
   const queryClient = useQueryClient()
   const [hardRefreshing, setHardRefreshing] = useState(false)
-  const { data, isPending, isFetching, isError, error: queryError, refetch } = useMerchantAnalytics(qs)
+  // Three independent queries under the same analytics/ directory — same qs,
+  // fetched in parallel; each section renders as soon as its group resolves.
+  const summaryQuery = useMerchantAnalyticsSummary(qs)
+  const chartsQuery = useMerchantAnalyticsCharts(qs)
+  const topsQuery = useMerchantAnalyticsTops(qs)
+  const summary = summaryQuery.data
+  const charts = chartsQuery.data
+  const tops = topsQuery.data
+  const hasAnyData = !!summary || !!charts || !!tops
+  const isFetching = summaryQuery.isFetching || chartsQuery.isFetching || topsQuery.isFetching
+  const queryError = summaryQuery.error ?? chartsQuery.error ?? topsQuery.error
 
-  const isInitialLoading = (isPending && !data) || hardRefreshing
+  const isInitialLoading = (!hasAnyData && (summaryQuery.isPending || chartsQuery.isPending || topsQuery.isPending)) || hardRefreshing
   const loading = isFetching || hardRefreshing
-  const error = isError && !data && !hardRefreshing ? (queryError instanceof Error ? queryError.message : 'Failed to load analytics') : null
+  const error = queryError && !hasAnyData && !hardRefreshing ? (queryError instanceof Error ? queryError.message : 'Failed to load analytics') : null
 
   const handleHardRefresh = () => {
     if (hardRefreshing) return
     setHardRefreshing(true)
     void (async () => {
       try {
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantAnalyticsSummary(qs) })
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantAnalyticsCharts(qs) })
+        queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantAnalyticsTops(qs) })
         queryClient.removeQueries({ queryKey: QUERY_KEYS.merchantAnalytics(qs) })
-        await refetch({ cancelRefetch: true })
+        await Promise.all([
+          summaryQuery.refetch({ cancelRefetch: true }),
+          chartsQuery.refetch({ cancelRefetch: true }),
+          topsQuery.refetch({ cancelRefetch: true }),
+        ])
       } finally { setHardRefreshing(false) }
     })()
   }
@@ -117,8 +162,8 @@ function AnalyticsPageContent() {
   const clearAll = () => { setQ(''); setDebouncedQ(''); setFilters({ status: [], fulfillment: [], deliveryStatus: [], paymentMethod: [], outlet: [] }) }
 
   const revenueTrendOption = useMemo(() => {
-    if (!data) return {}
-    const d = data.revenueTrend
+    if (!charts) return {}
+    const d = charts.revenueTrend
     return {
       tooltip: { trigger: 'axis' as const, backgroundColor: '#171717', borderColor: '#262626', textStyle: { color: '#ededed' } },
       legend: { data: ['Revenue','Orders'], textStyle: { color: '#a1a1aa' }, top: 0 },
@@ -133,32 +178,32 @@ function AnalyticsPageContent() {
         { name: 'Orders', type: 'bar' as const, data: d.map((x) => x.orders), yAxisIndex: 1, itemStyle: { color: '#10b981', borderRadius: [4,4,0,0] }, barWidth: '40%' },
       ],
     }
-  }, [data])
+  }, [summary, charts, tops])
   const orderStatusOption = useMemo(() => {
-    if (!data) return {}
-    const total = data.orderStatusBreakdown.reduce((s,x)=>s+x.count,0)
+    if (!charts) return {}
+    const total = charts.orderStatusBreakdown.reduce((s,x)=>s+x.count,0)
     const colors: Record<string,string> = { pending:'#f59e0b', accepted:'#3b82f6', preparing:'#8b5cf6', ready_for_pickup:'#06b6d4', on_delivery:'#10b981', delivered:'#22c55e', cancelled:'#ef4444' }
-    return { tooltip: { trigger: 'item' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'} }, legend: { orient:'vertical' as const, right:10, top:'center', textStyle:{color:'#a1a1aa'} }, series: [{ type:'pie' as const, radius:['50%','75%'], center:['35%','50%'], label:{show:true, position:'center' as const, formatter:()=>`{t|${total}}\n{l|Orders}`, rich:{t:{fontSize:22,fontWeight:'bold' as const,color:'#ededed'},l:{fontSize:11,color:'#a1a1aa'}}}, data: data.orderStatusBreakdown.map((d)=>({name:d.status.replace(/_/g,' '), value:d.count, itemStyle:{color:colors[d.status]||'#6b7280'}})) }] }
-  }, [data])
+    return { tooltip: { trigger: 'item' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'} }, legend: { orient:'vertical' as const, right:10, top:'center', textStyle:{color:'#a1a1aa'} }, series: [{ type:'pie' as const, radius:['50%','75%'], center:['35%','50%'], label:{show:true, position:'center' as const, formatter:()=>`{t|${total}}\n{l|Orders}`, rich:{t:{fontSize:22,fontWeight:'bold' as const,color:'#ededed'},l:{fontSize:11,color:'#a1a1aa'}}}, data: charts.orderStatusBreakdown.map((d)=>({name:d.status.replace(/_/g,' '), value:d.count, itemStyle:{color:colors[d.status]||'#6b7280'}})) }] }
+  }, [summary, charts, tops])
   const outletRevenueOption = useMemo(() => {
-    if (!data) return {}
-    const d = [...data.revenueByOutlet].slice(0,8)
+    if (!charts) return {}
+    const d = [...charts.revenueByOutlet].slice(0,8)
     return { tooltip:{trigger:'axis' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'}}, grid:{top:10,right:20,bottom:30,left:60}, xAxis:{type:'category' as const, data:d.map(x=>x.outletName.length>14?x.outletName.slice(0,14)+'…':x.outletName), axisLabel:{color:'#a1a1aa', rotate:12}}, yAxis:{type:'value' as const, axisLabel:{color:'#a1a1aa'}}, series:[{type:'bar' as const, data:d.map(x=>x.revenue), itemStyle:{color:'#2563eb', borderRadius:[6,6,0,0]}}] }
-  }, [data])
+  }, [summary, charts, tops])
   const hourlyOption = useMemo(() => {
-    if (!data) return {}
-    return { tooltip:{trigger:'axis' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'}}, grid:{top:10,right:15,bottom:30,left:45}, xAxis:{type:'category' as const, data:data.hourlyDistribution.map(x=>`${String(x.hour).padStart(2,'0')}:00`), axisLabel:{color:'#a1a1aa', fontSize:10}}, yAxis:{type:'value' as const, axisLabel:{color:'#a1a1aa'}}, series:[{name:'Orders',type:'bar' as const, data:data.hourlyDistribution.map(x=>x.orders), itemStyle:{color:'#f59e0b', borderRadius:[4,4,0,0]}}] }
-  }, [data])
+    if (!charts) return {}
+    return { tooltip:{trigger:'axis' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'}}, grid:{top:10,right:15,bottom:30,left:45}, xAxis:{type:'category' as const, data:charts.hourlyDistribution.map(x=>`${String(x.hour).padStart(2,'0')}:00`), axisLabel:{color:'#a1a1aa', fontSize:10}}, yAxis:{type:'value' as const, axisLabel:{color:'#a1a1aa'}}, series:[{name:'Orders',type:'bar' as const, data:charts.hourlyDistribution.map(x=>x.orders), itemStyle:{color:'#f59e0b', borderRadius:[4,4,0,0]}}] }
+  }, [summary, charts, tops])
 
   const isInitial = isInitialLoading
-  const isRefreshing = loading && !!data && !hardRefreshing
+  const isRefreshing = loading && hasAnyData && !hardRefreshing
 
   return (
     <div className="space-y-[10px] py-5 px-2.5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2"><BarChart3 className="w-6 h-6 text-blue-600" />Analytics</h1>
-          <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">{data ? <><span className="font-medium text-gray-700 dark:text-white">{data.meta.vendorName}</span> • {data.kpis.totalOutlets} outlets • {data.meta.totalOrdersAllTime} orders all time</> : 'Your business performance — verified paid transactions only'}</p>
+          <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">{summary ? <><span className="font-medium text-gray-700 dark:text-white">{summary.meta.vendorName}</span> • {summary.kpis.totalOutlets} outlets • {summary.meta.totalOrdersAllTime} orders all time</> : 'Your business performance — verified paid transactions only'}{isFetching && !hardRefreshing ? <span className="ml-2 text-xs text-gray-400">Updating…</span> : null}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-[#171717] rounded-full border border-gray-200 dark:border-[#262626]">
@@ -189,13 +234,15 @@ function AnalyticsPageContent() {
               <FilterPills label="Payment method" options={PAYMENT_OPTS} value={filters.paymentMethod} onToggle={(v)=>toggle('paymentMethod',v)} />
               <div>
                 <p className="text-xs font-semibold text-gray-700 dark:text-[#a1a1aa] mb-2">Outlet</p>
-                {data ? (
+                {summary ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {data.outlets.map((o)=> {
+                    {summary.outlets.map((o)=> {
                       const active = filters.outlet.includes(String(o.id).toLowerCase()) || filters.outlet.includes(o.name.toLowerCase())
                       return <button key={o.id} onClick={()=>toggle('outlet', String(o.id).toLowerCase())} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626]'}`}>{o.name}</button>
                     })}
                   </div>
+                ) : summaryQuery.isError ? (
+                  <p className="text-xs text-gray-400">Outlets failed to load <button onClick={() => void summaryQuery.refetch({ cancelRefetch: true })} className="ml-1 font-semibold text-blue-600">Retry</button></p>
                 ) : <p className="text-xs text-gray-400">Outlets load with data…</p>}
               </div>
             </div>
@@ -204,25 +251,32 @@ function AnalyticsPageContent() {
         )}
       </div>
 
-      {error && !data ? (
+      {error && !hasAnyData ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]"><AlertCircle className="h-7 w-7 text-red-500 mb-2" /><p className="text-sm text-gray-500 mb-4">{error}</p><button onClick={handleHardRefresh} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Retry</button></div>
       ) : isInitial ? (
         <div className="space-y-[10px] animate-pulse"><div className="grid grid-cols-2 lg:grid-cols-4 gap-[10px]">{Array.from({length:8}).map((_,i)=><div key={i} className="h-28 bg-gray-100 dark:bg-[#171717] rounded-xl" />)}</div><div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px]"><div className="h-80 bg-gray-100 dark:bg-[#171717] rounded-xl" /><div className="h-80 bg-gray-100 dark:bg-[#171717] rounded-xl" /></div></div>
-      ) : !data ? null : (
+      ) : (
         <>
           {isRefreshing && <div className="flex items-center gap-2 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg px-3 py-2"><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Updating…</div>}
           <div className={`space-y-[10px] ${isRefreshing?'opacity-60 pointer-events-none':''} transition-opacity`}>
+            {summary ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-[10px]">
-              <KpiCard title="Revenue (paid)" value={fmtCurrency(data.kpis.totalRevenue)} sub={`AOV ${fmtCurrency(data.kpis.aov)}`} change={data.kpis.revenueChange} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
-              <KpiCard title="Today" value={fmtCurrency(data.kpis.todayRevenue)} icon={<Clock className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
-              <KpiCard title="Orders" value={fmtNum(data.kpis.totalOrders)} sub={`${data.kpis.pendingOrders} pending • ${data.kpis.activeOrders} active`} change={data.kpis.ordersChange} icon={<ShoppingCart className="w-5 h-5 text-white" />} iconBg="bg-blue-500" />
-              <KpiCard title="Outlets" value={`${data.kpis.openOutlets}/${data.kpis.totalOutlets}`} sub={`${data.kpis.acceptingOrders} accepting`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-violet-500" />
-              <KpiCard title="Avg Rating" value={`${data.kpis.averageRating.toFixed(1)} / 5`} sub={`${data.kpis.totalReviews} reviews`} icon={<Star className="w-5 h-5 text-white" />} iconBg="bg-orange-500" />
-              <KpiCard title="Revenue / Outlet" value={fmtCurrency(data.kpis.totalOutlets ? data.kpis.totalRevenue / data.kpis.totalOutlets : 0)} sub={`${data.kpis.totalOrders} total orders`} icon={<Award className="w-5 h-5 text-white" />} iconBg="bg-cyan-500" />
-              <KpiCard title="Paid Tx" value={fmtNum(data.kpis.paidCount)} sub={`${fmtNum(data.kpis.refundedCount)} refunded`} icon={<CreditCard className="w-5 h-5 text-white" />} iconBg="bg-green-600" />
-              <KpiCard title="Failed" value={fmtNum(data.kpis.failedCount)} icon={<AlertCircle className="w-5 h-5 text-white" />} iconBg="bg-red-500" />
+              <KpiCard title="Revenue (paid)" value={fmtCurrency(summary.kpis.totalRevenue)} sub={`AOV ${fmtCurrency(summary.kpis.aov)}`} change={summary.kpis.revenueChange} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
+              <KpiCard title="Today" value={fmtCurrency(summary.kpis.todayRevenue)} icon={<Clock className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
+              <KpiCard title="Orders" value={fmtNum(summary.kpis.totalOrders)} sub={`${summary.kpis.pendingOrders} pending • ${summary.kpis.activeOrders} active`} change={summary.kpis.ordersChange} icon={<ShoppingCart className="w-5 h-5 text-white" />} iconBg="bg-blue-500" />
+              <KpiCard title="Outlets" value={`${summary.kpis.openOutlets}/${summary.kpis.totalOutlets}`} sub={`${summary.kpis.acceptingOrders} accepting`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-violet-500" />
+              <KpiCard title="Avg Rating" value={`${summary.kpis.averageRating.toFixed(1)} / 5`} sub={`${summary.kpis.totalReviews} reviews`} icon={<Star className="w-5 h-5 text-white" />} iconBg="bg-orange-500" />
+              <KpiCard title="Revenue / Outlet" value={fmtCurrency(summary.kpis.totalOutlets ? summary.kpis.totalRevenue / summary.kpis.totalOutlets : 0)} sub={`${summary.kpis.totalOrders} total orders`} icon={<Award className="w-5 h-5 text-white" />} iconBg="bg-cyan-500" />
+              <KpiCard title="Paid Tx" value={fmtNum(summary.kpis.paidCount)} sub={`${fmtNum(summary.kpis.refundedCount)} refunded`} icon={<CreditCard className="w-5 h-5 text-white" />} iconBg="bg-green-600" />
+              <KpiCard title="Failed" value={fmtNum(summary.kpis.failedCount)} icon={<AlertCircle className="w-5 h-5 text-white" />} iconBg="bg-red-500" />
             </div>
+            ) : summaryQuery.isError ? (
+              <SectionError message={summaryQuery.error instanceof Error ? summaryQuery.error.message : 'Failed to load KPIs'} onRetry={() => void summaryQuery.refetch({ cancelRefetch: true })} />
+            ) : (
+              <KpiSkeletonGrid />
+            )}
 
+            {charts ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-[10px]">
               <div className="lg:col-span-2 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Revenue & Orders Trend</h3>
@@ -233,49 +287,91 @@ function AnalyticsPageContent() {
                 <ReactECharts option={orderStatusOption} style={{ height: 300 }} />
               </div>
             </div>
+            ) : chartsQuery.isError ? (
+              <SectionError message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load charts'} onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })} />
+            ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-[10px]">
+              <div className="lg:col-span-2"><ChartSkeleton height={300} /></div>
+              <div><ChartSkeleton height={300} /></div>
+            </div>
+            )}
 
+            {charts ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-[10px]">
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Truck className="w-4 h-4" />Fulfillment</h3>
-                <ReactECharts option={{ tooltip:{trigger:'item' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'}}, series:[{type:'pie' as const, radius:['45%','70%'], data: data.fulfillmentMix.map(f=>({name:f.type, value:f.count}))}] }} style={{ height: 240 }} />
+                <ReactECharts option={{ tooltip:{trigger:'item' as const, backgroundColor:'#171717', borderColor:'#262626', textStyle:{color:'#ededed'}}, series:[{type:'pie' as const, radius:['45%','70%'], data: charts.fulfillmentMix.map(f=>({name:f.type, value:f.count}))}] }} style={{ height: 240 }} />
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-3">Delivery Status</h3>
                 <div className="space-y-2 max-h-[240px] overflow-auto">
-                  {data.deliveryStatusBreakdown.map(s=> <div key={s.status} className="flex items-center gap-3"><span className="text-xs w-28 truncate capitalize">{s.status.replace(/_/g,' ')}</span><div className="flex-1 h-2 bg-gray-100 dark:bg-[#262626] rounded-full"><div className="h-full bg-blue-600 rounded-full" style={{width:`${(s.count/Math.max(...data.deliveryStatusBreakdown.map(x=>x.count)))*100}%`}} /></div><span className="text-xs w-8 text-right">{s.count}</span></div>)}
+                  {charts.deliveryStatusBreakdown.map(s=> <div key={s.status} className="flex items-center gap-3"><span className="text-xs w-28 truncate capitalize">{s.status.replace(/_/g,' ')}</span><div className="flex-1 h-2 bg-gray-100 dark:bg-[#262626] rounded-full"><div className="h-full bg-blue-600 rounded-full" style={{width:`${(s.count/Math.max(...charts.deliveryStatusBreakdown.map(x=>x.count)))*100}%`}} /></div><span className="text-xs w-8 text-right">{s.count}</span></div>)}
                 </div>
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-3">Payment Methods</h3>
-                <ReactECharts option={{ grid:{top:10,right:20,bottom:20,left:90}, xAxis:{type:'value' as const}, yAxis:{type:'category' as const, data:data.paymentMethodBreakdown.map(x=>x.method)}, series:[{type:'bar' as const, data:data.paymentMethodBreakdown.map(x=>x.count), itemStyle:{color:'#6366f1'}}] }} style={{ height: 240 }} />
+                <ReactECharts option={{ grid:{top:10,right:20,bottom:20,left:90}, xAxis:{type:'value' as const}, yAxis:{type:'category' as const, data:charts.paymentMethodBreakdown.map(x=>x.method)}, series:[{type:'bar' as const, data:charts.paymentMethodBreakdown.map(x=>x.count), itemStyle:{color:'#6366f1'}}] }} style={{ height: 240 }} />
               </div>
             </div>
+            ) : chartsQuery.isError ? (
+              <SectionError message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load charts'} onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })} />
+            ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-[10px]">
+              <div><ChartSkeleton height={240} /></div>
+              <div><ChartSkeleton height={240} /></div>
+              <div><ChartSkeleton height={240} /></div>
+            </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px]">
+              {charts ? (
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><Store className="w-4 h-4" />Revenue by Outlet</h3>
                 <ReactECharts option={outletRevenueOption} style={{ height: 280 }} />
               </div>
+              ) : chartsQuery.isError ? (
+                <SectionError message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load outlet revenue'} onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })} />
+              ) : (
+                <ChartSkeleton height={280} />
+              )}
+              {tops ? (
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><Package className="w-4 h-4" />Top Products</h3>
-                <ReactECharts option={{ grid:{top:10,right:15,bottom:10,left:140}, xAxis:{type:'value' as const}, yAxis:{type:'category' as const, data:data.topProducts.slice(0,6).map(x=>x.name.slice(0,18))}, series:[{type:'bar' as const, data:data.topProducts.slice(0,6).map(x=>x.revenue), itemStyle:{color:'#10b981'}}] }} style={{ height: 280 }} />
+                <ReactECharts option={{ grid:{top:10,right:15,bottom:10,left:140}, xAxis:{type:'value' as const}, yAxis:{type:'category' as const, data:tops.topProducts.slice(0,6).map(x=>x.name.slice(0,18))}, series:[{type:'bar' as const, data:tops.topProducts.slice(0,6).map(x=>x.revenue), itemStyle:{color:'#10b981'}}] }} style={{ height: 280 }} />
               </div>
+              ) : topsQuery.isError ? (
+                <SectionError message={topsQuery.error instanceof Error ? topsQuery.error.message : 'Failed to load top products'} onRetry={() => void topsQuery.refetch({ cancelRefetch: true })} />
+              ) : (
+                <ChartSkeleton height={280} />
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-[10px]">
+              {charts ? (
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-5 shadow-sm">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><Clock className="w-4 h-4" />Orders by Hour</h3>
                 <ReactECharts option={hourlyOption} style={{ height: 280 }} />
               </div>
+              ) : chartsQuery.isError ? (
+                <SectionError message={chartsQuery.error instanceof Error ? chartsQuery.error.message : 'Failed to load hourly orders'} onRetry={() => void chartsQuery.refetch({ cancelRefetch: true })} />
+              ) : (
+                <ChartSkeleton height={280} />
+              )}
+              {summary ? (
               <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] overflow-hidden shadow-sm">
                 <div className="px-5 py-3 border-b border-gray-100 dark:border-[#262626]"><h3 className="text-sm font-semibold">My Outlets</h3></div>
                 <div className="divide-y divide-gray-100 dark:divide-[#262626]">
-                  {data.outlets.map(o=> <div key={o.id} className="flex items-center justify-between px-4 py-3"><div><p className="text-sm font-medium">{o.name}</p><p className="text-xs text-gray-500">{o.operationalStatus} • {o.isAcceptingOrders?'accepting':'paused'}</p></div><div className="text-right"><p className="text-sm font-semibold">{fmtCurrency(o.todayRevenue)}</p><p className="text-xs text-gray-500">{o.todayOrders} today</p></div></div>)}
+                  {summary.outlets.map(o=> <div key={o.id} className="flex items-center justify-between px-4 py-3"><div><p className="text-sm font-medium">{o.name}</p><p className="text-xs text-gray-500">{o.operationalStatus} • {o.isAcceptingOrders?'accepting':'paused'}</p></div><div className="text-right"><p className="text-sm font-semibold">{fmtCurrency(o.todayRevenue)}</p><p className="text-xs text-gray-500">{o.todayOrders} today</p></div></div>)}
                 </div>
               </div>
+              ) : summaryQuery.isError ? (
+                <SectionError message={summaryQuery.error instanceof Error ? summaryQuery.error.message : 'Failed to load outlets'} onRetry={() => void summaryQuery.refetch({ cancelRefetch: true })} />
+              ) : (
+                <ChartSkeleton height={280} />
+              )}
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 text-center">Vendor {data.meta.vendorName} • {data.meta.range} • {fmtDateTime(data.meta.generatedAt)} • BFF /vendor/analytics</p>
+          {summary && <p className="text-[11px] text-gray-400 text-center">Vendor {summary.meta.vendorName} • {summary.meta.range} • {fmtDateTime(summary.meta.generatedAt)} • BFF /vendor/analytics</p>}
         </>
       )}
     </div>

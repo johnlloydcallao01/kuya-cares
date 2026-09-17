@@ -70,6 +70,65 @@ async function retryServerErrors<T>(operation: () => Promise<T>): Promise<T> {
 }
 
 // ========================================
+// PROFILE PICTURE ENRICHMENT
+// ========================================
+
+/**
+ * Fetch a full user document with depth=2 so relationships (profilePicture -> media)
+ * are resolved to full objects including cloudinaryURL.
+ */
+async function fetchFullUser(userId: number): Promise<User | null> {
+  try {
+    const response = await makeAuthRequest<{ doc: User }>(`/${userId}?depth=2`);
+    return response?.doc ?? null;
+  } catch (error: any) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}
+
+/**
+ * Strip credential-related fields that a full user document may contain so we
+ * never persist them to localStorage.
+ */
+function sanitizeUserForStorage(user: User): User {
+  const copy: Record<string, unknown> = { ...user } as unknown as Record<string, unknown>;
+  delete copy['hash'];
+  delete copy['salt'];
+  delete copy['resetPasswordToken'];
+  delete copy['resetPasswordExpiration'];
+  return copy as unknown as User;
+}
+
+/**
+ * Normalize profilePicture to a usable object form. If the API returns a scalar
+ * ID (depth 0) instead of the resolved media document, drop it so the UI falls
+ * back to initials gracefully instead of crashing.
+ */
+function normalizeProfilePicture(user: User): User {
+  const pp = (user as any).profilePicture;
+  if (pp && typeof pp === 'object' && !Array.isArray(pp) && pp.id != null) {
+    return sanitizeUserForStorage(user);
+  }
+  return sanitizeUserForStorage({ ...user, profilePicture: null });
+}
+
+/**
+ * Enrich a user object with the resolved profilePicture (cloudinaryURL).
+ * Used after login/me/refresh so the avatar always has a displayable URL.
+ */
+async function enrichUserWithProfilePicture(user: User): Promise<User> {
+  try {
+    const fresh = await fetchFullUser(user.id);
+    return normalizeProfilePicture(fresh || user);
+  } catch (error) {
+    // If the enrichment fetch fails, keep the original user (with scalar/missing
+    // profilePicture handled) rather than breaking authentication.
+    return normalizeProfilePicture(user);
+  }
+}
+
+// ========================================
 // AUTHENTICATION FUNCTIONS
 // ========================================
 
@@ -92,17 +151,20 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
       throw new Error('Access denied. Only customers can access this application.');
     }
 
+    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
+    const enrichedUser = await enrichUserWithProfilePicture(response.user);
+
     // Store token for persistent authentication
     if (response.token) {
       localStorage.setItem('grandline_auth_token', response.token);
       const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
       localStorage.setItem('grandline_auth_expires', expirationTime.toString());
-      localStorage.setItem('grandline_auth_user', JSON.stringify(response.user));
+      localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
     }
 
     return {
       message: response.message,
-      user: response.user,
+      user: enrichedUser,
       token: response.token,
       exp: response.exp,
     };
@@ -151,9 +213,12 @@ export async function getCurrentUser(): Promise<User | null> {
       return null;
     }
 
+    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
+    const enrichedUser = await enrichUserWithProfilePicture(response.user);
+
     // Update cached user data
-    localStorage.setItem('grandline_auth_user', JSON.stringify(response.user));
-    return response.user;
+    localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
+    return enrichedUser;
   } catch (error: any) {
     if (error.status === 401) {
       clearAuthState();
@@ -181,19 +246,22 @@ export async function refreshSession(): Promise<AuthResponse> {
       throw new Error('Access denied. Only customers can access this application.');
     }
 
+    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
+    const enrichedUser = await enrichUserWithProfilePicture(response.user);
+
     // Update stored token and user data
     if (response.token) {
       localStorage.setItem('grandline_auth_token', response.token);
       const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000);
       localStorage.setItem('grandline_auth_expires', expirationTime.toString());
-      localStorage.setItem('grandline_auth_user', JSON.stringify(response.user));
+      localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
     }
 
-    emitAuthEvent('session_refreshed', response.user);
+    emitAuthEvent('session_refreshed', enrichedUser);
 
     return {
       message: response.message,
-      user: response.user,
+      user: enrichedUser,
       token: response.token,
       exp: response.exp,
     };

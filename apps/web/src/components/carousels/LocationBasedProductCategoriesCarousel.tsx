@@ -2,11 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ProductCategoryCircle } from '@/components/ui/ProductCategoryCircle';
-import { useAddressChange } from '@/hooks/useAddressChange';
-import { LocationBasedMerchantService, getLocationBasedMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
+import { getBrowsingMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
 
 interface LocationBasedProductCategoriesCarouselProps {
-  customerId?: string;
   limit?: number;
   sortBy?: 'name' | 'popularity' | 'productCount';
   includeInactive?: boolean;
@@ -22,7 +20,6 @@ interface LocationBasedProductCategoriesCarouselProps {
  */
 
 export const LocationBasedProductCategoriesCarousel = ({
-  customerId,
   limit = 20,
   sortBy = 'popularity',
   includeInactive = false,
@@ -30,7 +27,7 @@ export const LocationBasedProductCategoriesCarousel = ({
   onCategorySelect,
   onCategoryIdResolved,
 }: LocationBasedProductCategoriesCarouselProps): React.ReactNode => {
-  // CSR state management for location-based categories
+  // CSR state management for product categories
   const [categories, setCategories] = useState<MerchantCategoryDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -40,7 +37,6 @@ export const LocationBasedProductCategoriesCarousel = ({
   const [startTranslateX, setStartTranslateX] = useState(0);
   const [lastTime, setLastTime] = useState(0);
   const [velocityX, setVelocityX] = useState(0);
-  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(customerId || null);
 
   const activeCategory = selectedCategorySlug 
     ? (categories.find(cat => cat.slug === selectedCategorySlug)?.name 
@@ -67,11 +63,11 @@ export const LocationBasedProductCategoriesCarousel = ({
   const itemWidth = isUltraWide ? 80 : 64;
   const gapWidth = isUltraWide ? 56 : 48;
 
-  const fetchMerchantCategories = useCallback(async (customerIdToUse: string) => {
+  const fetchMerchantCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const cats = await getLocationBasedMerchantCategories({ customerId: customerIdToUse, includeInactive, limit: limit });
+      const cats = await getBrowsingMerchantCategories({ includeInactive, limit: limit });
       let mapped = cats || [];
       if (sortBy === 'name') {
         mapped = mapped.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -87,46 +83,11 @@ export const LocationBasedProductCategoriesCarousel = ({
     }
   }, [includeInactive, limit, sortBy]);
 
-  // Resolve customer ID if not provided
+  // Lazada/Shopee-style: fetch categories directly on mount.
+  // No customer/address resolution — no location-based endpoint round-trips.
   useEffect(() => {
-    const resolveCustomerId = async () => {
-      if (customerId) {
-        setResolvedCustomerId(customerId);
-        return;
-      }
-
-      try {
-        const currentCustomerId = await LocationBasedMerchantService.getCurrentCustomerId();
-        if (currentCustomerId) {
-          setResolvedCustomerId(currentCustomerId);
-        } else {
-          setError('Unable to determine customer location');
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('❌ Error resolving customer ID:', err);
-        setError('Failed to determine customer location');
-        setLoading(false);
-      }
-    };
-
-    resolveCustomerId();
-  }, [customerId]);
-
-  // Fetch categories when customer ID is resolved
-  useEffect(() => {
-    if (resolvedCustomerId) {
-      fetchMerchantCategories(resolvedCustomerId);
-    }
-  }, [resolvedCustomerId, fetchMerchantCategories]);
-
-  useAddressChange((addressId: string) => {
-    if (resolvedCustomerId) {
-      LocationBasedMerchantService.clearCache(resolvedCustomerId);
-      fetchMerchantCategories(resolvedCustomerId);
-    } else {
-    }
-  });
+    fetchMerchantCategories();
+  }, [fetchMerchantCategories]);
 
   // Calculate proper maxTranslate to ensure last item is fully visible - identical to ProductCategoryCarousel
   const getMaxTranslate = useCallback(() => {
@@ -370,7 +331,7 @@ export const LocationBasedProductCategoriesCarousel = ({
         // No categories found
         <div className="overflow-hidden px-2.5">
           <div className="flex items-center justify-center py-8 text-gray-500">
-            <p>No categories available in your area</p>
+            <p>No categories available</p>
           </div>
         </div>
       ) : (

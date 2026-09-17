@@ -1,3 +1,20 @@
+export interface VendorReportsSummaryGroup {
+  meta: VendorReportsData['meta']
+  summary: VendorReportsData['summary']
+}
+
+export interface VendorReportsFinancialGroup {
+  financialReconciliation: VendorReportsData['financialReconciliation']
+  outletPayouts: VendorReportsData['outletPayouts']
+  refundsFailures: VendorReportsData['refundsFailures']
+}
+
+export interface VendorReportsCatalogGroup {
+  orderVolume: VendorReportsData['orderVolume']
+  productPerformance: VendorReportsData['productPerformance']
+  deliveryLogistics: VendorReportsData['deliveryLogistics']
+}
+
 export interface VendorReportsData{
   meta:{range:string; days:number; generatedAt:string; vendorId:string; vendorName:string; periodStart:string|null; periodEnd:string; totalOrders:number}
   summary:{totalRevenue:number; totalRefunded:number; netRevenue:number; totalOrders:number; avgOrder:number; paidCount:number; refundedCount:number; failedCount:number; totalOutlets:number}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -24,7 +24,7 @@ function SignInContent() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useLogin();
 
-  // 🚀 ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  // ðŸš€ ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
   const [isSignUp] = useState(false); // Always false for signin page
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,7 +59,7 @@ function SignInContent() {
 
   // Professional error handling - no popup alerts
   const showError = (message: string) => {
-    console.error('❌ LOGIN ERROR:', message);
+    console.error('âŒ LOGIN ERROR:', message);
     // Set error state instead of showing alert
     setErrors({ general: message });
   };
@@ -100,12 +100,12 @@ function SignInContent() {
         sessionStorage.setItem('auth:redirectAfterLogin', redirectTo);
       }
 
-      console.log('🔄 REDIRECT STORED:', redirectTo);
+      console.log('ðŸ”„ REDIRECT STORED:', redirectTo);
 
       // Don't manually redirect - let the authentication system handle it
       // The PublicRoute component will automatically redirect authenticated users
     } catch (error) {
-      console.error('❌ LOGIN ERROR:', error);
+      console.error('âŒ LOGIN ERROR:', error);
       // Error is already handled by useLogin hook and displayed in UI
     }
   };
@@ -130,7 +130,7 @@ function SignInContent() {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium">
-                🚧 Debug Mode Active: Forms are pre-filled with test data
+                ðŸš§ Debug Mode Active: Forms are pre-filled with test data
               </p>
               <p className="text-xs mt-1">
                 Set NEXT_PUBLIC_DEBUG_FORMS=false in .env.local to disable
@@ -168,7 +168,7 @@ function SignInContent() {
               <div className="mb-8">
                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Calsiter Inc Logo"
                     width={64}
                     height={64}
@@ -247,7 +247,7 @@ function SignInContent() {
                 {/* Desktop Header */}
                 <div className="hidden lg:block text-center mb-8">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Tap2Go Logo"
                     width={64}
                     height={64}
@@ -265,7 +265,7 @@ function SignInContent() {
               {/* Mobile Form Header */}
               <div className="lg:hidden text-center mb-6">
                 <Image
-                  src="/logo.png"
+                  src="/kuya-cares.png"
                   alt="Tap2Go Logo"
                   width={64}
                   height={64}

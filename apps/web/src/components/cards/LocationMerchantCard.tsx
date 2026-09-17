@@ -20,6 +20,8 @@ function getImageUrl(media: Media | null | undefined): string | null {
 
 function formatDistanceKm(distanceKm?: number): string | null {
   if (typeof distanceKm !== "number") return null;
+  // Address-free browsing fallback uses 0 — hide the badge Shopee-style.
+  if (distanceKm <= 0) return null;
   if (distanceKm < 1) return `${Math.round(distanceKm * 1000)}m`;
   return `${distanceKm.toFixed(1)}km`;
 }
@@ -150,7 +152,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                       </div>
                     )}
                     {merchant.metrics?.totalOrders && <span>({merchant.metrics.totalOrders} orders)</span>}
-                    {merchant.estimatedDeliveryTime && (
+                    {!!merchant.estimatedDeliveryTime && String(merchant.estimatedDeliveryTime).trim() !== '' && (
                       <span className="ml-2 text-gray-600">{merchant.estimatedDeliveryTime} min delivery</span>
                     )}
                   </div>
@@ -219,7 +221,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                 )}
                 {merchant.metrics?.totalOrders && <span>({merchant.metrics.totalOrders} orders)</span>}
               </div>
-              {merchant.estimatedDeliveryTime && (
+              {!!merchant.estimatedDeliveryTime && String(merchant.estimatedDeliveryTime).trim() !== '' && (
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">{merchant.estimatedDeliveryTime} min delivery</span>
                 </div>

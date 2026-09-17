@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import Image from 'next/image';
@@ -34,7 +34,7 @@ export function FacebookLoadingScreen({ isVisible, progress = 0 }: FacebookLoadi
             <div className="facebook-logo">
               {/* @ts-ignore -- Next.js Image component type issue with React 19 */}
               <Image
-                src="/logo.png"
+                src="/kuya-cares.png"
                 alt="Calsiter Inc Logo"
                 width={64}
                 height={64}

@@ -72,4 +72,6 @@ export type IconName =
   | 'outlets'
   | 'business'
   | 'fulfillment'
-  | 'reviews';
+  | 'modifiers'
+  | 'reviews'
+  | 'activity';

@@ -462,7 +462,7 @@ export default buildConfig({
               },
             });
 
-            const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
+const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
             const replyTo = process.env.EMAIL_REPLY_TO || fromEmail;
             const fromName = process.env.EMAIL_FROM_NAME || 'Tap2Go';
             const apiKey = process.env.RESEND_API_KEY || '';
@@ -1312,7 +1312,7 @@ export default buildConfig({
       collections: {
         media: {
           adapter: cloudinaryAdapter({
-            cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
             apiKey: process.env.CLOUDINARY_API_KEY!,
             apiSecret: process.env.CLOUDINARY_API_SECRET!,
             folder: 'main-uploads',

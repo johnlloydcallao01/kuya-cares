@@ -1856,7 +1856,7 @@ function ProfileInner() {
   { key: 'emailNotif', label: 'Email notifications', desc: 'Order issues, payouts, verification requests' },
   { key: 'browserNotif', label: 'Browser push', desc: 'Real-time banner & sound for critical alerts' },
   ].map((row) => (
-  <label key={row.key} className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-[#262626] hover:bg-slate-50 dark:bg-[#171717] cursor-pointer">
+  <label key={row.key} className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] hover:bg-gray-50 dark:hover:bg-[#262626] cursor-pointer transition-colors">
   <div>
   <p className="text-sm font-semibold text-gray-900 dark:text-[#ededed]">{row.label}</p>
   <p className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">{row.desc}</p>
@@ -1869,7 +1869,7 @@ function ProfileInner() {
   />
   </label>
   ))}
-  <div className="rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 p-3 text-xs text-sky-800 flex gap-2">
+  <div className="rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 p-3 text-xs text-sky-800 dark:text-sky-200 flex gap-2">
   <Info className="w-4 h-4 flex-shrink-0" /> Server-side notification preferences will sync once Communications &gt; User Notifications exposes per-vendor settings.
   </div>
   </div>

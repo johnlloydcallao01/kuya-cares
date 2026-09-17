@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -13,7 +13,7 @@ import { FlatUserRegistrationSchema, type FlatUserRegistrationData } from '@/ser
 export default function RegisterPage(): React.ReactNode {
   const router = useRouter();
 
-  // 🚀 ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  // ðŸš€ ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
   const [isSignUp] = useState(true); // Always true for register page
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -220,7 +220,7 @@ export default function RegisterPage(): React.ReactNode {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ REGISTRATION SUCCESS:', result.message || 'Registration successful');
+        console.log('âœ… REGISTRATION SUCCESS:', result.message || 'Registration successful');
 
         // Reset form after successful registration
         setFormData(getInitialFormData());
@@ -259,7 +259,7 @@ export default function RegisterPage(): React.ReactNode {
         showError(errorMessage);
       }
     } catch (error) {
-      console.error('❌ REGISTRATION ERROR:', error);
+      console.error('âŒ REGISTRATION ERROR:', error);
       showError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
@@ -277,7 +277,7 @@ export default function RegisterPage(): React.ReactNode {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium">
-                🚧 Debug Mode Active: Forms are pre-filled with test data
+                ðŸš§ Debug Mode Active: Forms are pre-filled with test data
               </p>
               <p className="text-xs mt-1">
                 Set NEXT_PUBLIC_DEBUG_FORMS=false in .env.local to disable
@@ -315,7 +315,7 @@ export default function RegisterPage(): React.ReactNode {
               <div className="mb-8">
                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                   <Image
-                    src="/logo.png"
+                    src="/kuya-cares.png"
                     alt="Calsiter Inc Logo"
                     width={64}
                     height={64}
@@ -394,7 +394,7 @@ export default function RegisterPage(): React.ReactNode {
               {/* Desktop Header */}
               <div className="hidden lg:block text-center mb-8">
                 <Image
-                  src="/logo.png"
+                  src="/kuya-cares.png"
                   alt="Tap2Go Logo"
                   width={64}
                   height={64}
@@ -412,7 +412,7 @@ export default function RegisterPage(): React.ReactNode {
               {/* Mobile Form Header */}
               <div className="lg:hidden text-center mb-6">
                 <Image
-                  src="/logo.png"
+                  src="/kuya-cares.png"
                   alt="Tap2Go Logo"
                   width={64}
                   height={64}

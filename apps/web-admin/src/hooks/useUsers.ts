@@ -113,3 +113,35 @@ export function useUserDependencies(userId: string | number | null) {
     ...SHARED_QUERY_DEFAULTS,
   });
 }
+
+async function fetchUserDependenciesFresh(userId: string | number, signal?: AbortSignal): Promise<UserDependencies> {
+  const res = await fetch(`/api/users/${userId}/dependencies?fresh=true`, { signal });
+  const text = await res.text();
+  let j: Record<string, unknown> = {};
+  try {
+    j = JSON.parse(text);
+  } catch {
+    throw new Error(text || 'Failed to load dependencies');
+  }
+  if (!res.ok) throw new Error((j.error as string) || (j.details as string) || 'Failed to load dependencies');
+  return j as unknown as UserDependencies;
+}
+
+/**
+ * Delete-gating dependencies check — used ONLY by the delete confirm modal.
+ * Always bypasses caches (CMS `?fresh=true`, `staleTime: 0`, refetch on mount)
+ * so the modal never decides on stale data. Unknown state is explicit:
+ * callers must block deletion while data is missing.
+ */
+export function useUserDeleteDependencies(userId: string | number | null) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.adminUserDependencies(userId ?? 'none'), 'fresh'],
+    queryFn: ({ signal }) => fetchUserDependenciesFresh(userId as string | number, signal),
+    enabled: userId != null,
+    ...SHARED_QUERY_DEFAULTS,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+  });
+}

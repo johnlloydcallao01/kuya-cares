@@ -42,6 +42,12 @@ export interface LocationBasedMerchantServiceOptions {
   categoryId?: string;
 }
 
+export interface BrowsingMerchantServiceOptions {
+  customerId?: string | null;
+  limit?: number;
+  categoryId?: string;
+}
+
 export class LocationBasedMerchantService {
   private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
   private static readonly PAYLOAD_API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || process.env.EXPO_PUBLIC_PAYLOAD_API_KEY || '';
@@ -132,6 +138,165 @@ export class LocationBasedMerchantService {
     } catch (error) {
       console.error('❌ Error fetching location-based merchants:', error);
       return []; // Graceful fallback
+    }
+  }
+
+  /**
+   * Shopee/Lazada-style browsing: merchants immediately, no address required.
+   * Tries location-based when customerId is available, falls back to plain
+   * active merchants so the storefront never blocks on missing address.
+   */
+  static async getBrowsingMerchants(options: BrowsingMerchantServiceOptions = {}): Promise<LocationBasedMerchant[]> {
+    const { customerId, limit = 10, categoryId } = options;
+
+    // 1) Prefer personalized location-based list when we have a customer.
+    if (customerId) {
+      try {
+        const personalized = await LocationBasedMerchantService.getLocationBasedMerchants({
+          customerId,
+          limit,
+          categoryId,
+        });
+        if (personalized && personalized.length > 0) return personalized;
+        // Empty = likely no active address -> fall through to generic list.
+      } catch {
+        // Fall through to generic list.
+      }
+    }
+
+    // 2) Generic address-free fallback: GET /merchants?isActive=true
+    const cacheKey = `${CACHE_KEYS.MERCHANTS}-browsing-${limit}-${categoryId || 'all'}`;
+    const cached = dataCache.get<LocationBasedMerchant[]>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const apiKey = LocationBasedMerchantService.PAYLOAD_API_KEY;
+      if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+      const base = LocationBasedMerchantService.API_BASE;
+      const fetchLimit = categoryId ? Math.max(limit * 5, 50) : limit;
+      const params = new URLSearchParams({
+        limit: String(fetchLimit),
+        page: '1',
+      });
+      params.append('where[isActive][equals]', 'true');
+      const url = `${base}/merchants?${params.toString()}&depth=2`;
+      const res = await fetch(url, { headers, credentials: 'omit' });
+      if (!res.ok) return [];
+      const json = await res.json();
+      const docs: any[] = json.docs || json.data?.docs || [];
+      let mapped: LocationBasedMerchant[] = docs.map((d: any) =>
+        LocationBasedMerchantService.mapMerchantToLocationBased(d),
+      );
+      if (categoryId) {
+        const wanted = String(categoryId);
+        mapped = mapped.filter((m: any) => {
+          const raw = (m as any).merchant_categories;
+          if (!raw) return false;
+          if (Array.isArray(raw)) {
+            return raw.some((v: any) => {
+              const id = typeof v === 'number' || typeof v === 'string' ? v : v?.id;
+              return id != null && String(id) === wanted;
+            });
+          }
+          return false;
+        });
+        mapped = mapped.slice(0, limit);
+      }
+      dataCache.set(cacheKey, mapped, CACHE_TTL.MERCHANTS);
+      return mapped;
+    } catch (error) {
+      console.error('❌ Error fetching browsing merchants:', error);
+      return [];
+    }
+  }
+
+  private static mapMerchantToLocationBased(d: any): LocationBasedMerchant {
+    return {
+      ...d,
+      id: String(d?.id ?? ''),
+      distance: 0,
+      distanceKm: 0,
+      isWithinDeliveryRadius: true,
+      estimatedDeliveryTime: d?.deliverySettings?.estimatedDeliveryTime ?? d?.estimatedDeliveryTime ?? '',
+      operationalStatus: d?.operationalStatus ?? (d?.isAcceptingOrders === false ? 'closed' : 'open'),
+    } as LocationBasedMerchant;
+  }
+
+  /**
+   * Address-free categories: derive from browsing merchants, no customer required.
+   */
+  static async getBrowsingMerchantCategories(options: { customerId?: string | null; includeInactive?: boolean; limit?: number } = {}): Promise<MerchantCategoryDisplay[]> {
+    const { customerId, includeInactive = false, limit } = options;
+    if (customerId) {
+      try {
+        const cats = await LocationBasedMerchantService.getLocationBasedMerchantCategories({
+          customerId,
+          includeInactive,
+          limit,
+        });
+        if (cats && cats.length > 0) return cats;
+      } catch {
+        // Fall through to generic.
+      }
+    }
+    const cacheKey = `${CACHE_KEYS.MERCHANTS}-browsing-categories-${includeInactive ? 'all' : 'active'}-${limit ?? 'all'}`;
+    const cached = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
+    if (cached) return cached;
+    const list = await LocationBasedMerchantService.getBrowsingMerchants({ limit: 9999 });
+    const ids = Array.from(
+      new Set(
+        (list || []).flatMap((m: any) => {
+          const raw = (m as any).merchant_categories;
+          if (!raw) return [] as number[];
+          if (Array.isArray(raw)) {
+            return raw
+              .map((v: any) => (typeof v === 'number' ? v : typeof v?.id === 'number' ? v.id : null))
+              .filter((v: any) => typeof v === 'number') as number[];
+          }
+          return [] as number[];
+        }),
+      ),
+    );
+    if (ids.length === 0) {
+      dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
+      return [];
+    }
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const apiKey = LocationBasedMerchantService.PAYLOAD_API_KEY;
+      if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+      const base = LocationBasedMerchantService.API_BASE;
+      const params = new URLSearchParams();
+      params.append('where[id][in]', ids.join(','));
+      if (!includeInactive) params.append('where[isActive][equals]', 'true');
+      params.append('limit', String(ids.length));
+      const url = `${base}/merchant-categories?${params.toString()}`;
+      const res = await fetch(url, { headers, credentials: 'omit' });
+      if (!res.ok) {
+        dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
+        return [];
+      }
+      const json = await res.json();
+      const docs: any[] = json.docs || json.data?.docs || [];
+      let mapped: MerchantCategoryDisplay[] = docs.map((c: any) => ({
+        id: typeof c.id === 'number' ? c.id : Number(c.id),
+        name: c.name,
+        slug: c.slug,
+        description: c.description || undefined,
+        displayOrder: c.displayOrder ?? undefined,
+        isActive: c.isActive ?? undefined,
+        isFeatured: c.isFeatured ?? undefined,
+        media: { icon: c.icon || null },
+        updatedAt: c.updatedAt,
+        createdAt: c.createdAt,
+      }));
+      if (typeof limit === 'number') mapped = mapped.slice(0, limit);
+      dataCache.set(cacheKey, mapped, CACHE_TTL.MERCHANTS);
+      return mapped;
+    } catch {
+      dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
+      return [];
     }
   }
 
@@ -264,47 +429,35 @@ export class LocationBasedMerchantService {
 
   /**
    * Get customer ID from current user session
-   * This integrates with the authentication system to get the customer ID
+   * Delegates to the /api/customer/me BFF endpoint which reads the session
+   * cookie. Returns null silently for guests or unauthenticated users.
    */
   static async getCurrentCustomerId(): Promise<string | null> {
     try {
-      // Check if we have a cached customer ID
       const cachedCustomerId = dataCache.get<string>('current-customer-id');
       if (cachedCustomerId) {
         return cachedCustomerId;
       }
 
-      // Get current user from localStorage (where auth context stores it)
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
-      if (!userDataStr) {
+      const url = `${this.API_BASE}/customer/me`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
         return null;
       }
 
-      let userData;
-      try {
-        userData = JSON.parse(userDataStr);
-      } catch (parseError) {
-        console.error('❌ Failed to parse user data from localStorage:', parseError);
-        return null;
+      const data = await response.json();
+      const customerId = data?.customerId ?? null;
+      if (customerId != null) {
+        dataCache.set('current-customer-id', String(customerId), CACHE_TTL.MERCHANTS);
       }
 
-      const userId = userData?.id;
-      if (!userId) {
-        return null;
-      }
-
-      // Get customer ID from user ID using the same pattern as address-service
-      const customerId = await LocationBasedMerchantService.getCustomerIdFromUserId(userId);
-      
-      if (customerId) {
-        // Cache the customer ID for future use
-        dataCache.set('current-customer-id', customerId, CACHE_TTL.MERCHANTS);
-      } else {
-      }
-      
-      return customerId;
-    } catch (error) {
-      console.error('❌ Error getting current customer ID:', error);
+      return customerId != null ? String(customerId) : null;
+    } catch {
       return null;
     }
   }
@@ -371,7 +524,7 @@ export class LocationBasedMerchantService {
       // Clear all location-based merchant cache entries
       const stats = dataCache.getStats();
       stats.keys.forEach(key => {
-        if (key.includes('location-')) {
+        if (key.includes('location-') || key.includes('-browsing-')) {
           dataCache.delete(key);
         }
       });
@@ -381,6 +534,8 @@ export class LocationBasedMerchantService {
 
 // Export convenience functions
 export const getLocationBasedMerchants = LocationBasedMerchantService.getLocationBasedMerchants;
+export const getBrowsingMerchants = LocationBasedMerchantService.getBrowsingMerchants;
+export const getBrowsingMerchantCategories = LocationBasedMerchantService.getBrowsingMerchantCategories;
 export const getCurrentCustomerId = LocationBasedMerchantService.getCurrentCustomerId;
 export const clearLocationBasedMerchantsCache = LocationBasedMerchantService.clearCache;
 export const getLocationBasedMerchantCategories = LocationBasedMerchantService.getLocationBasedMerchantCategories;

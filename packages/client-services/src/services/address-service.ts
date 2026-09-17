@@ -249,12 +249,11 @@ export class AddressService {
         headers: this.getHeaders(token),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || data.errors?.[0]?.message || 'Failed to fetch addresses');
+        return { success: false, message: 'No addresses found' };
       }
 
+      const data = await response.json();
       const addresses = data.docs || [];
       this.updateCache(addresses);
 
@@ -264,7 +263,6 @@ export class AddressService {
         total: data.totalDocs
       };
     } catch (error) {
-      console.error('Error fetching addresses:', error);
       
       if (error instanceof Error && (
         error.message.includes('fetch') || 
@@ -398,18 +396,17 @@ export class AddressService {
         }
       }
 
-      // 1. Fetch customer for this user
+      // 1. Fetch customer for this user - may not exist yet for new/browsing users (Shopee/Lazada-style, not an error)
       const customerRes = await fetch(`${this.API_BASE}/customers?where[user][equals]=${userId}&depth=1`, {
         ...this.getFetchOptions('GET'),
         headers: this.getHeaders(token),
       });
 
-      const customerData = await customerRes.json();
-      
       if (!customerRes.ok) {
-        throw new Error('Failed to fetch customer profile');
+        return { success: false, message: 'Customer profile not found' };
       }
 
+      const customerData = await customerRes.json();
       const customer = customerData.docs?.[0];
       
       if (!customer) {
@@ -440,7 +437,7 @@ export class AddressService {
 
       return { success: false, message: 'No active address set' };
     } catch (error) {
-      console.error('Error fetching active address:', error);
+      // Active address is optional for browsing - silently return without console error (Shopee/Lazada-style)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

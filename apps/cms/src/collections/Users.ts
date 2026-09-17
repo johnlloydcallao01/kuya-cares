@@ -45,6 +45,8 @@ export const Users: CollectionConfig = {
           const customers = await payload.find({
             collection: 'customers',
             where: { user: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
           });
 
           for (const customer of customers.docs) {
@@ -52,13 +54,16 @@ export const Users: CollectionConfig = {
             await payload.delete({
               collection: 'customers',
               id: customer.id,
-            });
+              overrideAccess: true,
+            }).catch(() => {});
           }
 
           // Delete related emergency contacts
           const emergencyContacts = await payload.find({
             collection: 'emergency-contacts',
             where: { user: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
           });
 
           for (const contact of emergencyContacts.docs) {
@@ -66,13 +71,16 @@ export const Users: CollectionConfig = {
             await payload.delete({
               collection: 'emergency-contacts',
               id: contact.id,
-            });
+              overrideAccess: true,
+            }).catch(() => {});
           }
 
           // Delete related admin records
           const admins = await payload.find({
             collection: 'admins',
             where: { user: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
           });
 
           for (const admin of admins.docs) {
@@ -80,26 +88,28 @@ export const Users: CollectionConfig = {
             await payload.delete({
               collection: 'admins',
               id: admin.id,
-            });
+              overrideAccess: true,
+            }).catch(() => {});
           }
 
           const drivers = await payload.find({
             collection: 'drivers',
             where: { user: { equals: id } },
-          })
+            overrideAccess: true,
+            depth: 0,
+          });
 
           for (const driver of drivers.docs) {
             await payload.delete({
               collection: 'drivers',
               id: driver.id,
-            })
+              overrideAccess: true,
+            }).catch(() => {});
           }
 
           console.log(`✅ Successfully cleaned up related records for user ${id}`);
         } catch (error) {
-          console.error(`❌ Error cleaning up related records for user ${id}:`, error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new Error(`Failed to delete user: ${errorMessage}`);
+          console.warn(`⚠️ Warning cleaning up related records for user ${id}:`, error);
         }
       },
     ],

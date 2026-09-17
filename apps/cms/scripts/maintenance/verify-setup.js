@@ -16,7 +16,7 @@ const requiredEnvVars = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
   'RESEND_API_KEY',
@@ -70,7 +70,7 @@ console.log('\n☁️  Cloudinary Connection Test:')
 async function testCloudinary() {
   try {
     cloudinary.config({
-      cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     })
@@ -78,7 +78,7 @@ async function testCloudinary() {
     // Test API connection
     const result = await cloudinary.api.ping()
     console.log('✅ Cloudinary connection successful')
-    console.log(`✅ Cloud name: ${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}`)
+    console.log(`✅ Cloud name: ${process.env.CLOUDINARY_CLOUD_NAME}`)
     return true
   } catch (error) {
     console.log(`❌ Cloudinary connection failed: ${error.message}`)

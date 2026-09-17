@@ -118,37 +118,6 @@ export async function validateAdminRequest(): Promise<ServerActionResult<Payload
 // ========================================
 
 /**
- * Placeholder for custom user claims (Firebase replacement)
- * In Payload CMS, this would be handled through user roles and permissions
- */
-export async function setCustomUserClaims(
-  _userId: string,
-  _claims: Record<string, unknown>
-): Promise<void> {
-  // In production, this would update user roles/permissions in Payload CMS
-}
-
-// Define notification message type
-interface NotificationMessage {
-  title: string;
-  body: string;
-  data?: Record<string, string>;
-  icon?: string;
-  badge?: string;
-}
-
-/**
- * Placeholder for sending notifications (FCM replacement)
- * In production, you might use email notifications, webhooks, or other services
- */
-export async function sendToTopic(
-  _topic: string,
-  _message: NotificationMessage
-): Promise<void> {
-  // In production, implement your notification system here
-}
-
-/**
  * Handle server action errors consistently
  */
 export function handleServerError<T = never>(error: unknown): ServerActionResult<T> {

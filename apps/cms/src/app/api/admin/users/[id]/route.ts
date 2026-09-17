@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateAdmin } from '@/utils/mediaLibrary'
+import { countLinkedRecords } from '../_lib/countLinked'
+import { deleteCachedByPrefix } from '@encreasl/cache'
 
 function optionalString(v: unknown): string | null {
   return typeof v === 'string' ? v.trim() || null : null
@@ -255,16 +257,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const admin = await authenticateAdmin(payload, request)
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const numericId = Number(id)
-    const docId: number | string = Number.isFinite(numericId) ? numericId : id
+    const docId: number = Number.isFinite(numericId) ? numericId : Number(id)
 
-    // Prevent self-delete (enterprise safety)
+    // Prevent self-delete
     if (admin && String(admin.id) === String(docId)) {
       return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
     }
 
     const { searchParams } = new URL(request.url)
-    const force = searchParams.get('force') === 'true'
-    // WordPress-style: ?reassignTo=<userId>  (also support ?reassign alias and JSON body {reassignTo})
     const qsReassign = searchParams.get('reassignTo') || searchParams.get('reassign') || searchParams.get('reassign_to')
     let bodyReassign: unknown = null
     if (!qsReassign) {
@@ -280,57 +280,32 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const reassignToId = reassignToRaw != null && String(reassignToRaw).trim() !== '' ? Number(String(reassignToRaw).trim()) : null
     const hasReassign = reassignToId != null && Number.isFinite(reassignToId)
 
-    // Helper to count linked records (same as GET enrichment but expanded for reassignment decision)
-    const countLinked = async () => {
-      const [vendorsRes, addressesRes, customersRes, adminsRes, driversRes, wlsRes, rsRes, rvRes, ueRes, unRes, postsRes] = await Promise.all([
-        payload.find({ collection: 'vendors', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'addresses', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'customers', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'admins', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'drivers', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'wishlists', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'recent-searches', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'recent-views', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'user-events', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'user-notifications', where: { user: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-        payload.find({ collection: 'posts', where: { author: { equals: docId } }, limit: 0, depth: 0, overrideAccess: true }).catch(() => ({ totalDocs: 0 } as any)),
-      ])
-      return {
-        vendors: (vendorsRes as any).totalDocs ?? 0,
-        addresses: (addressesRes as any).totalDocs ?? 0,
-        customers: (customersRes as any).totalDocs ?? 0,
-        admins: (adminsRes as any).totalDocs ?? 0,
-        drivers: (driversRes as any).totalDocs ?? 0,
-        wishlists: (wlsRes as any).totalDocs ?? 0,
-        recentSearches: (rsRes as any).totalDocs ?? 0,
-        recentViews: (rvRes as any).totalDocs ?? 0,
-        userEvents: (ueRes as any).totalDocs ?? 0,
-        userNotifications: (unRes as any).totalDocs ?? 0,
-        posts: (postsRes as any).totalDocs ?? 0,
+    // If no reassignment is provided, the user must have zero linked records to be deleted directly.
+    // Uses the same shared counter as the dependencies endpoint. Fail-CLOSED: if any
+    // count query fails, refuse to decide instead of treating the failure as zero.
+    if (!hasReassign) {
+      const linked = await countLinkedRecords(payload, docId)
+      if (linked.failed.length > 0) {
+        return NextResponse.json(
+          { error: 'Unable to verify linked records. Please try again.', code: 'VERIFY_FAILED', failed: linked.failed },
+          { status: 500 }
+        )
       }
-    }
-
-    // WordPress parity: if user has linked records and neither reassignTo nor force is provided,
-    // return 409 with details so UI can offer "Attribute all content to..." choice
-    if (!hasReassign && !force) {
-      const counts = await countLinked()
-      const totalLinked = Object.values(counts).reduce((a, b) => a + (b as number), 0)
-      // Also check triggeredBy / actor counts that are nullable but still meaningful
-      if (totalLinked > 0) {
+      if (linked.totalLinked > 0) {
         return NextResponse.json(
           {
-            error: 'This user still owns content. Choose what should be done with their content before deleting.',
+            error: 'This user still owns content. Choose a user to attribute their content to before deleting.',
             code: 'REASSIGN_REQUIRED',
-            details: 'Select a user to attribute all content to, or delete all content.',
-            counts,
-            totalLinked,
+            details: 'Select a user to attribute all content to before deleting this user.',
+            counts: { ...linked.counts, merchants: linked.merchants, orders: linked.orders },
+            totalLinked: linked.totalLinked,
           },
           { status: 409 }
         )
       }
     }
 
-    // Validate reassign target if provided (WordPress: wp_delete_user($id, $reassign))
+    // Validate reassignment target
     let targetUser: Record<string, any> | null = null
     if (hasReassign) {
       if (String(reassignToId) === String(docId)) {
@@ -344,31 +319,42 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       if (!targetUser) return NextResponse.json({ error: 'Reassignment target user not found.' }, { status: 404 })
     }
 
-    // Perform reassignment before delete (WordPress: attribute all content to target)
+    // REASSIGNMENT MODE — transfer content to the target user via Payload API
+    // (same proven path the CMS admin panel uses; no raw SQL, no content deletion)
     const reassigned: Record<string, number> = {}
     if (hasReassign && targetUser) {
-      const reassignTo = targetUser.id as number
-      // Helper: bulk reassign collection field
-      const bulkReassign = async (collection: string, field: string, whereField: string = field) => {
+      const targetId = targetUser.id as number
+      const bulkReassign = async (collection: string, field: string) => {
         try {
-          const res: any = await payload.find({ collection: collection as any, where: { [whereField]: { equals: docId } }, limit: 1000, depth: 0, overrideAccess: true, pagination: false } as any)
+          const res: any = await payload.find({
+            collection: collection as any,
+            where: { [field]: { equals: docId } },
+            limit: 1000,
+            depth: 0,
+            overrideAccess: true,
+            pagination: false,
+          } as any)
           const docs: any[] = res.docs || []
           let ok = 0
           for (const d of docs) {
             try {
-              await payload.update({ collection: collection as any, id: d.id, data: { [field]: reassignTo } as any, overrideAccess: true, depth: 0 })
+              await payload.update({
+                collection: collection as any,
+                id: d.id,
+                data: { [field]: targetId } as any,
+                overrideAccess: true,
+                depth: 0,
+              })
               ok++
-            } catch (e) {
-              // ignore unique constraint collisions (e.g., wishlists composite unique) — log and continue
-              console.warn(`[admin/users/[id]] reassign ${collection}.${field} id=${d.id} failed`, (e as any)?.message)
+            } catch (e: any) {
+              console.warn(`[admin/users/[id]] reassign ${collection}.${field} id=${d.id} failed:`, e?.message)
             }
           }
           if (ok > 0) reassigned[`${collection}.${field}`] = ok
-        } catch (e) {
-          console.warn(`[admin/users/[id]] bulkReassign ${collection}.${field} failed`, (e as any)?.message)
+        } catch (e: any) {
+          console.warn(`[admin/users/[id]] bulkReassign ${collection}.${field} failed:`, e?.message)
         }
       }
-      // Direct user-owned collections (bulk)
       await bulkReassign('vendors', 'user')
       await bulkReassign('customers', 'user')
       await bulkReassign('admins', 'user')
@@ -381,94 +367,56 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await bulkReassign('user-notifications', 'user')
       await bulkReassign('emergency-contacts', 'user')
       await bulkReassign('posts', 'author')
-      // Nullable actor/triggeredBy fields — reassign where they point to deleted user
       await bulkReassign('user-events', 'triggeredBy')
       await bulkReassign('notification-events', 'triggeredBy')
       await bulkReassign('notification-templates', 'createdBy')
       await bulkReassign('notification-templates', 'updatedBy')
       await bulkReassign('order-tracking', 'actor')
-      // payload-preferences and payload-locked-documents are internal — skip
     }
 
-    // WordPress parity: if ?force=true and no reassignment, delete all content (dangerous)
-    if (force && !hasReassign) {
-      const bulkDelete = async (collection: string, field: string) => {
-        try {
-          const res: any = await payload.find({ collection: collection as any, where: { [field]: { equals: docId } }, limit: 1000, depth: 0, overrideAccess: true, pagination: false } as any)
-          const docs: any[] = res.docs || []
-          for (const d of docs) {
-            try {
-              await payload.delete({ collection: collection as any, id: d.id, overrideAccess: true })
-            } catch (e) {
-              console.warn(`[admin/users/[id]] bulkDelete ${collection}.${field} id=${d.id} failed`, (e as any)?.message)
-            }
-          }
-        } catch {}
-      }
-      // Handle vendor->merchants downstream before vendors
-      try {
-        const vRes: any = await payload.find({ collection: 'vendors', where: { user: { equals: docId } }, limit: 1000, depth: 0, overrideAccess: true, pagination: false } as any)
-        for (const v of vRes.docs || []) {
-          try {
-            const mRes: any = await payload.find({ collection: 'merchants', where: { vendor: { equals: v.id } }, limit: 1000, depth: 0, overrideAccess: true, pagination: false } as any)
-            for (const m of mRes.docs || []) {
-              try {
-                await payload.delete({ collection: 'merchants', id: m.id, overrideAccess: true })
-              } catch {}
-            }
-          } catch {}
-        }
-      } catch {}
-      // Handle customers -> orders downstream before customers
-      try {
-        const cRes: any = await payload.find({ collection: 'customers', where: { user: { equals: docId } }, limit: 1000, depth: 0, overrideAccess: true, pagination: false } as any)
-        for (const c of cRes.docs || []) {
-          try {
-            const oRes: any = await payload.find({ collection: 'orders', where: { customer: { equals: c.id } }, limit: 500, depth: 0, overrideAccess: true, pagination: false } as any)
-            for (const o of oRes.docs || []) {
-              try {
-                await payload.delete({ collection: 'orders', id: o.id, overrideAccess: true })
-              } catch {}
-            }
-          } catch {}
-        }
-      } catch {}
-      await bulkDelete('vendors', 'user')
-      await bulkDelete('customers', 'user')
-      await bulkDelete('admins', 'user')
-      await bulkDelete('drivers', 'user')
-      await bulkDelete('addresses', 'user')
-      await bulkDelete('wishlists', 'user')
-      await bulkDelete('recent-searches', 'user')
-      await bulkDelete('recent-views', 'user')
-      await bulkDelete('user-events', 'user')
-      await bulkDelete('user-notifications', 'user')
-      await bulkDelete('emergency-contacts', 'user')
-      // Nullable fields are not FK-blocked but clean up for consistency
-      await bulkDelete('posts', 'author')
-    }
-
+    // Plain record delete — vendor parity: exactly what the CMS admin panel does.
+    // Relies on the schema's declared cascade/set-null FK actions for sessions,
+    // preferences, locks and audit pointers instead of hand-rolled SQL.
     let deleted: any
     try {
-      deleted = await payload.delete({ collection: 'users', id: docId as number, overrideAccess: true })
+      deleted = await payload.delete({ collection: 'users', id: docId, overrideAccess: true })
     } catch (e: any) {
-      const raw = e?.message || 'Failed to delete user'
-      const lower = String(raw).toLowerCase()
-      // Hide raw SQL/constraint internals from end users — map to professional, actionable messages
-      if (lower.includes('foreign key') || lower.includes('violates') || lower.includes('failed query') || lower.includes('still referenced') || lower.includes('params:') || lower.includes('constraint')) {
-        return NextResponse.json({ error: 'Cannot delete this user — the account is still linked to other records (such as a vendor profile, customer profile, orders, addresses, or activity history). Please choose to attribute the content to another user, or deactivate the user instead of deleting.', code: 'REASSIGN_REQUIRED' }, { status: 409 })
+      if (String(e?.message || '').toLowerCase().includes('not found')) {
+        // Already gone — treat as successful deletion (idempotent)
+        deleted = { id: docId }
+      } else {
+        // Walk the full cause chain: Drizzle wraps the Postgres error, so the
+        // real blocker (constraint name, table, detail, SQLSTATE code) lives in `cause`.
+        const parts: string[] = []
+        const seen = new Set<unknown>()
+        let cur: any = e
+        while (cur && !seen.has(cur)) {
+          seen.add(cur)
+          if (cur?.message) parts.push(String(cur.message))
+          if (cur?.detail) parts.push(`detail: ${cur.detail}`)
+          if (cur?.constraint) parts.push(`constraint: ${cur.constraint}`)
+          if (cur?.table) parts.push(`table: ${cur.table}`)
+          if (cur?.code) parts.push(`code: ${cur.code}`)
+          cur = cur?.cause
+        }
+        const full = parts.join(' | ') || 'Failed to delete user'
+        console.error(`[admin/users/[id]] payload.delete failed for user ${docId}:`, full)
+        return NextResponse.json({ error: full, code: 'DELETE_FAILED' }, { status: 400 })
       }
-      if (lower.includes('not found') || lower.includes('no document')) {
-        return NextResponse.json({ error: 'User not found. It may have already been deleted.' }, { status: 404 })
-      }
-      if (lower.includes('permission') || lower.includes('not allowed') || lower.includes('unauthorized')) {
-        return NextResponse.json({ error: 'You do not have permission to delete this user.' }, { status: 403 })
-      }
-      // Fallback — never expose raw SQL/DB internals
-      return NextResponse.json({ error: 'Unable to delete this user. Please try again. If the problem persists, contact a system administrator.' }, { status: 400 })
     }
     if (!deleted) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    return NextResponse.json({ success: true, id: deleted.id, message: hasReassign ? `User deleted and all content attributed to user #${(targetUser as any)?.id}.` : 'User deleted successfully', reassigned, reassignTo: hasReassign ? (targetUser as any)?.id : null })
+
+    // Bust list + dependency caches so the deletion reflects immediately (vendor parity)
+    await deleteCachedByPrefix('admin:users:')
+    await deleteCachedByPrefix('admin:user-dependencies:')
+
+    return NextResponse.json({
+      success: true,
+      id: deleted.id ?? docId,
+      message: hasReassign ? `User deleted and all content attributed to user #${(targetUser as any)?.id}.` : 'User deleted successfully',
+      reassigned,
+      reassignTo: hasReassign ? (targetUser as any)?.id : null,
+    })
   } catch (err: any) {
     console.error('[admin/users/[id]] DELETE error:', err)
     return NextResponse.json({ error: err?.message || 'Delete failed' }, { status: 500 })
