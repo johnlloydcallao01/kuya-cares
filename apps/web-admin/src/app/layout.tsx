@@ -17,18 +17,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tap2Go Admin Dashboard",
-  description: "Admin dashboard for managing the Tap2Go platform",
-  keywords: "admin dashboard, platform management, user management, Tap2Go",
-  authors: [{ name: "Tap2Go Admin Team" }],
+  title: "Kuya Cares Admin Dashboard",
+  description: "Admin dashboard for managing the Kuya Cares platform",
+  keywords: "admin dashboard, platform management, user management, Kuya Cares",
+  authors: [{ name: "Kuya Cares Admin Team" }],
   robots: "noindex, nofollow",
   icons: {
-    icon: [{ url: "/favicon.ico" }, { url: "/logo.png", type: "image/png" }],
-    apple: [{ url: "/logo.png" }],
+    icon: [{ url: "/favicon.ico" }, { url: "/kuya-cares.png", type: "image/png" }],
+    apple: [{ url: "/kuya-cares.png" }],
   },
   openGraph: {
-    title: "Tap2Go Admin Dashboard",
-    description: "Admin dashboard for managing the Tap2Go platform.",
+    title: "Kuya Cares Admin Dashboard",
+    description: "Admin dashboard for managing the Kuya Cares platform.",
     type: "website",
   },
 };
@@ -64,8 +64,8 @@ export default async function RootLayout({ children }: LayoutProps) {
                 <div className="facebook-logo">
                   {/* @ts-ignore -- Next.js Image component type issue with React 19 */}
                   <Image
-                    src="/logo.png"
-                    alt="Tap2Go Admin Logo"
+                    src="/kuya-cares.png"
+                    alt="Kuya Cares Admin Logo"
                     width={48}
                     height={48}
                     className="facebook-logo-image"
@@ -81,7 +81,7 @@ export default async function RootLayout({ children }: LayoutProps) {
 
               {/* Loading Text */}
               <div className="facebook-loading-text">
-                <h2>Tap2Go Admin</h2>
+                <h2>Kuya Cares Admin</h2>
                 <p>Loading your dashboard...</p>
               </div>
 

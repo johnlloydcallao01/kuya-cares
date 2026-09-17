@@ -82,19 +82,19 @@ export function Header({
               </svg>
             </button>
 
-            {/* tap2go Logo */}
+            {/* Kuya Cares Logo */}
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 relative flex-shrink-0">
                 <Image
-                  src="/logo.png"
-                  alt="tap2go"
+                  src="/kuya-cares.png"
+                  alt="Kuya Cares"
                   width={40}
                   height={40}
                   className="rounded-lg object-contain"
                   priority
                 />
               </div>
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">tap2go</span>
+              <span className="text-xl font-semibold text-gray-900 dark:text-white">Kuya Cares</span>
             </div>
           </div>
 
