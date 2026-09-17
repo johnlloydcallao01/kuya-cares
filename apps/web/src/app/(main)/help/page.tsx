@@ -50,7 +50,7 @@ export default function HelpPage() {
     {
       id: 4,
       title: "Account Management",
-      description: "Managing your Tap2Go account",
+      description: "Managing your Kuya Cares account",
       icon: "fa-user-cog",
       articles: [
         "Update profile information",
@@ -180,7 +180,7 @@ export default function HelpPage() {
               placeholder="Search for help..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#eba236] focus:border-transparent"
+              className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#239459] focus:border-transparent"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i className="fas fa-search text-gray-400"></i>
@@ -199,7 +199,7 @@ export default function HelpPage() {
               >
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
-                    <i className={`fas ${category.icon} text-[#eba236] text-xl`}></i>
+                    <i className={`fas ${category.icon} text-[#239459] text-xl`}></i>
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -208,7 +208,7 @@ export default function HelpPage() {
                     <p className="text-gray-600 text-sm mb-3">{category.description}</p>
                     <ul className="space-y-1">
                       {category.articles.map((article, index) => (
-                        <li key={index} className="text-sm text-[#eba236] hover:text-[#d4941f] cursor-pointer">
+                        <li key={index} className="text-sm text-[#239459] hover:text-[#d4941f] cursor-pointer">
                           • {article}
                         </li>
                       ))}
@@ -230,7 +230,7 @@ export default function HelpPage() {
                 className="bg-white rounded-lg p-2.5 text-center hover:shadow-md cursor-pointer"
               >
                 <div className="flex flex-col items-center">
-                  <i className={`fas ${option.icon} text-[#eba236] text-2xl mb-3`}></i>
+                  <i className={`fas ${option.icon} text-[#239459] text-2xl mb-3`}></i>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {option.title}
                   </h3>
@@ -238,7 +238,7 @@ export default function HelpPage() {
                   <p className="text-xs text-gray-500 mb-3">{option.hours}</p>
                   <button
                     onClick={() => handleContactSupport(option.title)}
-                    className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors"
+                    className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors"
                   >
                     {option.action}
                   </button>
@@ -269,13 +269,13 @@ export default function HelpPage() {
 
         {/* Quick Actions */}
         <div className="mt-8 flex flex-wrap gap-3">
-          <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+          <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
             Submit Feedback
           </button>
-          <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+          <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
             Report Issue
           </button>
-          <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+          <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
             Request Feature
           </button>
         </div>

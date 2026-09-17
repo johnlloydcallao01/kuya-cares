@@ -174,7 +174,7 @@ function EditOrderContent(){
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load order</h3><p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/orders" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Back</Link>
+          <Link href="/orders" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Back</Link>
         </div>
       </div>
     )
@@ -198,7 +198,7 @@ function EditOrderContent(){
       )}
 
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Receipt className="w-5 h-5" /></div>
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Receipt className="w-5 h-5" /></div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Edit order</h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{doc.orderNumber || `#${doc.id}`} • all collection fields editable</p>
@@ -262,7 +262,7 @@ function EditOrderContent(){
               <div><label className={labelCls}>Placed at</label><input type="datetime-local" value={placedAt} onChange={(e) => setPlacedAt(e.target.value)} className={`${inputCls} font-mono`} /></div>
               <div className="sm:col-span-2"><label className={labelCls}>Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={inputCls} /></div>
               <div className="sm:col-span-2"><label className={labelCls}>Audit note (optional)</label><input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Reason for change — stored in tracking history…" className={inputCls} /></div>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-[#a1a1aa]"><input type="checkbox" checked={freeDelivery} onChange={(e) => setFreeDelivery(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236] focus:ring-[#eba236]" /> Free delivery applied</label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-[#a1a1aa]"><input type="checkbox" checked={freeDelivery} onChange={(e) => setFreeDelivery(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459] focus:ring-[#239459]" /> Free delivery applied</label>
             </div>
           </div>
 
@@ -283,7 +283,7 @@ function EditOrderContent(){
 
           <div className="flex gap-2">
             <button onClick={handleBack} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] text-sm font-medium bg-white dark:bg-[#171717] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#eba236] hover:bg-[#c88a20] text-white text-sm font-semibold disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#239459] hover:bg-[#215035] text-white text-sm font-semibold disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
           </div>
         </div>
       </div>

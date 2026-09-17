@@ -55,7 +55,7 @@ backups/
 *.tar.gz
 *.tgz
 *.zip
-tap2go-cms-deploy.tar.gz
+kuya-cares-cms-deploy.tar.gz
 keys/
 *.pem
 

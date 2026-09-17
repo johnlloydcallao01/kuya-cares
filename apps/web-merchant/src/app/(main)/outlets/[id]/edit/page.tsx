@@ -133,7 +133,7 @@ function EditOutletContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load outlet</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/outlets" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Back</Link>
+          <Link href="/outlets" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Back</Link>
         </div>
       </div>
     );
@@ -159,7 +159,7 @@ function EditOutletContent() {
       )}
 
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center overflow-hidden">
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center overflow-hidden">
           {doc.media?.thumbnail?.url ? <img src={doc.media.thumbnail.url} alt={doc.outletName} className="h-full w-full object-cover" /> : <Store className="w-5 h-5" />}
         </div>
         <div>

@@ -103,7 +103,7 @@ export function ModifierGroupForm({ initial, onSuccess, onCancel }: { initial?: 
         {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}</div>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#eba236]" /> Group Details</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#239459]" /> Group Details</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Product ID *</label><input value={form.product_id} onChange={(e)=>set('product_id', e.target.value)} placeholder="e.g. 12" className={inputCls} /></div>
             <div><label className={labelCls}>Sort Order</label><input type="number" value={form.sort_order} onChange={(e)=>set('sort_order', e.target.value)} className={inputCls} /></div>
@@ -115,7 +115,7 @@ export function ModifierGroupForm({ initial, onSuccess, onCancel }: { initial?: 
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-600" /> Selection Rules</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Selection Type *</label><select value={form.selection_type} onChange={(e)=>set('selection_type', e.target.value)} className={inputCls}>{SELECTION_OPTS.map((o)=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.is_required} onChange={(e)=>set('is_required', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Is Required</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.is_required} onChange={(e)=>set('is_required', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Is Required</span></label></div>
             <div><label className={labelCls}>Min Selections <span className="text-gray-400 font-normal">{form.is_required ? '' : '(auto 0 when not required)'}</span></label><input type="number" min={0} value={form.min_selections} onChange={(e)=>set('min_selections', e.target.value)} disabled={!form.is_required} className={`${inputCls} ${!form.is_required ? 'opacity-50 cursor-not-allowed' : ''}`} /></div>
             <div><label className={labelCls}>Max Selections <span className="text-gray-400 font-normal">(blank = unlimited)</span></label><input type="number" min={1} value={form.max_selections as any} onChange={(e)=>set('max_selections', e.target.value)} placeholder="leave empty for unlimited" className={inputCls} /></div>
           </div>
@@ -124,7 +124,7 @@ export function ModifierGroupForm({ initial, onSuccess, onCancel }: { initial?: 
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create group'}
         </button>
       </div>

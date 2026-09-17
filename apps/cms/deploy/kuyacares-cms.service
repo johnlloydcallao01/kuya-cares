@@ -1,12 +1,12 @@
 [Unit]
-Description=Tap2Go CMS
+Description=Kuya Cares CMS
 After=network.target
 
 [Service]
 Type=simple
 User=opc
 Group=opc
-WorkingDirectory=/home/opc/tap2go
+WorkingDirectory=/home/opc/kuyacares
 Environment=NODE_ENV=production
 Environment=PORT=3001
 Environment=HOSTNAME=127.0.0.1

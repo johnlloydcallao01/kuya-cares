@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tap2go-cms
+    name: kuya-cares-cms
     runtime: node
     plan: starter
     region: singapore

@@ -269,7 +269,7 @@ export default function MerchantProductCategoriesCarousel({
                     className={
                       `px-4 h-9 min-[1500px]:h-10 inline-flex items-center rounded-full border text-sm font-medium transition-colors ` +
                       (activeCategoryId === category.id
-                        ? `bg-[#eba236] border-[#eba236] text-white`
+                        ? `bg-[#239459] border-[#239459] text-white`
                         : `bg-white border-gray-300 text-gray-700 hover:bg-gray-50`)
                     }
                   >

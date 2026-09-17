@@ -53,21 +53,21 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
         <div className="min-h-screen flex">
           {/* Left Side - Merchant Branding (hidden on mobile) */}
-          <div className="hidden lg:flex lg:w-2/5 relative overflow-hidden bg-gradient-to-br from-black via-[#1a1a1a] to-[#eba236] border-r border-[#eba236]/20">
+          <div className="hidden lg:flex lg:w-2/5 relative overflow-hidden border-r border-[#a7f3d0]/20" style={{ backgroundImage: 'linear-gradient(135deg, #239459 0%, #215035 100%)' }}>
             <div className="absolute inset-0 opacity-[0.08]" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='g' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E")`
             }} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-            <div className="absolute -right-16 -top-10 w-64 h-64 bg-[#eba236]/20 blur-3xl rounded-full pointer-events-none" />
-            <div className="absolute -left-12 bottom-0 w-72 h-72 bg-[#c88a20]/15 blur-3xl rounded-full pointer-events-none" />
+            <div className="absolute -right-16 -top-10 w-64 h-64 bg-[#a7f3d0]/20 blur-3xl rounded-full pointer-events-none" />
+            <div className="absolute -left-12 bottom-0 w-72 h-72 bg-[#a7f3d0]/10 blur-3xl rounded-full pointer-events-none" />
             <div className="relative z-10 flex flex-col px-12 py-5 text-white w-full">
               <div className="max-w-md">
                 <div className="mb-10">
                   <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/10">
-                    <Image src="/logo.png" alt="Tap2Go Logo" width={64} height={64} style={{ objectFit: 'contain' }} />
+                    <Image src="/kuya-cares.png" alt="Kuya Cares Logo" width={64} height={64} style={{ objectFit: 'contain' }} />
                   </div>
-                  <h1 className="text-3xl font-bold mb-2">Tap2Go</h1>
-                  <p className="text-[#eba236] text-lg font-medium">Merchant Portal</p>
+<h1 className="text-3xl font-bold mb-2">Kuya Cares</h1>
+                      <p className="text-[#a7f3d0] text-lg font-medium">Merchant Portal</p>
                 </div>
                 <p className="text-gray-300 text-base leading-relaxed max-w-sm">
                   Manage your restaurant, track orders, and grow your business — all from one powerful dashboard.
@@ -111,7 +111,7 @@ export default function ForgotPasswordPage() {
 
                 {/* Mobile Header */}
                 <div className="lg:hidden text-center mb-6">
-                  <Image src="/logo.png" alt="Tap2Go Logo" width={56} height={56} className="mx-auto mb-3" style={{ objectFit: 'contain' }} />
+                  <Image src="/kuya-cares.png" alt="Kuya Cares Logo" width={56} height={56} className="mx-auto mb-3" style={{ objectFit: 'contain' }} />
                   <h2 className="text-xl font-bold text-gray-900 dark:text-[#ededed] mb-1">
                     Forgot Password
                   </h2>
@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-12 pr-4 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:placeholder:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] focus:border-[#c88a20] transition-all duration-200 text-sm disabled:bg-gray-100 dark:disabled:bg-[#262626] disabled:cursor-not-allowed"
+                        className="w-full pl-12 pr-4 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:placeholder:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] focus:border-[#215035] transition-all duration-200 text-sm disabled:bg-gray-100 dark:disabled:bg-[#262626] disabled:cursor-not-allowed"
                         placeholder="you@restaurant.com"
                         required
                         disabled={isSubmitting}
@@ -158,11 +158,11 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-black hover:bg-[#1a1a1a] dark:bg-[#eba236] dark:hover:bg-[#c88a20] text-white dark:text-black py-3.5 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed border border-[#eba236]/20 flex items-center justify-center space-x-2"
+                    className="w-full bg-[#239459] hover:bg-[#215035] text-white py-3.5 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed border border-[#239459]/20 flex items-center justify-center space-x-2"
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin text-[#eba236] dark:text-black" />
+                        <Loader2 className="w-5 h-5 animate-spin text-white" />
                         <span>Sending...</span>
                       </>
                     ) : (
@@ -184,7 +184,7 @@ export default function ForgotPasswordPage() {
 
               <div className="mt-8 text-center">
                 <p className="text-xs text-gray-400 dark:text-[#a1a1aa]">
-                  &copy; 2025 Tap2Go. All rights reserved.
+                  &copy; {new Date().getFullYear()} Kuya Cares. All rights reserved.
                 </p>
               </div>
             </div>

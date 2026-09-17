@@ -100,7 +100,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
             <button
               key={opt.value}
               onClick={() => onToggle(opt.value)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
             >
               {opt.label}
             </button>
@@ -198,7 +198,7 @@ function SearchesContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Search className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Search className="w-4 h-4" /></span>
             Recent Searches
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">What your customers searched for when it touched your catalog (read-only).</p>
@@ -215,7 +215,7 @@ function SearchesContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Searches" value={String(stats.totalSearches)} sub={`${stats.filteredTotal} queries`} icon={<Search className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Searches" value={String(stats.totalSearches)} sub={`${stats.filteredTotal} queries`} icon={<Search className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Unique Queries" value={String(stats.filteredTotal)} sub={`${stats.totalQueries} overall`} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Unique Customers" value={String(stats.uniqueCustomers)} sub="people searching" icon={<Users className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
           <KpiCard title="Top Query" value={topQuery} sub="by frequency" icon={<TrendingUp className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
@@ -230,15 +230,15 @@ function SearchesContent() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search query text…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search query text…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-700 dark:text-white">
               {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -254,13 +254,13 @@ function SearchesContent() {
               </select>
             </div>
             <FilterPills label="Search Surface" options={SCOPE_OPTS} value={scopeFilter} onToggle={toggleScope} />
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {outletFilter && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">{merchants.find((m) => String(m.id) === outletFilter)?.outletName || `Outlet #${outletFilter}`} <button onClick={() => setOutletFilter('')}><X className="w-3 h-3" /></button></span>}
             {scopeFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium capitalize">{v.replace('_', ' ')} <button onClick={() => toggleScope(v)}><X className="w-3 h-3" /></button></span>)}
           </div>
@@ -273,7 +273,7 @@ function SearchesContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load recent searches</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -281,7 +281,7 @@ function SearchesContent() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Search className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Search className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No matching searches found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Searches appear here when your customers look for things in your catalog. Try adjusting search or filters.</p>
           </div>
@@ -311,11 +311,11 @@ function SearchesContent() {
                         <div className="flex flex-wrap gap-1 max-w-[240px]">
                           {d.outlets.slice(0, 2).map((o) => (
                             <span key={`o-${o.id}`} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-[11px] font-medium text-gray-700 dark:text-white">
-                              <Store className="w-3 h-3 text-[#eba236]" /> {o.outletName}
+                              <Store className="w-3 h-3 text-[#239459]" /> {o.outletName}
                             </span>
                           ))}
                           {d.products.slice(0, 2).map((p) => (
-                            <span key={`p-${p.id}`} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-[11px] font-medium border border-[#eba236]/30">
+                            <span key={`p-${p.id}`} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-[11px] font-medium border border-[#239459]/30">
                               <Tag className="w-3 h-3" /> {p.name}
                             </span>
                           ))}
@@ -334,7 +334,7 @@ function SearchesContent() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-xs font-semibold text-gray-700 dark:text-white">
-                          <TrendingUp className="w-3 h-3 text-[#eba236]" /> {d.frequency}×
+                          <TrendingUp className="w-3 h-3 text-[#239459]" /> {d.frequency}×
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-[#a1a1aa] whitespace-nowrap">{fmtDate(d.lastSearchedAt)}</td>
@@ -352,7 +352,7 @@ function SearchesContent() {
                   {Array.from({ length: Math.min(5, pagination.totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(pagination.totalPages - 4, pagination.page - 2)) + i
                     if (n > pagination.totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

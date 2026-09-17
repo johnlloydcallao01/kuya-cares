@@ -111,7 +111,7 @@ function VariationViewContent() {
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load variation</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/catalog/variations" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">
+          <Link href="/catalog/variations" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
         </div>
@@ -134,7 +134,7 @@ function VariationViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center shrink-0 overflow-hidden">
             {doc.image?.url ? <img src={doc.image.url} alt={doc.name || ''} className="h-full w-full object-cover" /> : <Building className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
@@ -145,7 +145,7 @@ function VariationViewContent() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Link href={`/catalog/variations/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href={`/catalog/variations/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Pencil className="w-4 h-4" /> Edit
           </Link>
           <Link href="/catalog/variations" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">

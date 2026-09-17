@@ -378,7 +378,7 @@ function ProfileInner() {
   const [pwdError, setPwdError] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
 
-  // settings / preferences (client-only persisted) - theme is device-based via ThemeContext (localStorage tap2go-merchant-theme), not DB
+  // settings / preferences (client-only persisted) - theme is device-based via ThemeContext (localStorage kuyacares-merchant-theme), not DB
   const [prefs, setPrefs] = useState({
   language: 'en',
   timezone: 'Asia/Manila',
@@ -447,7 +447,7 @@ function ProfileInner() {
           delete parsed.theme;
           try { localStorage.setItem('merchant:profile:prefs', JSON.stringify(parsed)); } catch {}
         }
-        // Only keep non-theme prefs (theme is device-based via tap2go-merchant-theme)
+        // Only keep non-theme prefs (theme is device-based via kuyacares-merchant-theme)
         const { theme: _t, ...rest } = parsed;
         if (Object.keys(rest).length) setPrefs((prev) => ({ ...prev, ...rest }));
       }
@@ -655,17 +655,17 @@ function ProfileInner() {
 
   {/* Cover + Header Card */}
   <div className="space-y-0">
-  {/* banner - orange branding with black like apps/web */}
-  <div className="relative h-[156px] sm:h-[184px] rounded-t-2xl overflow-hidden bg-gradient-to-br from-black via-[#1a1a1a] to-[#eba236] border border-slate-200 dark:border-[#262626]">
+  {/* banner - dark normal with green accent */}
+  <div className="relative h-[156px] sm:h-[184px] rounded-t-2xl overflow-hidden bg-gradient-to-br from-black via-[#1a1a1a] to-[#239459] border border-slate-200 dark:border-[#262626]">
   {/* subtle grid */}
   <div className="absolute inset-0 opacity-[0.08]" style={{
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='g' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E")`
   }} />
   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-  {/* decorative blobs - orange tints */}
-  <div className="absolute -right-16 -top-10 w-64 h-64 bg-[#eba236]/20 blur-3xl rounded-full pointer-events-none" />
-  <div className="absolute -left-12 bottom-0 w-72 h-72 bg-[#c88a20]/15 blur-3xl rounded-full pointer-events-none" />
+  {/* decorative blobs - brand green tints */}
+  <div className="absolute -right-16 -top-10 w-64 h-64 bg-[#a7f3d0]/20 blur-3xl rounded-full pointer-events-none" />
+  <div className="absolute -left-12 bottom-0 w-72 h-72 bg-[#a7f3d0]/10 blur-3xl rounded-full pointer-events-none" />
 
   {/* banner actions */}
   <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -691,7 +691,7 @@ function ProfileInner() {
   {avatarUrl ? (
   <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
   ) : (
-  <div className="w-full h-full bg-gradient-to-br from-black to-[#eba236] flex items-center justify-center text-white text-3xl font-bold">
+  <div className="w-full h-full bg-gradient-to-br from-[#239459] to-[#215035] flex items-center justify-center text-white text-3xl font-bold">
   {initials}
   </div>
   )}
@@ -699,7 +699,7 @@ function ProfileInner() {
   <button
   onClick={handleAvatarClick}
   disabled={avatarUploading}
-  className="absolute -bottom-2 -right-2 w-9 h-9 bg-black dark:bg-[#eba236] hover:bg-[#1a1a1a] dark:hover:bg-[#c88a20] text-white dark:text-black rounded-xl shadow-lg border-2 border-white dark:border-[#171717] flex items-center justify-center disabled:opacity-60 transition-colors"
+  className="absolute -bottom-2 -right-2 w-9 h-9 bg-black dark:bg-[#239459] hover:bg-[#1a1a1a] dark:hover:bg-[#215035] text-white rounded-xl shadow-lg border-2 border-white dark:border-[#171717] flex items-center justify-center disabled:opacity-60 transition-colors"
   title="Change avatar"
   >
   {avatarUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
@@ -710,7 +710,7 @@ function ProfileInner() {
   <button
   onClick={handleAvatarClick}
   disabled={avatarUploading}
-  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-black dark:bg-[#eba236] text-white dark:text-black rounded-lg font-medium hover:bg-[#1a1a1a] dark:hover:bg-[#c88a20] disabled:opacity-50 transition-colors"
+  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-black dark:bg-[#239459] text-white rounded-lg font-medium hover:bg-[#1a1a1a] dark:hover:bg-[#215035] disabled:opacity-50 transition-colors"
   >
   <Upload className="w-3.5 h-3.5" /> Upload
   </button>
@@ -736,7 +736,7 @@ function ProfileInner() {
   {displayUser.isActive !== false && <span title="Verified vendor"><BadgeCheck className="w-5 h-5 text-sky-500 flex-shrink-0" /></span>}
   </div>
   <div className="flex flex-wrap items-center gap-2 mt-2">
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide border bg-gradient-to-r from-black to-[#eba236] text-white border-[#eba236]/20`}>
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide border bg-gradient-to-r from-black to-[#239459] text-white border-[#239459]/20`}>
   <Store className="w-3.5 h-3.5" /> Vendor • {vendor ? businessTypeLabel(vendor.businessType) : '—'}
   </span>
   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${vb.cls}`}>
@@ -769,13 +769,13 @@ function ProfileInner() {
   <div className="flex-1 bg-slate-50 dark:bg-[#171717] border border-slate-200 dark:border-[#262626] rounded-xl p-4">
   <div className="flex items-center justify-between mb-2">
   <span className="text-xs font-semibold text-slate-700 dark:text-[#a1a1aa] flex items-center gap-1.5">
-  <Sparkles className="w-3.5 h-3.5 text-[#c88a20]" /> Profile completeness
+  <Sparkles className="w-3.5 h-3.5 text-[#239459]" /> Profile completeness
   </span>
-  <span className="text-xs font-bold text-[#c88a20]">{pc}%</span>
+  <span className="text-xs font-bold text-[#239459]">{pc}%</span>
   </div>
   <div className="h-2 bg-white dark:bg-[#171717] border border-slate-200 dark:border-[#262626] rounded-full overflow-hidden">
   <div
-  className="h-full bg-gradient-to-r from-black to-[#eba236] transition-all duration-700"
+  className="h-full bg-gradient-to-r from-[#239459] to-[#215035] transition-all duration-700"
   style={{ width: `${pc}%` }}
   />
   </div>
@@ -786,9 +786,9 @@ function ProfileInner() {
   <div className="flex gap-2">
   <button
   onClick={() => switchTab('personal')}
-  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold shadow-sm border border-[#eba236]/20 transition-colors"
+  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold shadow-sm border border-[#239459]/20 transition-colors"
   >
-  <Edit className="w-4 h-4 text-[#eba236]" /> Edit profile
+  <Edit className="w-4 h-4 text-[#239459]" /> Edit profile
   </button>
   <button
   onClick={() => switchTab('security')}
@@ -862,8 +862,8 @@ function ProfileInner() {
   </div>
   <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl p-4">
   <div className="flex items-center gap-3">
-  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center">
-  <Store className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center">
+  <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
   </div>
   <div>
   <p className="text-[11px] font-semibold tracking-wide uppercase text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">Business</p>
@@ -935,8 +935,8 @@ function ProfileInner() {
   </div>
   </div>
   </div>
-  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa] bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-lg px-3 py-2">
-  <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa] bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 rounded-lg px-3 py-2">
+  <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
   Keep your contact details current for platform notifications.
   </div>
   </div>
@@ -963,7 +963,7 @@ function ProfileInner() {
   <div
   className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5
   ${a.eventType.includes('LOGIN') ? 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' : ''}
-  ${a.eventType === 'PASSWORD_CHANGED' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : ''}
+  ${a.eventType === 'PASSWORD_CHANGED' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : ''}
   ${a.eventType === 'PROFILE_UPDATED' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : ''}
   ${!['LOGIN_SUCCESS', 'PASSWORD_CHANGED', 'PROFILE_UPDATED'].some((k) => a.eventType.includes(k)) ? 'bg-gray-50 dark:bg-[#171717] text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]' : ''}`}
   >
@@ -990,11 +990,11 @@ function ProfileInner() {
 
   {/* right column */}
   <div className="col-span-12 lg:col-span-4 space-y-5">
-  <div className="bg-gradient-to-br from-black via-[#1a1a1a] to-[#eba236] rounded-xl p-5 text-white relative overflow-hidden border border-[#eba236]/20">
-  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+  <div className="bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-[#ededed] relative overflow-hidden border border-[#239459]/25">
+  <div className="absolute inset-0 bg-gradient-to-br from-[#239459]/10 via-transparent to-[#215035]/10 pointer-events-none" />
   <div className="relative">
   <p className="text-xs font-semibold tracking-wide uppercase opacity-80 flex items-center gap-1.5">
-  <Building2 className="w-4 h-4 text-[#eba236]" /> Business identity
+  <Building2 className="w-4 h-4 text-[#239459]" /> Business identity
   </p>
   <h3 className="text-lg font-bold mt-1 truncate">{vendor?.businessName || 'No business linked'}</h3>
   <p className="text-sm opacity-85 mt-1 leading-relaxed">
@@ -1007,26 +1007,26 @@ function ProfileInner() {
   : 'No vendor record found. Contact support to link your business.'}
   </p>
   <div className="mt-4 space-y-2 text-xs">
-  <div className="flex items-center justify-between bg-white dark:bg-[#171717]/10 rounded-lg px-3 py-2 backdrop-blur">
+  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
   <span className="opacity-80">Type</span>
   <span className="font-semibold">{vendor ? businessTypeLabel(vendor.businessType) : '—'}</span>
   </div>
-  <div className="flex items-center justify-between bg-white dark:bg-[#171717]/10 rounded-lg px-3 py-2 backdrop-blur">
+  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
   <span className="opacity-80">Outlets</span>
   <span className="font-semibold">{merchantsCount}</span>
   </div>
-  <div className="flex items-center justify-between bg-white dark:bg-[#171717]/10 rounded-lg px-3 py-2 backdrop-blur">
+  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
   <span className="opacity-80">Verified</span>
   <span className="font-semibold capitalize">{vendor?.verificationStatus || '—'}</span>
   </div>
-  <div className="flex items-center justify-between bg-white dark:bg-[#171717]/10 rounded-lg px-3 py-2 backdrop-blur">
+  <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
   <span className="opacity-80">Updated</span>
-  <span className="font-medium text-white">{formatDate(displayUser.updatedAt)}</span>
+  <span className="font-medium">{formatDate(displayUser.updatedAt)}</span>
   </div>
   </div>
   <button
   onClick={() => switchTab('business')}
-  className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold shadow-sm border border-[#eba236]/20 transition-colors w-full"
+  className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black hover:bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold shadow-sm border border-[#239459]/20 transition-colors w-full"
   >
   View business details <span>→</span>
   </button>
@@ -1065,7 +1065,7 @@ function ProfileInner() {
   <span className="text-xs font-medium text-gray-600 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">JWT • 30 days</span>
   </li>
   </ul>
-  <button onClick={() => switchTab('security')} className="mt-4 w-full py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-[#1a1a1a] border border-[#eba236]/30 hover:border-[#eba236]/60 transition-colors">
+  <button onClick={() => switchTab('security')} className="mt-4 w-full py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-[#1a1a1a] border border-[#239459]/30 hover:border-[#239459]/60 transition-colors">
   Harden security
   </button>
   </div>
@@ -1140,7 +1140,7 @@ function ProfileInner() {
   onChange={(e) => setForm((s) => ({ ...s, firstName: e.target.value }))}
   required
   placeholder="Juan"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] focus:border-[#c88a20] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] focus:border-[#215035] text-sm"
   />
   </label>
   <label className="space-y-1.5">
@@ -1152,7 +1152,7 @@ function ProfileInner() {
   onChange={(e) => setForm((s) => ({ ...s, lastName: e.target.value }))}
   required
   placeholder="Dela Cruz"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] focus:border-[#c88a20] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] focus:border-[#215035] text-sm"
   />
   </label>
   <label className="space-y-1.5">
@@ -1161,7 +1161,7 @@ function ProfileInner() {
   value={form.middleName}
   onChange={(e) => setForm((s) => ({ ...s, middleName: e.target.value }))}
   placeholder="Optional"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   <label className="space-y-1.5">
@@ -1170,7 +1170,7 @@ function ProfileInner() {
   value={form.nameExtension}
   onChange={(e) => setForm((s) => ({ ...s, nameExtension: e.target.value }))}
   placeholder="Jr., Sr., III"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   <label className="space-y-1.5 sm:col-span-2">
@@ -1182,7 +1182,7 @@ function ProfileInner() {
   onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
   placeholder="unique_username"
   pattern="^[a-zA-Z0-9._-]+$"
-  className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </div>
   <span className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">3–30 chars, letters, numbers, dot, dash, underscore. Must be unique.</span>
@@ -1203,7 +1203,7 @@ function ProfileInner() {
   value={form.email}
   onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
   placeholder="vendor@business.com"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
   <AlertTriangle className="w-3 h-3" /> Changing email will require re-login.
@@ -1215,7 +1215,7 @@ function ProfileInner() {
   value={form.phone}
   onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
   placeholder="+63 9xx xxx xxxx"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   </div>
@@ -1232,7 +1232,7 @@ function ProfileInner() {
   <select
   value={form.gender}
   onChange={(e) => setForm((s) => ({ ...s, gender: e.target.value }))}
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   >
   <option value="">Select gender</option>
   <option value="male">Male</option>
@@ -1246,7 +1246,7 @@ function ProfileInner() {
   <select
   value={form.civilStatus}
   onChange={(e) => setForm((s) => ({ ...s, civilStatus: e.target.value }))}
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   >
   <option value="">Select status</option>
   <option value="single">Single</option>
@@ -1262,7 +1262,7 @@ function ProfileInner() {
   value={form.nationality}
   onChange={(e) => setForm((s) => ({ ...s, nationality: e.target.value }))}
   placeholder="Filipino"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   <label className="space-y-1.5">
@@ -1272,7 +1272,7 @@ function ProfileInner() {
   value={form.birthDate}
   onChange={(e) => setForm((s) => ({ ...s, birthDate: e.target.value }))}
   max={new Date().toISOString().slice(0, 10)}
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   <label className="space-y-1.5 sm:col-span-2">
@@ -1281,7 +1281,7 @@ function ProfileInner() {
   value={form.placeOfBirth}
   onChange={(e) => setForm((s) => ({ ...s, placeOfBirth: e.target.value }))}
   placeholder="Manila, Philippines"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   </label>
   </div>
@@ -1299,7 +1299,7 @@ function ProfileInner() {
   onChange={(e) => setForm((s) => ({ ...s, completeAddress: e.target.value }))}
   rows={3}
   placeholder="House no., street, barangay, city, province, ZIP"
-  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm resize-none"
+  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm resize-none"
   />
   <span className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">{form.completeAddress.length}/500</span>
   </label>
@@ -1318,9 +1318,9 @@ function ProfileInner() {
   <button
   type="submit"
   disabled={formSaving}
-  className="inline-flex items-center gap-2 px-6 py-2.5 bg-black hover:bg-[#1a1a1a] disabled:opacity-60 text-white rounded-xl text-sm font-semibold shadow border border-[#eba236]/20 transition-colors"
+  className="inline-flex items-center gap-2 px-6 py-2.5 bg-black hover:bg-[#1a1a1a] disabled:opacity-60 text-white rounded-xl text-sm font-semibold shadow border border-[#239459]/20 transition-colors"
   >
-  {formSaving ? <Loader2 className="w-4 h-4 animate-spin text-[#eba236]" /> : <Save className="w-4 h-4 text-[#eba236]" />}
+  {formSaving ? <Loader2 className="w-4 h-4 animate-spin text-[#239459]" /> : <Save className="w-4 h-4 text-[#239459]" />}
   Save changes
   </button>
   </div>
@@ -1337,13 +1337,13 @@ function ProfileInner() {
   {avatarUrl ? (
   <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
   ) : (
-  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-black to-[#eba236] text-white text-2xl font-bold">{initials}</div>
+  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#239459] to-[#215035] text-white text-2xl font-bold">{initials}</div>
   )}
   </div>
   <p className="text-sm font-semibold text-gray-900 dark:text-[#ededed] mt-3">{fullName}</p>
   <p className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa]">{displayUser.email}</p>
   <div className="mt-4 grid grid-cols-2 gap-2 w-full">
-  <button onClick={handleAvatarClick} disabled={avatarUploading} className="py-2 rounded-xl bg-black dark:bg-[#eba236] text-white dark:text-black text-sm font-semibold hover:bg-[#1a1a1a] dark:hover:bg-[#c88a20] disabled:opacity-60 flex items-center justify-center gap-1.5 transition-colors">
+  <button onClick={handleAvatarClick} disabled={avatarUploading} className="py-2 rounded-xl bg-black dark:bg-[#239459] text-white text-sm font-semibold hover:bg-[#1a1a1a] dark:hover:bg-[#215035] disabled:opacity-60 flex items-center justify-center gap-1.5 transition-colors">
   {avatarUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Upload
   </button>
   <button
@@ -1368,7 +1368,7 @@ function ProfileInner() {
   <li>Address is used only for profile display, not delivery.</li>
   <li>System auto-generates initials fallback if no picture.</li>
   </ul>
-  <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 text-xs text-amber-800 flex gap-2">
+  <div className="mt-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 text-xs text-emerald-800 flex gap-2">
   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
   <div>
   <p className="font-semibold">Read-only fields</p>
@@ -1377,14 +1377,14 @@ function ProfileInner() {
   </div>
   </div>
 
-  <div className="bg-black text-white rounded-xl p-5 relative overflow-hidden border border-[#eba236]/20">
-  <div className="absolute inset-0 bg-gradient-to-br from-[#eba236]/15 via-transparent to-[#c88a20]/10 pointer-events-none" />
+  <div className="bg-black text-white rounded-xl p-5 relative overflow-hidden border border-[#239459]/20">
+  <div className="absolute inset-0 bg-gradient-to-br from-[#239459]/15 via-transparent to-[#215035]/10 pointer-events-none" />
   <div className="relative">
   <h4 className="font-semibold flex items-center gap-2">
-  <Sparkles className="w-4 h-4 text-[#eba236]" /> Need help?
+  <Sparkles className="w-4 h-4 text-[#239459]" /> Need help?
   </h4>
   <p className="text-sm opacity-80 mt-1 leading-relaxed">Contact support to change business details or reactivate a locked account.</p>
-  <a href="mailto:support@kuyacares.com" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold bg-white dark:bg-[#eba236] text-black px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#c88a20] transition-colors">
+  <a href="mailto:support@kuyacares.com" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold bg-white dark:bg-[#239459] text-black px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#215035] transition-colors">
   <Mail className="w-4 h-4" /> Contact support
   </a>
   </div>
@@ -1442,7 +1442,7 @@ function ProfileInner() {
   <p className="text-gray-700 dark:text-[#a1a1aa] mt-1 leading-relaxed">{vendor.description}</p>
   </div>
   )}
-  <div className="sm:col-span-2 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-lg px-3 py-2">
+  <div className="sm:col-span-2 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-800 rounded-lg px-3 py-2">
   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
   Business details are verified by admin. To update registration or legal name, contact support — changes require re-verification.
   </div>
@@ -1513,7 +1513,7 @@ function ProfileInner() {
   <div className="col-span-12 lg:col-span-4 space-y-5">
   <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl p-5">
   <h4 className="font-semibold text-gray-900 dark:text-[#ededed] text-sm flex items-center gap-2">
-  <Award className="w-4 h-4 text-amber-500" /> Verification
+  <Award className="w-4 h-4 text-emerald-500" /> Verification
   </h4>
   <div className="mt-3 space-y-3">
   <div className="flex items-center justify-between">
@@ -1534,14 +1534,14 @@ function ProfileInner() {
   </div>
   </div>
   {vendor?.verificationStatus === 'pending' && (
-  <div className="mt-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+  <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
   Your business is under review. You will be notified by email once verified.
   </div>
   )}
   </div>
   <div className="bg-slate-900 dark:bg-black text-white rounded-xl p-5 border border-transparent dark:border-[#262626]">
   <h4 className="font-semibold text-sm flex items-center gap-2">
-  <Building2 className="w-4 h-4 text-[#eba236]" /> Need help?
+  <Building2 className="w-4 h-4 text-[#239459]" /> Need help?
   </h4>
   <p className="text-xs text-slate-300 dark:text-[#a1a1aa] mt-2 leading-relaxed">
   For changes to business registration, verification, or outlet onboarding, contact the operations team via the support channel.
@@ -1584,7 +1584,7 @@ function ProfileInner() {
   onChange={(e) => setPwd((s) => ({ ...s, current: e.target.value }))}
   placeholder="Enter current password"
   autoComplete="current-password"
-  className="w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   <button type="button" onClick={() => setShowPwd((s) => ({ ...s, current: !s.current }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#a1a1aa] hover:text-gray-600 dark:text-[#a1a1aa]">
   {showPwd.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1601,7 +1601,7 @@ function ProfileInner() {
   onChange={(e) => setPwd((s) => ({ ...s, next: e.target.value }))}
   placeholder="At least 8 chars, uppercase, number, special"
   autoComplete="new-password"
-  className="w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#eba236] text-sm"
+  className="w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-[#262626] rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#239459] text-sm"
   />
   <button type="button" onClick={() => setShowPwd((s) => ({ ...s, next: !s.next }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#a1a1aa] hover:text-gray-600 dark:text-[#a1a1aa]">
   {showPwd.next ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1643,7 +1643,7 @@ function ProfileInner() {
   onChange={(e) => setPwd((s) => ({ ...s, confirm: e.target.value }))}
   placeholder="Repeat new password"
   autoComplete="new-password"
-  className={`w-full px-3 py-2.5 pr-10 border rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 text-sm ${pwd.confirm && pwd.next !== pwd.confirm ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 dark:border-[#262626] focus:ring-[#eba236]'}`}
+  className={`w-full px-3 py-2.5 pr-10 border rounded-xl bg-white dark:bg-[#171717] text-gray-900 dark:text-[#ededed] placeholder:text-gray-400 dark:placeholder:text-[#a1a1aa] dark:text-[#a1a1aa] focus:outline-none focus:ring-2 text-sm ${pwd.confirm && pwd.next !== pwd.confirm ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 dark:border-[#262626] focus:ring-[#239459]'}`}
   />
   <button type="button" onClick={() => setShowPwd((s) => ({ ...s, confirm: !s.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#a1a1aa] hover:text-gray-600 dark:text-[#a1a1aa]">
   {showPwd.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1655,7 +1655,7 @@ function ProfileInner() {
   <button
   type="submit"
   disabled={pwdSaving}
-  className="w-full inline-flex items-center justify-center gap-2 py-3 bg-black hover:bg-[#1a1a1a] disabled:opacity-60 text-white rounded-xl font-semibold border border-[#eba236]/30 hover:border-[#eba236]/60 transition-colors"
+  className="w-full inline-flex items-center justify-center gap-2 py-3 bg-black hover:bg-[#1a1a1a] disabled:opacity-60 text-white rounded-xl font-semibold border border-[#239459]/30 hover:border-[#239459]/60 transition-colors"
   >
   {pwdSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
   Update password
@@ -1748,11 +1748,11 @@ function ProfileInner() {
 
   <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl p-5">
   <h4 className="font-semibold text-gray-900 dark:text-[#ededed] text-sm flex items-center gap-2">
-  <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" /> Coming soon: 2FA
+  <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Coming soon: 2FA
   </h4>
   <p className="text-sm text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa] mt-2 leading-relaxed">Two-factor authentication will add an extra layer using authenticator apps. Enabled globally for vendors in a future release.</p>
   <div className="mt-3 flex items-center gap-2 text-xs">
-  <span className="px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 font-semibold">Planned</span>
+  <span className="px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 font-semibold">Planned</span>
   <span className="text-gray-400 dark:text-[#a1a1aa]">ETA next quarter</span>
   </div>
   </div>
@@ -1805,7 +1805,7 @@ function ProfileInner() {
   );
   })}
   </div>
-  <p className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa] mt-2">Auto follows your device setting via <code className="px-1 py-0.5 bg-gray-100 dark:bg-[#262626] rounded text-[10px]">prefers-color-scheme</code> and is stored in <code className="px-1 py-0.5 bg-gray-100 dark:bg-[#262626] rounded text-[10px]">localStorage tap2go-merchant-theme</code> — no DB.</p>
+  <p className="text-xs text-gray-500 dark:text-[#a1a1aa] dark:text-[#a1a1aa] mt-2">Auto follows your device setting via <code className="px-1 py-0.5 bg-gray-100 dark:bg-[#262626] rounded text-[10px]">prefers-color-scheme</code> and is stored in <code className="px-1 py-0.5 bg-gray-100 dark:bg-[#262626] rounded text-[10px]">localStorage kuyacares-merchant-theme</code> — no DB.</p>
   </div>
 
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1865,7 +1865,7 @@ function ProfileInner() {
   type="checkbox"
   checked={(prefs as unknown as Record<string, boolean>)[row.key]}
   onChange={(e) => persistPrefs({ ...prefs, [row.key]: e.target.checked })}
-  className="w-5 h-5 rounded border-gray-300 dark:border-[#262626] text-indigo-600 dark:text-indigo-400 focus:ring-[#eba236]"
+  className="w-5 h-5 rounded border-gray-300 dark:border-[#262626] text-indigo-600 dark:text-indigo-400 focus:ring-[#239459]"
   />
   </label>
   ))}
@@ -1925,7 +1925,7 @@ function ProfileInner() {
 
   {/* footer */}
   <div className="text-center text-xs text-gray-400 dark:text-[#a1a1aa]">
-  Tap2Go Merchant • Vendor profile powered by Payload CMS Users & Vendors • Media via Cloudinary • Audit via user-events
+  Kuya Cares Merchant • Vendor profile powered by Payload CMS Users & Vendors • Media via Cloudinary • Audit via user-events
   </div>
   </div>
   );

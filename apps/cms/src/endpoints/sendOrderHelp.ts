@@ -104,7 +104,7 @@ export const sendOrderHelp: PayloadHandler = async (req: PayloadRequest): Promis
 
     const apiKey = process.env.RESEND_API_KEY
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com'
-    const fromName = process.env.EMAIL_FROM_NAME || 'Tap2Go Support'
+    const fromName = process.env.EMAIL_FROM_NAME || 'Kuya Cares Support'
     const replyTo = process.env.EMAIL_REPLY_TO || fromEmail
     const toEmail = 'johnlloydcallao@gmail.com'
 
@@ -169,7 +169,7 @@ export const sendOrderHelp: PayloadHandler = async (req: PayloadRequest): Promis
           <h3>Concern:</h3>
           <p style="white-space: pre-wrap;">${concern}</p>
           <hr />
-          <p><i>This email was sent from the Tap2Go Help Center.</i></p>
+          <p><i>This email was sent from the Kuya Cares Help Center.</i></p>
         `,
         attachments: attachments.length > 0 ? attachments : undefined
       }),

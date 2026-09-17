@@ -464,7 +464,7 @@ export default buildConfig({
 
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
             const replyTo = process.env.EMAIL_REPLY_TO || fromEmail;
-            const fromName = process.env.EMAIL_FROM_NAME || 'Tap2Go';
+            const fromName = process.env.EMAIL_FROM_NAME || 'Kuya Cares';
             const apiKey = process.env.RESEND_API_KEY || '';
             const to = user.email;
             // Resolve reset URL per app / origin (production-complete)
@@ -505,7 +505,7 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
                 body: JSON.stringify({
                   from: `${fromName} <${fromEmail}>`,
                   to,
-                  subject: 'Reset your Tap2Go password',
+                  subject: 'Reset your Kuya Cares password',
                   html: `<p>We received a request to reset your password.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#000;color:#fff;border-radius:999px;text-decoration:none;font-weight:600">Reset Password</a></p><p>Or copy this link: <a href="${resetUrl}">${resetUrl}</a></p><p>This link will expire in ${ttlMinutes} minutes. If you did not request this, you can ignore this email.</p>`,
                   text: `We received a request to reset your password.\n\nUse this link to set a new password: ${resetUrl}\n\nThis link will expire in ${ttlMinutes} minutes. If you did not request this, you can ignore this email.`,
                   reply_to: replyTo,
@@ -657,7 +657,7 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
           const apiKey = process.env.RESEND_API_KEY || '';
           const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
           const replyTo = process.env.EMAIL_REPLY_TO || fromEmail;
-          const fromName = process.env.EMAIL_FROM_NAME || 'Tap2Go';
+          const fromName = process.env.EMAIL_FROM_NAME || 'Kuya Cares';
 
           if (apiKey && process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
             await fetch('https://api.resend.com/emails', {
@@ -670,7 +670,7 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
               body: JSON.stringify({
                 from: `${fromName} <${fromEmail}>`,
                 to: user.email,
-                subject: 'Your Tap2Go password was changed',
+                subject: 'Your Kuya Cares password was changed',
                 text: 'Your password has been changed successfully. If you did not make this change, contact support immediately.',
                 reply_to: replyTo,
               }),

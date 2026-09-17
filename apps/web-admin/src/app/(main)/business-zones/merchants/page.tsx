@@ -172,7 +172,7 @@ function MerchantZonesPageContent(){
                   <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 min-w-[220px]">
-                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">{m.vendor?.logo?.url ? <img src={m.vendor.logo.url} alt={m.vendor.businessName || m.outletName} className="h-9 w-9 rounded-xl object-cover" /> : initials(m.vendor?.businessName || m.outletName)}</div>
+                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">{m.vendor?.logo?.url ? <img src={m.vendor.logo.url} alt={m.vendor.businessName || m.outletName} className="h-9 w-9 rounded-xl object-cover" /> : initials(m.vendor?.businessName || m.outletName)}</div>
                         <div className="min-w-0">
                           <div className="font-medium text-gray-900 dark:text-white truncate max-w-[180px]">{m.outletName}</div>
                           <div className="text-xs text-gray-500 font-mono">{m.outletCode} • {m.vendor?.businessName||'—'}</div>

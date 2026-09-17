@@ -103,7 +103,7 @@ export default function ProductScreen() {
     if (!media) return null;
     let url = media.cloudinaryURL || media.url || media.thumbnailURL || null;
     if (url && !url.startsWith('http') && !url.startsWith('data:')) {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const baseUrl = apiUrl.replace(/\/api\/?$/, '');
       const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
       url = `${baseUrl}${normalizedUrl}`;

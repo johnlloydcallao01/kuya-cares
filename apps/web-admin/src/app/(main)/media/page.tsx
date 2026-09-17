@@ -367,7 +367,7 @@ function MediaLibraryPageContent() {
               className="p-1.5 bg-white dark:bg-[#171717] rounded shadow-md hover:bg-gray-100 dark:hover:bg-[#262626] border border-gray-200 dark:border-[#262626]"
               title="Edit alt text"
             >
-              <Edit className="w-3 h-3 text-[#eba236]" />
+              <Edit className="w-3 h-3 text-[#239459]" />
             </button>
             <button
               onClick={() => handleDelete(item)}
@@ -462,7 +462,7 @@ function MediaLibraryPageContent() {
         )}
         <button
           onClick={() => openEdit(item)}
-          className="p-2 text-gray-400 dark:text-[#a1a1aa] hover:text-[#eba236]"
+          className="p-2 text-gray-400 dark:text-[#a1a1aa] hover:text-[#239459]"
           title="Edit alt text"
         >
           <Edit className="w-4 h-4" />
@@ -508,7 +508,7 @@ function MediaLibraryPageContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center">
               <Image className="w-4 h-4" />
             </span>
             Media Library
@@ -529,7 +529,7 @@ function MediaLibraryPageContent() {
           </button>
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"
           >
             <Upload className="w-4 h-4" />
             Upload Media
@@ -561,12 +561,12 @@ function MediaLibraryPageContent() {
             ) : isUploading ? (
               <div className="py-8">
                 <div className="flex items-center justify-center mb-4">
-                  <Loader2 className="w-8 h-8 text-[#eba236] animate-spin" />
+                  <Loader2 className="w-8 h-8 text-[#239459] animate-spin" />
                 </div>
                 <p className="text-center text-sm text-gray-600 dark:text-[#a1a1aa] mb-4">Uploading... {uploadProgress}%</p>
                 <div className="w-full bg-gray-200 dark:bg-[#262626] rounded-full h-2">
                   <div
-                    className="bg-[#eba236] h-2 rounded-full transition-all duration-300"
+                    className="bg-[#239459] h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -590,7 +590,7 @@ function MediaLibraryPageContent() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-[#eba236] hover:text-[#c88a20] font-medium"
+                      className="text-[#239459] hover:text-[#215035] font-medium"
                     >
                       browse
                     </button>
@@ -652,7 +652,7 @@ function MediaLibraryPageContent() {
                 type="text"
                 value={editAlt}
                 onChange={(e) => setEditAlt(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-400 dark:border-[#333] rounded-lg focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder-gray-600 dark:bg-[#0a0a0a]"
+                className="w-full px-3 py-2 border-2 border-gray-400 dark:border-[#333] rounded-lg focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder-gray-600 dark:bg-[#0a0a0a]"
                 placeholder="Describe this media..."
               />
             </div>
@@ -675,7 +675,7 @@ function MediaLibraryPageContent() {
               <button
                 onClick={handleSaveAlt}
                 disabled={isSavingEdit}
-                className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg hover:bg-[#c88a20] transition-colors disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg hover:bg-[#215035] transition-colors disabled:opacity-50"
               >
                 {isSavingEdit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save Changes
@@ -695,7 +695,7 @@ function MediaLibraryPageContent() {
               placeholder="Search media files..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400"
+              className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400"
             />
             {search && (
               <button onClick={() => handleSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]">
@@ -709,7 +709,7 @@ function MediaLibraryPageContent() {
                 <select
                   value={typeFilter}
                   onChange={(e) => handleTypeFilter(e.target.value)}
-                  className="px-3 py-2.5 text-sm border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white bg-white dark:bg-[#0a0a0a]"
+                  className="px-3 py-2.5 text-sm border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white bg-white dark:bg-[#0a0a0a]"
                 >
                   <option value="all">All Types</option>
                   <option value="image">Images</option>
@@ -719,14 +719,14 @@ function MediaLibraryPageContent() {
               <div className="flex items-center p-1 bg-gray-100 dark:bg-[#0a0a0a] rounded-full border border-gray-200 dark:border-[#262626]">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 rounded-full text-sm font-semibold ${viewMode === 'grid' ? 'bg-[#eba236] text-white' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-white dark:hover:bg-[#262626]'}`}
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold ${viewMode === 'grid' ? 'bg-[#239459] text-white' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-white dark:hover:bg-[#262626]'}`}
                 title="Grid view"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 rounded-full text-sm font-semibold ${viewMode === 'list' ? 'bg-[#eba236] text-white' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-white dark:hover:bg-[#262626]'}`}
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold ${viewMode === 'list' ? 'bg-[#239459] text-white' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-white dark:hover:bg-[#262626]'}`}
                 title="List view"
               >
                 <List className="w-4 h-4" />
@@ -759,15 +759,15 @@ function MediaLibraryPageContent() {
             <p className="text-red-600 dark:text-red-400 mb-3">{error}</p>
             <button
               onClick={handleHardRefresh}
-              className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"
+              className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"
             >
               <RefreshCw className="w-4 h-4 mr-2" />Try again
             </button>
           </div>
         ) : mediaItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4">
-              <Upload className="w-8 h-8 text-[#eba236]" />
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4">
+              <Upload className="w-8 h-8 text-[#239459]" />
             </div>
             <p className="text-gray-900 dark:text-white font-medium mb-1">
               {search || typeFilter !== 'all' ? 'No media files match your filters.' : 'No media files yet.'}
@@ -775,7 +775,7 @@ function MediaLibraryPageContent() {
             {!search && typeFilter === 'all' && (
               <button
                 onClick={() => setIsUploadOpen(true)}
-                className="mt-2 inline-flex items-center text-[#eba236] hover:text-[#c88a20] font-medium"
+                className="mt-2 inline-flex items-center text-[#239459] hover:text-[#215035] font-medium"
               >
                 <Upload className="w-4 h-4 mr-1" />
                 Upload your first media file
@@ -816,7 +816,7 @@ function MediaLibraryPageContent() {
                       <button
                         key={n}
                         onClick={() => handlePageChange(n)}
-                        className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === currentPage ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}
+                        className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === currentPage ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}
                       >
                         {n}
                       </button>

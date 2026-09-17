@@ -136,7 +136,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
         {options.map((opt) => {
           const active = value.includes(opt.value)
           return (
-            <button key={opt.value} onClick={() => onToggle(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{opt.label}</button>
+            <button key={opt.value} onClick={() => onToggle(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{opt.label}</button>
           )
         })}
       </div>
@@ -235,7 +235,7 @@ function TransactionsContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Receipt className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Receipt className="w-4 h-4" /></span>
             Transactions
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Payments across your outlets — PayMongo intents, methods, and settlement status (read-only).</p>
@@ -252,7 +252,7 @@ function TransactionsContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <KpiCard title="Total Transactions" value={String(stats.filteredTotal)} sub={`${stats.totalAll} overall`} icon={<Receipt className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Transactions" value={String(stats.filteredTotal)} sub={`${stats.totalAll} overall`} icon={<Receipt className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Paid" value={String(stats.statusBreakdown.paid || 0)} sub={`${stats.paidCount} succeeded • ${avgDisplay} avg`} icon={<CheckCircle className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Pending" value={String(stats.statusBreakdown.pending || 0)} sub={`${fmtCurrency(stats.totalPendingAmount || 0)} queued`} icon={<Clock className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
           <KpiCard title="Refunded / Failed" value={String((stats.statusBreakdown.refunded || 0) + (stats.statusBreakdown.failed || 0))} sub={`${stats.statusBreakdown.refunded || 0} refunded • ${stats.statusBreakdown.failed || 0} failed`} icon={<ShieldAlert className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
@@ -268,7 +268,7 @@ function TransactionsContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search payment intent, transaction ID, order ID, amount…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search payment intent, transaction ID, order ID, amount…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -281,8 +281,8 @@ function TransactionsContent() {
               <option value="amount">Amount low→high</option>
               <option value="status">Status A–Z</option>
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -297,18 +297,18 @@ function TransactionsContent() {
             <div>
               <p className="text-xs font-semibold text-gray-700 dark:text-[#a1a1aa] mb-2">Currency</p>
               <div className="flex flex-wrap gap-1.5">
-                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#eba236] text-white border border-[#eba236]">PHP</span>
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#239459] text-white border border-[#239459]">PHP</span>
                 <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#0a0a0a] text-gray-400 border border-gray-200 dark:border-[#262626]">USD — n/a</span>
               </div>
               <p className="text-[11px] text-gray-400 mt-1">All transactions are settled in PHP.</p>
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {statusFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">status:{v} <button onClick={() => toggleStatus(v)}><X className="w-3 h-3" /></button></span>)}
             {paymentMethodFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">{v} <button onClick={() => togglePaymentMethod(v)}><X className="w-3 h-3" /></button></span>)}
           </div>
@@ -321,7 +321,7 @@ function TransactionsContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load transactions</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -329,7 +329,7 @@ function TransactionsContent() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-14 w-14 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-full flex items-center justify-center mb-4"><Receipt className="w-7 h-7 text-[#eba236]" /></div>
+            <div className="h-14 w-14 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-full flex items-center justify-center mb-4"><Receipt className="w-7 h-7 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No transactions found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Transactions appear after checkout — PayMongo intent creation and webhook settlement. Try adjusting search or filters.</p>
           </div>
@@ -359,7 +359,7 @@ function TransactionsContent() {
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3 min-w-[200px]">
-                            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0">
                               <Receipt className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
@@ -374,8 +374,8 @@ function TransactionsContent() {
                         <td className="px-4 py-3">
                           {order ? (
                             <div className="min-w-[120px]">
-                              <Link href="/orders" className="font-semibold text-gray-900 dark:text-white hover:text-[#eba236] text-xs flex items-center gap-1">
-                                <DollarSign className="w-3 h-3 text-[#eba236]" /> #{order.id}
+                              <Link href="/orders" className="font-semibold text-gray-900 dark:text-white hover:text-[#239459] text-xs flex items-center gap-1">
+                                <DollarSign className="w-3 h-3 text-[#239459]" /> #{order.id}
                               </Link>
                               <div className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-0.5 capitalize">{order.status.replace('_', ' ')}</div>
                               <div className="text-[11px] text-gray-400">{fmtCurrency(order.total, 'PHP')}</div>
@@ -395,7 +395,7 @@ function TransactionsContent() {
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                           <div className="min-w-[150px]">
-                            <div className="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[150px] flex items-center gap-1"><Store className="w-3 h-3 text-[#eba236]" /> {outletName}</div>
+                            <div className="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[150px] flex items-center gap-1"><Store className="w-3 h-3 text-[#239459]" /> {outletName}</div>
                             {order?.merchant?.outletCode && <div className="text-[11px] text-gray-400 font-mono">{order.merchant.outletCode}</div>}
                           </div>
                         </td>
@@ -412,7 +412,7 @@ function TransactionsContent() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="font-semibold text-gray-900 dark:text-white text-xs flex items-center justify-end gap-1">
-                            <DollarSign className="w-3 h-3 text-[#eba236]" /> {fmtCurrency(t.amount, t.currency || 'PHP')}
+                            <DollarSign className="w-3 h-3 text-[#239459]" /> {fmtCurrency(t.amount, t.currency || 'PHP')}
                           </div>
                           <div className="text-[11px] text-gray-400">{t.currency || 'PHP'}</div>
                         </td>
@@ -435,7 +435,7 @@ function TransactionsContent() {
                   {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
                     if (n > totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>
@@ -446,7 +446,7 @@ function TransactionsContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Revenue counts <span className="font-semibold text-gray-700 dark:text-white">settled (paid) transactions</span> only — pending, failed, and refunded amounts are tracked separately and never inflate revenue. Refunds and chargebacks are handled by the platform; contact support if a settled payment needs review. See <Link href="/orders" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Orders</Link> for fulfillment context.
+        Revenue counts <span className="font-semibold text-gray-700 dark:text-white">settled (paid) transactions</span> only — pending, failed, and refunded amounts are tracked separately and never inflate revenue. Refunds and chargebacks are handled by the platform; contact support if a settled payment needs review. See <Link href="/orders" className="font-semibold text-[#239459] hover:text-[#215035]">Orders</Link> for fulfillment context.
       </div>
     </div>
   )

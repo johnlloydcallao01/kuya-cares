@@ -149,7 +149,7 @@ export default function VouchersPage() {
             </div>
             <button
               onClick={() => console.log('Browse vouchers')}
-              className="px-4 py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="px-4 py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               Browse More
             </button>
@@ -164,7 +164,7 @@ export default function VouchersPage() {
                 placeholder="Search vouchers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459] focus:border-transparent"
               />
             </div>
 
@@ -176,7 +176,7 @@ export default function VouchersPage() {
                   onClick={() => setSelectedCategory(category.value)}
                   className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === category.value
-                      ? 'bg-[#eba236] text-white'
+                      ? 'bg-[#239459] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -228,11 +228,11 @@ export default function VouchersPage() {
             {filteredVouchers.map((voucher) => (
               <div key={voucher.id} className="bg-white rounded-lg p-6 relative overflow-hidden">
                 {/* Voucher Design Elements */}
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-[#eba236] to-orange-400 opacity-10 rounded-bl-full"></div>
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-[#239459] to-orange-400 opacity-10 rounded-bl-full"></div>
                 
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-10 h-10 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-lg">{getCategoryIcon(voucher.category)}</span>
                     </div>
                     <div className="flex-1">
@@ -241,8 +241,8 @@ export default function VouchersPage() {
                       
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-1">
-                          <i className="fas fa-tag w-4 h-4 text-[#eba236]" />
-                          <span className="text-[#eba236] font-semibold">{voucher.discount}</span>
+                          <i className="fas fa-tag w-4 h-4 text-[#239459]" />
+                          <span className="text-[#239459] font-semibold">{voucher.discount}</span>
                         </div>
                         {voucher.minOrder && (
                           <span className="text-xs text-gray-500">Min. order ₱{voucher.minOrder}</span>
@@ -260,7 +260,7 @@ export default function VouchersPage() {
                     </div>
                     <button
                       onClick={() => handleCopyCode(voucher.code)}
-                      className="px-3 py-1 bg-white text-[#eba236] border border-[#eba236] rounded text-xs font-medium hover:bg-[#eba236] hover:text-white transition-colors duration-200"
+                      className="px-3 py-1 bg-white text-[#239459] border border-[#239459] rounded text-xs font-medium hover:bg-[#239459] hover:text-white transition-colors duration-200"
                     >
                       Copy
                     </button>
@@ -301,7 +301,7 @@ export default function VouchersPage() {
                 {!voucher.isUsed && !voucher.isExpired && (
                   <button
                     onClick={() => handleUseVoucher(voucher.id)}
-                    className="w-full py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 font-medium"
+                    className="w-full py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 font-medium"
                   >
                     Use Voucher
                   </button>
@@ -325,7 +325,7 @@ export default function VouchersPage() {
             {activeTab === 'available' && (
               <button
                 onClick={() => console.log('Browse vouchers')}
-                className="px-6 py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 font-medium"
+                className="px-6 py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 font-medium"
               >
                 Browse Vouchers
               </button>
@@ -339,14 +339,14 @@ export default function VouchersPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => console.log('Redeem code')}
-              className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               <i className="fas fa-ticket-alt w-4 h-4" />
               Redeem Code
             </button>
             <button
               onClick={() => console.log('Share voucher')}
-              className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               <i className="fas fa-gift w-4 h-4" />
               Share Voucher

@@ -44,7 +44,7 @@ export async function getCurrentVendorUser(): Promise<PayloadUser | null> {
   try {
     const headersList = await headers();
     const authorization = headersList.get('authorization');
-    const cookieToken = (await cookies()).get('tap2go-merchant-token')?.value;
+    const cookieToken = (await cookies()).get('kuyacares-merchant-token')?.value;
     const token = authorization?.startsWith('JWT ')
       ? authorization.substring(4)
       : cookieToken;

@@ -218,14 +218,14 @@ export default function PointsPage() {
             </div>
             <button
               onClick={() => console.log('How to earn points')}
-              className="px-4 py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="px-4 py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               How to Earn
             </button>
           </div>
 
           {/* Points Balance Card */}
-          <div className="bg-gradient-to-r from-[#eba236] to-orange-400 rounded-lg p-6 text-white mb-6">
+          <div className="bg-gradient-to-r from-[#239459] to-orange-400 rounded-lg p-6 text-white mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold mb-1">Current Balance</h2>
@@ -311,14 +311,14 @@ export default function PointsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setActiveTab('rewards')}
-                  className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+                  className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
                 >
                   <i className="fas fa-gift w-4 h-4" />
                   Browse Rewards
                 </button>
                 <button
                   onClick={() => setActiveTab('achievements')}
-                  className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+                  className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
                 >
                   <i className="fas fa-trophy w-4 h-4" />
                   View Achievements
@@ -332,7 +332,7 @@ export default function PointsPage() {
                 <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
                 <button
                   onClick={() => setActiveTab('history')}
-                  className="text-[#eba236] text-sm font-medium hover:underline"
+                  className="text-[#239459] text-sm font-medium hover:underline"
                 >
                   View All
                 </button>
@@ -370,34 +370,34 @@ export default function PointsPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Ways to Earn Points</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center">
                     <span>🛒</span>
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Complete Orders</p>
                     <p className="text-sm text-gray-600">Earn 1 point for every ₱10 spent</p>
                   </div>
-                  <span className="text-[#eba236] font-semibold">1pt/₱10</span>
+                  <span className="text-[#239459] font-semibold">1pt/₱10</span>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center">
                     <span>⭐</span>
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Write Reviews</p>
                     <p className="text-sm text-gray-600">Share your dining experience</p>
                   </div>
-                  <span className="text-[#eba236] font-semibold">25pts</span>
+                  <span className="text-[#239459] font-semibold">25pts</span>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center">
                     <span>🎯</span>
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Complete Challenges</p>
                     <p className="text-sm text-gray-600">Weekly and monthly challenges</p>
                   </div>
-                  <span className="text-[#eba236] font-semibold">50-200pts</span>
+                  <span className="text-[#239459] font-semibold">50-200pts</span>
                 </div>
               </div>
             </div>
@@ -410,7 +410,7 @@ export default function PointsPage() {
               <div key={reward.id} className="bg-white rounded-lg p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-12 h-12 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center text-2xl">
                       {reward.image}
                     </div>
                     <div className="flex-1">
@@ -425,8 +425,8 @@ export default function PointsPage() {
 
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-coins w-4 h-4 text-[#eba236]" />
-                    <span className="font-bold text-[#eba236]">{reward.pointsCost.toLocaleString()} points</span>
+                    <i className="fas fa-coins w-4 h-4 text-[#239459]" />
+                    <span className="font-bold text-[#239459]">{reward.pointsCost.toLocaleString()} points</span>
                   </div>
                   {reward.expiryDate && (
                     <span className="text-xs text-gray-500">
@@ -452,7 +452,7 @@ export default function PointsPage() {
                   disabled={!reward.isAvailable || currentPoints < reward.pointsCost}
                   className={`w-full py-2 rounded-lg font-medium transition-colors duration-200 ${
                     reward.isAvailable && currentPoints >= reward.pointsCost
-                      ? 'bg-white text-[#eba236] border border-[#eba236] hover:bg-[#eba236] hover:text-white'
+                      ? 'bg-white text-[#239459] border border-[#239459] hover:bg-[#239459] hover:text-white'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -528,8 +528,8 @@ export default function PointsPage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">{achievement.title}</h3>
                       <p className="text-gray-600 text-sm mb-2">{achievement.description}</p>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-coins w-4 h-4 text-[#eba236]" />
-                        <span className="text-[#eba236] font-semibold">{achievement.pointsReward} points</span>
+                        <i className="fas fa-coins w-4 h-4 text-[#239459]" />
+                        <span className="text-[#239459] font-semibold">{achievement.pointsReward} points</span>
                       </div>
                     </div>
                   </div>
@@ -550,7 +550,7 @@ export default function PointsPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-[#eba236] h-2 rounded-full transition-all duration-300"
+                        className="bg-[#239459] h-2 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min((achievement.progress / achievement.target) * 100, 100)}%` }}
                       ></div>
                     </div>

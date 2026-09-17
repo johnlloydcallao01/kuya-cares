@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Tap2Go Docker Build Script - Optimized Multi-Stage Builds
+# Kuya Cares Docker Build Script - Optimized Multi-Stage Builds
 # =============================================================================
 
 set -e  # Exit on any error
@@ -14,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-IMAGE_NAME="johnlloydcallao/tap2go-complete"
+IMAGE_NAME="johnlloydcallao/kuya-cares-complete"
 REGISTRY="docker.io"
 
 # Function to print colored output

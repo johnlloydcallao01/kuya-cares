@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Tap2Go",
-    "slug": "tap2go-mobile-customer",
+    "name": "Kuya Cares",
+    "slug": "kuya-cares-mobile-customer",
     "version": "2.1.9",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -9,23 +9,23 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f3a823"
+      "backgroundColor": "#239459"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tap2go.customer",
+      "bundleIdentifier": "com.kuyacares.customer",
       "associatedDomains": [
-        "applinks:app.tap2goph.com"
+        "applinks:app.kuyacares.com"
       ],
       "userInterfaceStyle": "light"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f3a823"
+        "backgroundColor": "#239459"
       },
       "config": {
         "googleMaps": {
@@ -47,12 +47,12 @@
           "data": [
             {
               "scheme": "http",
-              "host": "app.tap2goph.com",
+              "host": "app.kuyacares.com",
               "pathPrefix": "/checkout/"
             },
             {
               "scheme": "https",
-              "host": "app.tap2goph.com",
+              "host": "app.kuyacares.com",
               "pathPrefix": "/checkout/"
             }
           ]
@@ -69,7 +69,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "tap2go-customer",
+    "scheme": "kuyacares-customer",
     "plugins": [
       [
         "expo-build-properties",
@@ -95,8 +95,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Tap2Go uses your photo library to let you choose a profile picture.",
-          "cameraPermission": "Tap2Go uses your camera to take a profile picture.",
+          "photosPermission": "Kuya Cares uses your photo library to let you choose a profile picture.",
+          "cameraPermission": "Kuya Cares uses your camera to take a profile picture.",
           "microphonePermission": false
         }
       ]

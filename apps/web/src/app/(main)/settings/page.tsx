@@ -102,8 +102,8 @@ export default function SettingsPage() {
             <button 
               className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
               style={{
-                border: '1px solid #eba236',
-                color: '#eba236',
+                border: '1px solid #239459',
+                color: '#239459',
                 backgroundColor: 'white'
               }}
             >
@@ -281,8 +281,8 @@ export default function SettingsPage() {
             <button 
               className="w-full py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
               style={{
-                border: '1px solid #eba236',
-                color: '#eba236',
+                border: '1px solid #239459',
+                color: '#239459',
                 backgroundColor: 'white'
               }}
             >

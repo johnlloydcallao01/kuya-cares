@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Environment Variable Synchronization Script for Tap2Go Monorepo
+ * Environment Variable Synchronization Script for Kuya Cares Monorepo
  * 
  * This script ensures all apps in the monorepo have access to the same
  * environment variables from the root .env.local file.

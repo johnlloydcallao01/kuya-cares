@@ -29,7 +29,7 @@ export function Header({ sidebarOpen, onToggleSidebar }: HeaderProps) {
             D
           </div>
           <span className="text-xl font-bold text-gray-900 hidden sm:block">
-            Tap2Go Driver
+            Kuya Cares Driver
           </span>
         </Link>
       </div>

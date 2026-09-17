@@ -489,7 +489,7 @@ export default function OrdersPage() {
               <p className="text-gray-600 mt-1 text-base">Track and manage your food orders</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <button className="px-4 py-2 rounded-lg hover:opacity-90 transition-colors font-medium text-sm" style={{color: '#eba236', backgroundColor: '#eba236' + '20'}}>
+              <button className="px-4 py-2 rounded-lg hover:opacity-90 transition-colors font-medium text-sm" style={{color: '#239459', backgroundColor: '#239459' + '20'}}>
                 <i className="fas fa-receipt mr-2"></i>
                 Order History
               </button>
@@ -512,7 +512,7 @@ export default function OrdersPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-lg focus:ring-2 focus:bg-white transition-all text-sm"
-                  style={{'--tw-ring-color': '#eba236'} as any}
+                  style={{'--tw-ring-color': '#239459'} as any}
                 />
               </div>
             </div>
@@ -559,7 +559,7 @@ export default function OrdersPage() {
                           ? 'text-white shadow-md'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
-                      style={activeFilter === filter.id ? { backgroundColor: '#eba236' } : {}}
+                      style={activeFilter === filter.id ? { backgroundColor: '#239459' } : {}}
                     >
                       {filter.label}
                       <span className="ml-1 text-xs opacity-75">({filter.count})</span>
@@ -644,7 +644,7 @@ export default function OrdersPage() {
                   <button
                     onClick={() => handleTrackOrder(order.orderId)}
                     className="flex-1 py-2 px-4 text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
-                    style={{backgroundColor: '#eba236'}}
+                    style={{backgroundColor: '#239459'}}
                   >
                     <i className="fas fa-map-marker-alt mr-2"></i>
                     Track Order
@@ -679,7 +679,7 @@ export default function OrdersPage() {
                 <button
                   onClick={() => setSearchQuery('')}
                   className="px-6 py-2 text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm shadow-md"
-                  style={{backgroundColor: '#eba236'}}
+                  style={{backgroundColor: '#239459'}}
                 >
                   Clear Search
                 </button>

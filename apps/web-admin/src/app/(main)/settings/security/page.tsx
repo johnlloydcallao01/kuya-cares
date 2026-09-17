@@ -166,7 +166,7 @@ function SecuritySettingsPageContent(){
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center">
               <Shield className="w-4 h-4" />
             </span>
             Security
@@ -183,7 +183,7 @@ function SecuritySettingsPageContent(){
           >
             <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-[#a1a1aa] ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <a href="/settings/audit" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <a href="/settings/audit" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Activity className="w-4 h-4" /> View Audit Logs
           </a>
         </div>
@@ -192,7 +192,7 @@ function SecuritySettingsPageContent(){
       {/* KPI Cards */}
       {data ? (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <KpiCard title="Total Users" value={String(data.stats.totalUsers)} sub={`${data.stats.activeCount} active • ${data.stats.inactiveCount} inactive`} icon={<Users className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Users" value={String(data.stats.totalUsers)} sub={`${data.stats.activeCount} active • ${data.stats.inactiveCount} inactive`} icon={<Users className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Locked Accounts" value={String(data.stats.lockedCount)} sub={`${data.stats.lockedCount ? 'needs unlock' : 'all clear'}`} icon={<Lock className="w-5 h-5 text-white" />} iconBg="bg-red-500" />
           <KpiCard title="Security Events" value={String(data.auditStats.securityEvents)} sub={`${data.auditStats.loginFailed} failed logins`} icon={<ShieldAlert className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
           <KpiCard title="Admins" value={String(data.stats.adminCount)} sub={`${data.stats.roleBreakdown.admin || 0} system: ${data.stats.adminLevelBreakdown.system || 0}`} icon={<Crown className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
@@ -213,7 +213,7 @@ function SecuritySettingsPageContent(){
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load security overview</h3>
           <p className="text-sm text-gray-500 mt-1 mb-4 text-center max-w-md">{error}</p>
-          <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">
+          <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">
             <RefreshCw className="h-4 w-4 mr-2" />Retry
           </button>
         </div>
@@ -226,7 +226,7 @@ function SecuritySettingsPageContent(){
             {/* Authentication Policy */}
             <Section
               title="Authentication Policy"
-              icon={<Fingerprint className="w-4 h-4 text-[#eba236]" />}
+              icon={<Fingerprint className="w-4 h-4 text-[#239459]" />}
               action={<span className="text-xs font-mono text-gray-500 dark:text-[#a1a1aa] border border-gray-200 dark:border-[#262626] rounded-full px-2.5 py-1">JWT • Payload Auth</span>}
             >
               <div className="space-y-1">
@@ -261,7 +261,7 @@ function SecuritySettingsPageContent(){
               action={
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" checked={data.systemSettings.maintenanceMode} onChange={handleMaintenanceToggle} disabled={maintenanceSaving} className="sr-only peer" />
-                  <div className={`w-11 h-6 rounded-full peer transition ${data.systemSettings.maintenanceMode ? 'bg-[#eba236]' : 'bg-gray-200 dark:bg-[#333]'} peer-focus:ring-2 peer-focus:ring-[#eba236]/30 peer-disabled:opacity-50`}>
+                  <div className={`w-11 h-6 rounded-full peer transition ${data.systemSettings.maintenanceMode ? 'bg-[#239459]' : 'bg-gray-200 dark:bg-[#333]'} peer-focus:ring-2 peer-focus:ring-[#239459]/30 peer-disabled:opacity-50`}>
                     <div className={`h-5 w-5 rounded-full bg-white shadow transform transition ${data.systemSettings.maintenanceMode ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`}></div>
                   </div>
                 </label>
@@ -272,7 +272,7 @@ function SecuritySettingsPageContent(){
                 <Row label="Delivery provider" value={data.systemSettings.deliveryProvider} />
                 <Row label="Source" value="Global system-settings (adminOnly update)" mono />
                 <p className="text-xs text-gray-500 dark:text-[#a1a1aa] pt-2">Non-admin users see maintenance screen when enabled. Toggle is immediate and admin-only via <span className="font-mono">payload.updateGlobal</span>.</p>
-                {maintenanceSaving && <p className="text-xs text-[#eba236] flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Saving…</p>}
+                {maintenanceSaving && <p className="text-xs text-[#239459] flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Saving…</p>}
               </div>
             </Section>
 
@@ -292,7 +292,7 @@ function SecuritySettingsPageContent(){
           {/* Right column - Live state (5 cols) */}
           <div className="col-span-12 lg:col-span-5 space-y-5">
             {/* RBAC Matrix */}
-            <Section title="RBAC Overview" icon={<Users className="w-4 h-4 text-[#eba236]" />}>
+            <Section title="RBAC Overview" icon={<Users className="w-4 h-4 text-[#239459]" />}>
               <div className="space-y-3">
                 <div className="grid grid-cols-5 gap-2 text-center">
                   {Object.entries(data.stats.roleBreakdown).map(([role, count]) => (
@@ -302,8 +302,8 @@ function SecuritySettingsPageContent(){
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg border border-dashed border-[#eba236]/30 bg-[#eba236]/10 p-3">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1"><Crown className="w-3 h-3 text-[#eba236]" /> Admin levels</p>
+                <div className="rounded-lg border border-dashed border-[#239459]/30 bg-[#239459]/10 p-3">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1"><Crown className="w-3 h-3 text-[#239459]" /> Admin levels</p>
                   <div className="flex gap-2 mt-2">
                     {Object.entries(data.stats.adminLevelBreakdown).map(([lvl, cnt]) => (
                       <span key={lvl} className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] capitalize">{lvl}: {cnt as number}</span>
@@ -363,7 +363,7 @@ function SecuritySettingsPageContent(){
             <Section
               title="Recent Security Events"
               icon={<Activity className="w-4 h-4 text-amber-600" />}
-              action={<a href="/settings/audit" className="text-xs font-semibold text-[#eba236] hover:text-[#c88a20]">View all →</a>}
+              action={<a href="/settings/audit" className="text-xs font-semibold text-[#239459] hover:text-[#215035]">View all →</a>}
             >
               {data.recentSecurityEvents.length === 0 ? (
                 <div className="text-center py-8">

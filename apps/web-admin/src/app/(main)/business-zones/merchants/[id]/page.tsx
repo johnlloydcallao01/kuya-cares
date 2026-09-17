@@ -174,7 +174,7 @@ function MerchantZoneDetailPageContent(){
     return <div className="py-10 px-2.5"><div className="animate-pulse space-y-3"><div className="h-24 bg-gray-100 dark:bg-[#171717] rounded-xl"/><div className="h-64 bg-gray-100 dark:bg-[#171717] rounded-xl"/><div className="h-64 bg-gray-100 dark:bg-[#171717] rounded-xl"/></div></div>
   }
   if(error || !doc){
-    return <div className="py-10 px-2.5 max-w-2xl mx-auto text-center"><div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="h-7 w-7 text-red-500"/></div><h3 className="font-semibold text-gray-900 dark:text-white">Failed to load merchant zone</h3><p className="text-sm text-gray-500 mt-1">{error||'Not found'}</p><button onClick={()=>void load()} className="mt-4 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm">Retry</button></div>
+    return <div className="py-10 px-2.5 max-w-2xl mx-auto text-center"><div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="h-7 w-7 text-red-500"/></div><h3 className="font-semibold text-gray-900 dark:text-white">Failed to load merchant zone</h3><p className="text-sm text-gray-500 mt-1">{error||'Not found'}</p><button onClick={()=>void load()} className="mt-4 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm">Retry</button></div>
   }
 
   return (
@@ -196,12 +196,12 @@ function MerchantZoneDetailPageContent(){
         </div>
         <div className="flex gap-2">
           <Link href={`/merchants/${doc.id}`} className="px-3 py-2 rounded-xl border bg-white dark:bg-[#171717] text-xs font-medium">View Outlet</Link>
-          <Link href={`/merchants/${doc.id}/edit`} className="px-3 py-2 rounded-xl bg-[#eba236] text-white text-xs font-semibold">Edit Outlet</Link>
+          <Link href={`/merchants/${doc.id}/edit`} className="px-3 py-2 rounded-xl bg-[#239459] text-white text-xs font-semibold">Edit Outlet</Link>
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Globe className="w-4 h-4 text-[#eba236]"/> Zone Map — Merchant + Business Zone</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Globe className="w-4 h-4 text-[#239459]"/> Zone Map — Merchant + Business Zone</h3>
         <div className="mt-3">
           <BusinessZoneOverviewMap
             zones={doc.businessZone?.boundary ? [{ id: doc.businessZone.id, name: doc.businessZone.name, isActive: doc.businessZone.isActive, boundary: doc.businessZone.boundary }] : []}
@@ -271,7 +271,7 @@ function MerchantZoneDetailPageContent(){
           <div className="relative bg-white dark:bg-[#171717] rounded-2xl shadow-2xl border border-gray-200 dark:border-[#262626] w-full max-w-2xl max-h-[80vh] overflow-auto p-6" onClick={e=>e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Globe className="w-5 h-5 text-[#eba236]"/> {viewZone.name}</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Globe className="w-5 h-5 text-[#239459]"/> {viewZone.name}</h3>
                 <p className="text-xs text-gray-500 font-mono">{viewZone.type} • {viewZone.isActive?'Active':'Disabled'}</p>
               </div>
               <button onClick={()=>setViewZone(null)} className="h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626] flex items-center justify-center">✕</button>
@@ -281,7 +281,7 @@ function MerchantZoneDetailPageContent(){
             </div>
             <pre className="p-3 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg border overflow-auto text-xs max-h-[180px]">{viewZone.boundary ? JSON.stringify(viewZone.boundary, null, 2) : 'No boundary'}</pre>
             <div className="flex gap-2 mt-3">
-              <button onClick={()=>{const r=viewZone; setViewZone(null); if(r) openEdit(r)}} className="px-3 py-2 rounded-lg bg-[#eba236] text-white text-xs font-semibold">Edit</button>
+              <button onClick={()=>{const r=viewZone; setViewZone(null); if(r) openEdit(r)}} className="px-3 py-2 rounded-lg bg-[#239459] text-white text-xs font-semibold">Edit</button>
               <button onClick={()=>setViewZone(null)} className="px-3 py-2 rounded-lg border text-xs">Close</button>
             </div>
           </div>
@@ -300,7 +300,7 @@ function MerchantZoneDetailPageContent(){
               <BusinessZoneDrawingMap value={editGeo} onChange={setEditGeo} height={380} />
               <div className="flex gap-2">
                 <button onClick={()=>{setEditZone(null); setEditGeo(null)}} className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium">Cancel</button>
-                <button onClick={saveEdit} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#eba236] text-white text-sm font-semibold disabled:opacity-50">{saving?'Saving…':'Save Zone'}</button>
+                <button onClick={saveEdit} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#239459] text-white text-sm font-semibold disabled:opacity-50">{saving?'Saving…':'Save Zone'}</button>
               </div>
             </div>
           </div>

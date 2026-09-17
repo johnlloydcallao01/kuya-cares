@@ -181,7 +181,7 @@ export default function CartPage() {
           </p>
           <button 
             className="text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-colors"
-            style={{backgroundColor: '#eba236'}}
+            style={{backgroundColor: '#239459'}}
             onClick={() => router.push('/' as any)}
           >
             <i className="fas fa-utensils mr-2"></i>

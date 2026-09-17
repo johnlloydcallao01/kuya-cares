@@ -17,7 +17,7 @@ export type GroupedItemDoc = {
 
 type ProductOption = { id: number; name: string; slug: string; productType: string }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
 function getProductId(v: GroupedItemDoc['parent_product_id'] | null | undefined): string {
@@ -120,7 +120,7 @@ export function GroupedItemForm({ initial, onSuccess, onCancel }: { initial?: Gr
         {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}</div>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-[#eba236]" /> Bundle Composition</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-[#239459]" /> Bundle Composition</h4>
           <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mb-3">Grouped items let you sell multiple stand-alone products together as one bundle. Choose a <span className="font-medium">grouped</span> parent and a child product to include. The bundle price is summed from children.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -159,7 +159,7 @@ export function GroupedItemForm({ initial, onSuccess, onCancel }: { initial?: Gr
         </div>
 
         <div className="rounded-xl border border-dashed border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] p-4">
-          <h4 className="text-xs font-semibold text-gray-700 dark:text-white flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#eba236]" /> How it works</h4>
+          <h4 className="text-xs font-semibold text-gray-700 dark:text-white flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#239459]" /> How it works</h4>
           <ul className="text-xs text-gray-600 dark:text-[#a1a1aa] mt-2 list-disc list-inside space-y-1">
             <li>Example: Parent <span className="font-mono">Family Bundle (grouped)</span> → Child <span className="font-mono">Fried Chicken ×1</span>, Child <span className="font-mono">Rice ×2</span>, Child <span className="font-mono">Coke ×1</span>.</li>
             <li>Deleting the parent or child product auto-deletes its grouped rows (Products.beforeDelete).</li>
@@ -169,7 +169,7 @@ export function GroupedItemForm({ initial, onSuccess, onCancel }: { initial?: Gr
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create grouped item'}
         </button>
       </div>

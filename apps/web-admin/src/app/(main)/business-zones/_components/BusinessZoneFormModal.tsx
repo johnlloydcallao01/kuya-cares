@@ -107,7 +107,7 @@ export function BusinessZoneFormModal({ mode, initial, onClose, onSuccess }: { m
               <BusinessZoneDrawingMap value={boundaryGeo} onChange={handleMapChange} height={380} />
             </div>
             <div className="mt-2 flex items-center gap-2">
-              <button type="button" onClick={()=>setShowRaw(v=>!v)} className="text-xs font-medium text-[#eba236] hover:underline">{showRaw?'Hide':'Show'} raw GeoJSON</button>
+              <button type="button" onClick={()=>setShowRaw(v=>!v)} className="text-xs font-medium text-[#239459] hover:underline">{showRaw?'Hide':'Show'} raw GeoJSON</button>
               {boundaryGeo && <span className="text-xs text-gray-500">{(boundaryGeo as any).type} • {(boundaryGeo as any).coordinates?.[0]?.length || 0} points</span>}
             </div>
             {showRaw && (
@@ -139,7 +139,7 @@ export function BusinessZoneFormModal({ mode, initial, onClose, onSuccess }: { m
           )}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} disabled={submitting} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] text-sm font-medium bg-white dark:bg-[#171717] disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-4 py-2.5 rounded-xl bg-[#eba236] hover:bg-[#c88a20] text-white text-sm font-semibold disabled:opacity-50">{submitting ? 'Saving…' : isEdit ? 'Update Zone' : 'Create Zone'}</button>
+            <button type="submit" disabled={submitting} className="flex-1 px-4 py-2.5 rounded-xl bg-[#239459] hover:bg-[#215035] text-white text-sm font-semibold disabled:opacity-50">{submitting ? 'Saving…' : isEdit ? 'Update Zone' : 'Create Zone'}</button>
           </div>
         </form>
       </div>

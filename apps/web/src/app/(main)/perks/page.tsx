@@ -188,7 +188,7 @@ export default function PerksPage() {
                     ? 'text-white'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
-                style={activeCategory === category.id ? { backgroundColor: '#eba236' } : {}}
+                style={activeCategory === category.id ? { backgroundColor: '#239459' } : {}}
               >
                 <i className={`fas ${category.icon} mr-2`}></i>
                 {category.name}

@@ -66,7 +66,7 @@ function Row({ label, value, mono, icon }: { label: string; value: React.ReactNo
   )
 }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
 function ConfigurationSkeleton(){
@@ -208,7 +208,7 @@ function ConfigurationPageContent(){
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center">
               <Settings className="w-4 h-4" />
             </span>
             Configurations
@@ -228,7 +228,7 @@ function ConfigurationPageContent(){
           <KpiCard title="Maintenance" value={data.systemSettings.maintenanceMode ? 'Enabled' : 'Disabled'} sub={data.systemSettings.maintenanceMode ? 'Redirect for non-admin' : 'Platform live'} icon={<Shield className="w-5 h-5 text-white" />} iconBg={data.systemSettings.maintenanceMode ? 'bg-amber-500' : 'bg-emerald-500'} />
           <KpiCard title="Delivery Provider" value={data.systemSettings.deliveryProvider === 'lalamove' ? 'Lalamove' : 'Native'} sub={`Market ${data.systemSettings.lalamove.market} • ${data.runtimeEnv.lalamove.baseUrl.includes('sandbox') ? 'Sandbox' : 'Live'}`} icon={<Truck className="w-5 h-5 text-white" />} iconBg="bg-sky-600" />
           <KpiCard title="Payment Gateway" value={data.runtimeEnv.paymongo.sandbox ? 'PayMongo Sandbox' : 'PayMongo Live'} sub={`${data.runtimeEnv.paymongo.hasSecretKey ? 'Secrets set ✓' : 'Secrets missing'} • ${data.runtimeEnv.paymongo.hasWebhookSecret ? 'Webhook ✓' : 'Webhook ✕'}`} icon={<CreditCard className="w-5 h-5 text-white" />} iconBg={data.runtimeEnv.paymongo.hasSecretKey ? 'bg-emerald-500' : 'bg-red-500'} />
-          <KpiCard title="System Settings" value={data.systemSettings.hasSystemSettings ? 'Persisted' : 'Defaults'} sub={data.systemSettings.updatedAt ? `Updated ${fmtDate(data.systemSettings.updatedAt)}` : 'No row yet'} icon={<Activity className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="System Settings" value={data.systemSettings.hasSystemSettings ? 'Persisted' : 'Defaults'} sub={data.systemSettings.updatedAt ? `Updated ${fmtDate(data.systemSettings.updatedAt)}` : 'No row yet'} icon={<Activity className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
         </div>
       ) : isInitialLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-pulse">
@@ -244,7 +244,7 @@ function ConfigurationPageContent(){
           <button
             key={t.id}
             onClick={() => handleTab(t.id)}
-            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${activeTab === t.id ? 'bg-[#eba236] text-white shadow-sm' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-900 dark:hover:text-white'}`}
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition ${activeTab === t.id ? 'bg-[#239459] text-white shadow-sm' : 'text-gray-600 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-900 dark:hover:text-white'}`}
           >
             {t.icon} {t.label}
           </button>
@@ -301,7 +301,7 @@ function ConfigurationPageContent(){
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load configuration</h3>
           <p className="text-sm text-gray-500 mt-1 mb-4 text-center max-w-md">{error}</p>
-          <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">
+          <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">
             <RefreshCw className="h-4 w-4 mr-2" />Retry
           </button>
         </div>
@@ -314,11 +314,11 @@ function ConfigurationPageContent(){
               <div className="col-span-12 lg:col-span-7 space-y-5">
                 <Section
                   title="General & Maintenance Mode"
-                  icon={<Shield className="w-4 h-4 text-[#eba236]" />}
+                  icon={<Shield className="w-4 h-4 text-[#239459]" />}
                   action={
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" checked={data.systemSettings.maintenanceMode} onChange={handleMaintenanceToggle} disabled={maintenanceSaving} className="sr-only peer" />
-                      <div className={`w-11 h-6 rounded-full peer transition ${data.systemSettings.maintenanceMode ? 'bg-[#eba236]' : 'bg-gray-200 dark:bg-[#333]'} peer-focus:ring-2 peer-focus:ring-[#eba236]/30 peer-disabled:opacity-50`}>
+                      <div className={`w-11 h-6 rounded-full peer transition ${data.systemSettings.maintenanceMode ? 'bg-[#239459]' : 'bg-gray-200 dark:bg-[#333]'} peer-focus:ring-2 peer-focus:ring-[#239459]/30 peer-disabled:opacity-50`}>
                         <div className={`h-5 w-5 rounded-full bg-white shadow transform transition ${data.systemSettings.maintenanceMode ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`}></div>
                       </div>
                     </label>
@@ -333,7 +333,7 @@ function ConfigurationPageContent(){
                       <Info className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>Toggle is immediate and admin-only via <span className="font-mono font-medium">payload.updateGlobal system-settings</span>. When enabled, all non-admin users are redirected.</span>
                     </p>
-                    {maintenanceSaving && <p className="text-xs text-[#eba236] flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Saving…</p>}
+                    {maintenanceSaving && <p className="text-xs text-[#239459] flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Saving…</p>}
                   </div>
                 </Section>
 
@@ -359,7 +359,7 @@ function ConfigurationPageContent(){
                 <Section title="Quick Actions" icon={<Settings className="w-4 h-4 text-zinc-600" />}>
                   <div className="grid grid-cols-1 gap-2">
                     <a href="/settings/security" className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#0a0a0a] transition">
-                      <span className="h-9 w-9 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+                      <span className="h-9 w-9 rounded-lg bg-[#239459] text-white flex items-center justify-center">
                         <Shield className="w-4 h-4" />
                       </span>
                       <div>
@@ -428,7 +428,7 @@ function ConfigurationPageContent(){
                           </div>
                           <div className="flex items-center gap-2 pt-6">
                             <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={lalamoveSandbox} onChange={(e) => setLalamoveSandbox(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+                              <input type="checkbox" checked={lalamoveSandbox} onChange={(e) => setLalamoveSandbox(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
                               <span className="text-sm font-medium text-gray-700 dark:text-white">Sandbox</span>
                             </label>
                           </div>
@@ -445,7 +445,7 @@ function ConfigurationPageContent(){
                       </div>
                     )}
 
-                    <button onClick={handleDeliverySave} disabled={deliverySaving} className="w-full inline-flex items-center justify-center gap-2 py-3 bg-[#eba236] hover:bg-[#c88a20] disabled:opacity-50 text-white rounded-xl font-semibold shadow-sm transition">
+                    <button onClick={handleDeliverySave} disabled={deliverySaving} className="w-full inline-flex items-center justify-center gap-2 py-3 bg-[#239459] hover:bg-[#215035] disabled:opacity-50 text-white rounded-xl font-semibold shadow-sm transition">
                       {deliverySaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save delivery config
                     </button>
                   </div>
@@ -481,7 +481,7 @@ function ConfigurationPageContent(){
 
                 <Section title="Next Steps" icon={<Info className="w-4 h-4 text-sky-600" />}>
                   <p className="text-sm text-gray-600 dark:text-[#a1a1aa]">DB selection controls <span className="font-medium text-gray-900 dark:text-white">which provider</span> to use, but credentials are still ENV-only. To fully migrate to DB, refactor <span className="font-mono">lalamoveClient.ts</span> to accept params from <span className="font-mono">system-settings</span>.</p>
-                  <a href="https://developers.lalamove.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#eba236] hover:text-[#c88a20] mt-3">
+                  <a href="https://developers.lalamove.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#239459] hover:text-[#215035] mt-3">
                     Lalamove Docs <ExternalLink className="w-3 h-3" />
                   </a>
                 </Section>
@@ -507,7 +507,7 @@ function ConfigurationPageContent(){
                       <Info className="w-4 h-4 text-sky-600 shrink-0" />
                       <p className="text-xs text-sky-800 dark:text-sky-300">PayMongo keys are <span className="font-semibold">env-only</span> — no DB field exists. Set <span className="font-mono">PAYMONGO_SECRET_KEY_LIVE / PAYMONGO_PUBLIC_KEY_LIVE / PAYMONGO_WEBHOOK_SECRET</span> (or <span className="font-mono">_SANDBOX</span> variants when <span className="font-mono">PAYMONGO_SANDBOX=true</span>) in <span className="font-mono">apps/cms/.env</span> and redeploy. See <span className="font-mono">apps/cms/.env.example:48-51</span> and <span className="font-mono">render.yaml:41</span>.</p>
                     </div>
-                    <Row label="Docs" value={<a href="https://developers.paymongo.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#eba236] hover:text-[#c88a20]">developers.paymongo.com <ExternalLink className="w-3 h-3" /></a>} />
+                    <Row label="Docs" value={<a href="https://developers.paymongo.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#239459] hover:text-[#215035]">developers.paymongo.com <ExternalLink className="w-3 h-3" /></a>} />
                   </div>
                 </Section>
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -316,13 +316,13 @@ export default function RegisterPage(): React.ReactNode {
                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                   <Image
                     src="/kuya-cares.png"
-                    alt="Calsiter Inc Logo"
+                    alt="Kuya Cares Logo"
                     width={64}
                     height={64}
                     style={{ objectFit: 'contain' }}
                   />
                 </div>
-                <h1 className="text-3xl font-bold mb-2">Tap2Go</h1>
+                <h1 className="text-3xl font-bold mb-2">Kuya Cares</h1>
                 <p className="text-blue-100">Food Delivery from Laguna</p>
               </div>
 
@@ -395,7 +395,7 @@ export default function RegisterPage(): React.ReactNode {
               <div className="hidden lg:block text-center mb-8">
                 <Image
                   src="/kuya-cares.png"
-                  alt="Tap2Go Logo"
+                  alt="Kuya Cares Logo"
                   width={64}
                   height={64}
                   className="mx-auto mb-3"
@@ -413,7 +413,7 @@ export default function RegisterPage(): React.ReactNode {
               <div className="lg:hidden text-center mb-6">
                 <Image
                   src="/kuya-cares.png"
-                  alt="Tap2Go Logo"
+                  alt="Kuya Cares Logo"
                   width={64}
                   height={64}
                   className="mx-auto mb-3"
@@ -585,9 +585,9 @@ export default function RegisterPage(): React.ReactNode {
                     />
                     <label className="text-sm text-gray-600">
                       I agree to the{' '}
-                      <a href="#" className="text-[#eba336] hover:underline font-medium">Terms of Service</a>
+                      <a href="#" className="text-[#239459] hover:underline font-medium">Terms of Service</a>
                       {' '}and{' '}
-                      <a href="#" className="text-[#eba336] hover:underline font-medium">Privacy Policy</a>
+                      <a href="#" className="text-[#239459] hover:underline font-medium">Privacy Policy</a>
                     </label>
                   </div>
                 </div>
@@ -597,7 +597,7 @@ export default function RegisterPage(): React.ReactNode {
                   type="submit"
                   disabled={isLoading}
 
-                  className="w-full bg-[#eba336] text-white py-4 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+                  className="w-full bg-[#239459] text-white py-4 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
@@ -626,7 +626,7 @@ export default function RegisterPage(): React.ReactNode {
                   </p>
                   <button
                     onClick={navigateToSignin}
-                    className="mt-2 text-[#eba336] font-semibold hover:text-[#d68e2d] transition-colors duration-200"
+                    className="mt-2 text-[#239459] font-semibold hover:text-[#d68e2d] transition-colors duration-200"
                   >
                     Sign In Instead
                   </button>

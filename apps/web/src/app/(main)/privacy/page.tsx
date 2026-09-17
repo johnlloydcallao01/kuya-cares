@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 /**
- * Privacy Policy Page - Data privacy and protection information for Tap2Go
+ * Privacy Policy Page - Data privacy and protection information for Kuya Cares
  * Features comprehensive privacy policy with minimal design
  */
 export default function PrivacyPage() {
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
                     onClick={() => setActiveSection(section.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
                       activeSection === section.id
-                        ? 'bg-[#eba236] text-white'
+                        ? 'bg-[#239459] text-white'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -72,10 +72,10 @@ export default function PrivacyPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Privacy Policy Overview</h2>
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-600 mb-4">
-                      At Tap2Go, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our food delivery platform.
+                      At Kuya Cares, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our food delivery platform.
                     </p>
                     <p className="text-gray-600 mb-4">
-                      This policy applies to all users of our website, mobile application, and related services. By using Tap2Go, you consent to the data practices described in this policy.
+                      This policy applies to all users of our website, mobile application, and related services. By using Kuya Cares, you consent to the data practices described in this policy.
                     </p>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                       <h4 className="font-semibold text-blue-800 mb-2">Your Privacy Matters</h4>
@@ -313,7 +313,7 @@ export default function PrivacyPage() {
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                       <h4 className="font-semibold text-green-800 mb-2">How to Exercise Your Rights</h4>
                       <p className="text-green-700 text-sm">
-                        Contact our privacy team at privacy@tap2go.com or use the settings in your account to manage your preferences.
+                        Contact our privacy team at privacy@kuyacares.com or use the settings in your account to manage your preferences.
                       </p>
                     </div>
                   </div>
@@ -412,15 +412,15 @@ export default function PrivacyPage() {
                       <h4 className="font-semibold text-gray-900 mb-3">Privacy Team</h4>
                       <div className="space-y-2 text-gray-600">
                         <div className="flex items-center space-x-2">
-                          <i className="fas fa-envelope text-[#eba236]"></i>
-                          <span>privacy@tap2go.com</span>
+                          <i className="fas fa-envelope text-[#239459]"></i>
+                          <span>privacy@kuyacares.com</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <i className="fas fa-phone text-[#eba236]"></i>
+                          <i className="fas fa-phone text-[#239459]"></i>
                           <span>+63 2 8123 4567</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <i className="fas fa-map-marker-alt text-[#eba236]"></i>
+                          <i className="fas fa-map-marker-alt text-[#239459]"></i>
                           <span>Makati City, Metro Manila, Philippines</span>
                         </div>
                       </div>
@@ -428,7 +428,7 @@ export default function PrivacyPage() {
 
                     <h4 className="font-semibold text-gray-900 mb-2">Data Protection Officer</h4>
                     <p className="text-gray-600 mb-4">
-                      For specific data protection inquiries, you may contact our Data Protection Officer at dpo@tap2go.com.
+                      For specific data protection inquiries, you may contact our Data Protection Officer at dpo@kuyacares.com.
                     </p>
 
                     <h4 className="font-semibold text-gray-900 mb-2">Response Time</h4>
@@ -442,13 +442,13 @@ export default function PrivacyPage() {
 
             {/* Quick Actions */}
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Download Privacy Policy
               </button>
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Manage Privacy Settings
               </button>
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Contact Privacy Team
               </button>
             </div>

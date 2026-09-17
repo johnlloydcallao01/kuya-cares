@@ -108,7 +108,7 @@ function CouponDetailContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 mx-auto"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <p className="text-sm text-red-600">{error}</p>
           <div className="flex justify-center gap-2 mt-4">
-            <button onClick={() => void load()} className="px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Retry</button>
+            <button onClick={() => void load()} className="px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Retry</button>
             <Link href="/coupons" className="px-4 py-2 border border-gray-200 dark:border-[#262626] rounded-lg text-sm font-medium">Back</Link>
           </div>
         </div>
@@ -116,7 +116,7 @@ function CouponDetailContent() {
         <>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center"><Ticket className="w-6 h-6" /></span>
+              <span className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center"><Ticket className="w-6 h-6" /></span>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight font-mono">{doc.code}</h1>
                 <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-0.5">
@@ -125,7 +125,7 @@ function CouponDetailContent() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href={`/coupons/${doc.id}/edit`} className="px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold transition">Edit</Link>
+              <Link href={`/coupons/${doc.id}/edit`} className="px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold transition">Edit</Link>
               <button onClick={handleBack} className="px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium">Close</button>
             </div>
           </div>
@@ -138,7 +138,7 @@ function CouponDetailContent() {
             </div>
             <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
               <p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Usage</p>
-              <p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><TrendingUp className="w-5 h-5 text-[#eba236]" /> {doc.usage_count}{doc.usage_limit > 0 ? ` / ${doc.usage_limit}` : ''}</p>
+              <p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><TrendingUp className="w-5 h-5 text-[#239459]" /> {doc.usage_count}{doc.usage_limit > 0 ? ` / ${doc.usage_limit}` : ''}</p>
               <p className="text-xs text-gray-400 mt-1">{doc.usage_limit_per_user > 0 ? `max ${doc.usage_limit_per_user} / customer` : 'no per-customer cap'}</p>
             </div>
             <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">

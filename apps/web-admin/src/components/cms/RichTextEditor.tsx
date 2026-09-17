@@ -210,7 +210,7 @@ export function RichTextEditor({
   }, [onChange]);
 
   return (
-    <div className={`relative border border-gray-200 dark:border-[#262626] rounded-lg overflow-hidden bg-white dark:bg-[#0a0a0a] focus-within:ring-2 focus-within:ring-[#eba236]/20 focus-within:border-[#eba236] transition ${className}`}>
+    <div className={`relative border border-gray-200 dark:border-[#262626] rounded-lg overflow-hidden bg-white dark:bg-[#0a0a0a] focus-within:ring-2 focus-within:ring-[#239459]/20 focus-within:border-[#239459] transition ${className}`}>
       <LexicalComposer initialConfig={EDITOR_CONFIG}>
         <div className="editor-container relative bg-white dark:bg-[#0a0a0a]">
         <div className="editor-inner bg-white dark:bg-[#0a0a0a] relative leading-5 font-normal text-left rounded-t-lg">
@@ -281,7 +281,7 @@ export function RichTextEditor({
                   background-color: #171717;
                 }
                 .editor-content .editor-quote {
-                  border-left: 4px solid #eba236;
+                  border-left: 4px solid #239459;
                   padding: 16px 20px 16px 24px;
                   margin: 8px 0;
                   font-style: italic;
@@ -343,8 +343,8 @@ export function RichTextEditor({
             <RichTextPlugin
               contentEditable={
                 React.createElement(ContentEditable, {
-                  className: "editor-input min-h-[300px] outline-none resize-none text-gray-900 dark:text-white leading-relaxed caret-[#eba236]",
-                  style: { caretColor: '#eba236' }
+                  className: "editor-input min-h-[300px] outline-none resize-none text-gray-900 dark:text-white leading-relaxed caret-[#239459]",
+                  style: { caretColor: '#239459' }
                 })
               }
               placeholder={

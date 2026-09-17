@@ -5,7 +5,7 @@ import type { AuthResponse, LoginCredentials, User } from '@/types/auth';
 import { sanitizeUser } from '@/lib/sanitizeUser';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
-const AUTH_COOKIE = 'tap2go-merchant-token';
+const AUTH_COOKIE = 'kuyacares-merchant-token';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 async function setSessionCookie(token: string): Promise<void> {

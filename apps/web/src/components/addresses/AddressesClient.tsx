@@ -181,7 +181,7 @@ export default function AddressesClient() {
           {address.is_default && (
             <span
               className="text-xs font-medium text-white px-2 py-1 rounded"
-              style={{ backgroundColor: '#eba236' }}
+              style={{ backgroundColor: '#239459' }}
             >
               DEFAULT
             </span>
@@ -243,8 +243,8 @@ export default function AddressesClient() {
         <button
           className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
           style={{
-            border: '1px solid #eba236',
-            color: '#eba236',
+            border: '1px solid #239459',
+            color: '#239459',
             backgroundColor: 'white',
           }}
           onClick={() => {
@@ -285,8 +285,8 @@ export default function AddressesClient() {
         <button
           className="px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           style={{
-            border: '1px solid #eba236',
-            color: '#eba236',
+            border: '1px solid #239459',
+            color: '#239459',
             backgroundColor: 'white',
           }}
         >

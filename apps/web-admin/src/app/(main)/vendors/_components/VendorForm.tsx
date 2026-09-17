@@ -227,7 +227,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
 
         {/* 1. Core Business Information */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#eba236]" /> Business Information</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#239459]" /> Business Information</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2"><label className={labelCls}>Business name *</label><input value={form.businessName} onChange={(e)=>set('businessName', e.target.value)} placeholder="Jollibee Corporation" className={inputCls} /></div>
             <div className="sm:col-span-2"><label className={labelCls}>Legal name * <span className="text-gray-400 font-normal">(as registered with government)</span></label><input value={form.legalName} onChange={(e)=>set('legalName', e.target.value)} placeholder="Jollibee Foods Corporation" className={inputCls} /></div>
@@ -261,7 +261,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className={labelCls}>Verification status *</label><select value={form.verificationStatus} onChange={(e)=>set('verificationStatus', e.target.value)} className={inputCls}>{VERIFICATION_OPTS.map((o)=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className={labelCls}>Onboarding date</label><input type="datetime-local" value={form.onboardingDate} onChange={(e)=>set('onboardingDate', e.target.value)} className={inputCls} /></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e)=>set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active partner</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e)=>set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active partner</span></label></div>
           </div>
         </div>
 
@@ -279,7 +279,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
 
         {/* 6. Business Documents (Payloce upload fields) */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FileText className="w-4 h-4 text-[#eba236]" /> Business Documents</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><FileText className="w-4 h-4 text-[#239459]" /> Business Documents</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className={labelCls}><ImageIcon className="w-3.5 h-3.5 inline mr-1" /> Business Logo</label>
@@ -304,7 +304,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
 
         {/* 8. Operating Hours */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#eba236]" /> Default Operating Hours <span className="text-xs font-normal text-gray-400">(can be overridden by individual merchants)</span></h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#239459]" /> Default Operating Hours <span className="text-xs font-normal text-gray-400">(can be overridden by individual merchants)</span></h4>
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] divide-y divide-gray-100 dark:divide-[#262626] overflow-hidden">
             {DAYS.map((day) => {
               const h = form.hours[day] || { open: '09:00', close: '21:00', closed: false }
@@ -312,7 +312,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
                 <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-4 py-2.5">
                   <span className="text-sm font-medium text-gray-900 dark:text-white w-24 shrink-0">{day}</span>
                   <label className="flex items-center gap-2 text-sm text-gray-500 dark:text-[#a1a1aa] cursor-pointer shrink-0">
-                    <input type="checkbox" checked={!!h.closed} onChange={(e)=>setDay(day, 'closed', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> Closed
+                    <input type="checkbox" checked={!!h.closed} onChange={(e)=>setDay(day, 'closed', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> Closed
                   </label>
                   <div className={`flex flex-col gap-2 ${h.closed ? 'opacity-40 pointer-events-none' : ''}`}>
                     {(h.periods || [{ open: h.open || '09:00', close: h.close || '21:00' }]).map((period, periodIndex) => (
@@ -344,8 +344,8 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
 
         {/* 10. Owner Account (create only) */}
         {!isEdit && (
-          <div className="rounded-xl border border-dashed border-[#eba236]/30 dark:border-[#eba236]/30 bg-[#eba236]/10 dark:bg-[#eba236]/10 p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Users className="w-4 h-4 text-[#eba236]" /> Owner Account <span className="text-xs font-normal text-gray-500">(maps to required <span className="font-mono">user</span> field)</span></h4>
+          <div className="rounded-xl border border-dashed border-[#239459]/30 dark:border-[#239459]/30 bg-[#239459]/10 dark:bg-[#239459]/10 p-4">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Users className="w-4 h-4 text-[#239459]" /> Owner Account <span className="text-xs font-normal text-gray-500">(maps to required <span className="font-mono">user</span> field)</span></h4>
             <p className="text-xs text-gray-600 dark:text-[#a1a1aa] mt-1">If this email already exists as a vendor user, it will be linked. Otherwise a new vendor login is created. Password auto-generates if blank.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               <div><label className={labelCls}>Owner first name</label><input value={form.ownerFirstName} onChange={(e)=>set('ownerFirstName', e.target.value)} placeholder="Juan" className={inputCls} /></div>
@@ -358,7 +358,7 @@ export function VendorForm({ initial, onSuccess, onCancel }: { initial?: VendorD
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create vendor'}
         </button>
       </div>

@@ -170,7 +170,7 @@ function TermsContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Layers className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Layers className="w-4 h-4" /></span>
             Attribute Terms
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Values under each shared attribute used by your product variations — managed by the platform (read-only).</p>
@@ -187,7 +187,7 @@ function TermsContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Terms" value={String(stats.total)} sub={`${stats.filteredTotal} matching filters`} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Terms" value={String(stats.total)} sub={`${stats.filteredTotal} matching filters`} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Active" value={String(stats.active)} sub="available in variations" icon={<CheckCircle className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Inactive" value={String(stats.inactive)} sub="hidden terms" icon={<XCircle className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
           <KpiCard title="Top Attribute" value={stats.byAttribute[0] ? `${stats.byAttribute[0].count} terms` : '—'} sub={stats.byAttribute[0]?.name || stats.byAttribute.map((p) => `${p.name}:${p.count}`).join(' • ') || 'no breakdown'} icon={<Palette className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
@@ -202,15 +202,15 @@ function TermsContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, slug, value…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, slug, value…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-700 dark:text-white">
               {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -231,18 +231,18 @@ function TermsContent() {
                 {[{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }].map((opt) => {
                   const active = activeFilter.includes(opt.value)
                   return (
-                    <button key={opt.value} onClick={() => toggleActive(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{opt.label}</button>
+                    <button key={opt.value} onClick={() => toggleActive(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{opt.label}</button>
                   )
                 })}
               </div>
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {attrFilter != null && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">{attributes.find((a) => a.id === attrFilter)?.name || `Attribute #${attrFilter}`} <button onClick={() => setAttrFilter(null)}><X className="w-3 h-3" /></button></span>}
             {activeFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">{v === 'true' ? 'Active only' : 'Inactive only'} <button onClick={() => toggleActive(v)}><X className="w-3 h-3" /></button></span>)}
           </div>
@@ -255,7 +255,7 @@ function TermsContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load attribute terms</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -263,7 +263,7 @@ function TermsContent() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-14 w-14 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-full flex items-center justify-center mb-4"><Tag className="w-7 h-7 text-[#eba236]" /></div>
+            <div className="h-14 w-14 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-full flex items-center justify-center mb-4"><Tag className="w-7 h-7 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No terms found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">No attribute terms match your filters.</p>
           </div>
@@ -288,7 +288,7 @@ function TermsContent() {
                       <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3 min-w-[160px]">
-                            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0"><Tag className="w-4 h-4" /></div>
+                            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0"><Tag className="w-4 h-4" /></div>
                             <div className="min-w-0">
                               <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">{t.name}</div>
                               <div className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5"><Calendar className="w-3 h-3" /> {fmtDate(t.createdAt)}</div>
@@ -342,7 +342,7 @@ function TermsContent() {
                   {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
                     if (n > totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>
@@ -353,7 +353,7 @@ function TermsContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Terms are grouped under platform-managed <Link href="/catalog/attributes" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Attributes</Link> and appear on your <Link href="/catalog/variations" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Variations</Link>.
+        Terms are grouped under platform-managed <Link href="/catalog/attributes" className="font-semibold text-[#239459] hover:text-[#215035]">Attributes</Link> and appear on your <Link href="/catalog/variations" className="font-semibold text-[#239459] hover:text-[#215035]">Variations</Link>.
       </div>
     </div>
   )

@@ -171,7 +171,7 @@ export function AttributeTermForm({
         {/* 1. Attribute Assignment */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Building className="w-4 h-4 text-[#eba236]" /> Attribute Assignment
+            <Building className="w-4 h-4 text-[#239459]" /> Attribute Assignment
           </h4>
           <div className="grid grid-cols-1 gap-3">
             <div>
@@ -238,7 +238,7 @@ export function AttributeTermForm({
         {/* 3. Value & Display */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Palette className="w-4 h-4 text-[#eba236]" /> Value & Display
+            <Palette className="w-4 h-4 text-[#239459]" /> Value & Display
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className={isColor ? 'sm:col-span-2' : 'sm:col-span-2'}>
@@ -250,7 +250,7 @@ export function AttributeTermForm({
                 {isColor && (
                   <input
                     type="color"
-                    value={/^#[0-9A-Fa-f]{6}$/.test(form.value.trim()) ? form.value.trim() : '#eba236'}
+                    value={/^#[0-9A-Fa-f]{6}$/.test(form.value.trim()) ? form.value.trim() : '#239459'}
                     onChange={(e) => set('value', e.target.value)}
                     className="h-[42px] w-[52px] rounded-lg border border-gray-200 dark:border-[#262626] p-1 bg-white dark:bg-[#0a0a0a] shrink-0"
                     title="Pick color"
@@ -282,9 +282,9 @@ export function AttributeTermForm({
             </div>
             <div className="flex items-center gap-3 pt-6">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+                <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
                 <span className="text-sm font-medium text-gray-700 dark:text-white flex items-center gap-1">
-                  <ToggleLeft className="w-4 h-4 text-[#eba236]" /> Active
+                  <ToggleLeft className="w-4 h-4 text-[#239459]" /> Active
                 </span>
               </label>
               <span className="text-xs text-gray-400">Inactive terms are hidden from catalog.</span>
@@ -305,7 +305,7 @@ export function AttributeTermForm({
           type="button"
           onClick={submit}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create term'}
         </button>

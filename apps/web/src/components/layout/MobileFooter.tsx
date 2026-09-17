@@ -24,8 +24,8 @@ export function MobileFooter() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const anyWindow = window as any;
-    if (typeof anyWindow.__tap2goProductDetailHasInvalidModifiers === 'boolean') {
-      setProductDetailHasInvalidModifiers(anyWindow.__tap2goProductDetailHasInvalidModifiers);
+    if (typeof anyWindow.__kuyaCaresProductDetailHasInvalidModifiers === 'boolean') {
+      setProductDetailHasInvalidModifiers(anyWindow.__kuyaCaresProductDetailHasInvalidModifiers);
     }
     const handler = (event: Event) => {
       try {
@@ -36,9 +36,9 @@ export function MobileFooter() {
         }
       } catch {}
     };
-    window.addEventListener('tap2go:productDetail:validation', handler as EventListener);
+    window.addEventListener('kuyaCares:productDetail:validation', handler as EventListener);
     return () => {
-      window.removeEventListener('tap2go:productDetail:validation', handler as EventListener);
+      window.removeEventListener('kuyaCares:productDetail:validation', handler as EventListener);
     };
   }, []);
 
@@ -187,7 +187,7 @@ export function MobileFooter() {
             type="button"
             disabled={productDetailHasInvalidModifiers}
             className="flex-1 h-11 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#eba236' }}
+            style={{ backgroundColor: '#239459' }}
             onClick={async () => {
               if (productDetailHasInvalidModifiers) {
                 return;
@@ -195,7 +195,7 @@ export function MobileFooter() {
               setShowProductCartBar(true);
               const globalHandler =
                 typeof window !== 'undefined'
-                  ? (window as any).__tap2goProductDetailAddToCart
+                  ? (window as any).__kuyaCaresProductDetailAddToCart
                   : null;
               if (typeof globalHandler === 'function') {
                 try {
@@ -270,7 +270,7 @@ export function MobileFooter() {
                     {totalQuantity > 0 && (
                       <span
                         className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-white text-[10px] font-semibold flex items-center justify-center leading-none"
-                        style={{ backgroundColor: '#eba236' }}
+                        style={{ backgroundColor: '#239459' }}
                       >
                         {totalQuantity}
                       </span>

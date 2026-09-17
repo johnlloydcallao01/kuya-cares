@@ -38,7 +38,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => {
           const active = value.includes(opt.value)
-          return <button key={opt.value} onClick={() => onToggle(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:border-gray-300'}`}>{opt.label}</button>
+          return <button key={opt.value} onClick={() => onToggle(opt.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:border-gray-300'}`}>{opt.label}</button>
         })}
       </div>
     </div>
@@ -175,7 +175,7 @@ function TagGroupsPageContent(){
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Tag className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Tag className="w-4 h-4" /></span>
             Tag Groups
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Manage tag groups — color, filterable/searchable flags, and membership.</p>
@@ -184,7 +184,7 @@ function TagGroupsPageContent(){
           <button onClick={handleHardRefresh} disabled={loading} aria-label="Refresh tag groups" title="Refresh — re-fetch from BFF and show skeleton" className="h-9 w-9 inline-flex items-center justify-center bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50 disabled:cursor-not-allowed">
             <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-[#a1a1aa] ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <Link href="/catalog/tag-groups/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href="/catalog/tag-groups/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Plus className="w-4 h-4" /> New Group
           </Link>
         </div>
@@ -193,7 +193,7 @@ function TagGroupsPageContent(){
       {/* KPIs */}
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Groups" value={String(stats.total)} sub={`${stats.filteredCount} filtered`} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Groups" value={String(stats.total)} sub={`${stats.filteredCount} filtered`} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Active" value={String(stats.activeCount)} sub={`${stats.inactiveCount} inactive`} icon={<ToggleLeft className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Filterable" value={String(stats.filterableCount)} sub={`${stats.total - stats.filterableCount} not filterable`} icon={<SlidersHorizontal className="w-5 h-5 text-white" />} iconBg="bg-sky-600" />
           <KpiCard title="Searchable" value={String(stats.searchableCount)} sub={`${stats.total - stats.searchableCount} not searchable`} icon={<Search className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
@@ -209,7 +209,7 @@ function TagGroupsPageContent(){
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, slug, description…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, slug, description…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -224,8 +224,8 @@ function TagGroupsPageContent(){
               </select>
             </div>
             <span className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-600 dark:text-[#a1a1aa]">10 / page</span>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236] hover:border-[#c88a20]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-900 dark:hover:text-white'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459] hover:border-[#215035]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-900 dark:hover:text-white'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -239,7 +239,7 @@ function TagGroupsPageContent(){
                 <div className="flex flex-wrap gap-1.5">
                   {[['all', 'All'], ['true', 'Active only'], ['false', 'Inactive only']].map(([v, l]) => {
                     const active = (isActiveFilter === null && v === 'all') || String(isActiveFilter) === v
-                    return <button key={v} onClick={() => setIsActiveFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
+                    return <button key={v} onClick={() => setIsActiveFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
                   })}
                 </div>
               </div>
@@ -248,7 +248,7 @@ function TagGroupsPageContent(){
                 <div className="flex flex-wrap gap-1.5">
                   {[['all', 'All'], ['true', 'Filterable'], ['false', 'Not filterable']].map(([v, l]) => {
                     const active = (isFilterableFilter === null && v === 'all') || String(isFilterableFilter) === v
-                    return <button key={v} onClick={() => setIsFilterableFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
+                    return <button key={v} onClick={() => setIsFilterableFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
                   })}
                 </div>
               </div>
@@ -257,18 +257,18 @@ function TagGroupsPageContent(){
                 <div className="flex flex-wrap gap-1.5">
                   {[['all', 'All'], ['true', 'Searchable'], ['false', 'Not searchable']].map(([v, l]) => {
                     const active = (isSearchableFilter === null && v === 'all') || String(isSearchableFilter) === v
-                    return <button key={v} onClick={() => setIsSearchableFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
+                    return <button key={v} onClick={() => setIsSearchableFilter(v === 'all' ? null : v === 'true')} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{l}</button>
                   })}
                 </div>
               </div>
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30 dark:border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30 dark:border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {isActiveFilter !== null && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] rounded-full text-xs">{isActiveFilter ? 'Active only' : 'Inactive only'} <button onClick={() => setIsActiveFilter(null)}><X className="w-3 h-3" /></button></span>}
             {isFilterableFilter !== null && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] rounded-full text-xs">{isFilterableFilter ? 'Filterable' : 'Not filterable'} <button onClick={() => setIsFilterableFilter(null)}><X className="w-3 h-3" /></button></span>}
             {isSearchableFilter !== null && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] rounded-full text-xs">{isSearchableFilter ? 'Searchable' : 'Not searchable'} <button onClick={() => setIsSearchableFilter(null)}><X className="w-3 h-3" /></button></span>}
@@ -283,7 +283,7 @@ function TagGroupsPageContent(){
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load tag groups</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         )}
         {isInitialLoading ? (
@@ -292,10 +292,10 @@ function TagGroupsPageContent(){
           </div>
         ) : !error && docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Tag className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Tag className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No tag groups found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Try adjusting search or filters, or create your first tag group.</p>
-            <Link href="/catalog/tag-groups/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> Create group</Link>
+            <Link href="/catalog/tag-groups/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> Create group</Link>
           </div>
         ) : !error && (
           <>
@@ -321,7 +321,7 @@ function TagGroupsPageContent(){
                     <tr key={g.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-[200px]">
-                          <span className="h-3 w-3 rounded-full shrink-0 border border-gray-200 dark:border-[#262626]" style={{ backgroundColor: g.color || '#eba236' }} />
+                          <span className="h-3 w-3 rounded-full shrink-0 border border-gray-200 dark:border-[#262626]" style={{ backgroundColor: g.color || '#239459' }} />
                           {g.icon && <span className="text-xs font-mono text-gray-500 dark:text-[#a1a1aa] shrink-0">{g.icon}</span>}
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[160px]">{g.name}</div>
@@ -352,7 +352,7 @@ function TagGroupsPageContent(){
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-xs font-semibold text-gray-700 dark:text-white">
-                          <Store className="w-3 h-3 text-[#eba236]" /> {g.tagCount}
+                          <Store className="w-3 h-3 text-[#239459]" /> {g.tagCount}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right hidden md:table-cell">
@@ -379,7 +379,7 @@ function TagGroupsPageContent(){
                   {Array.from({ length: Math.min(5, pagination.totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(pagination.totalPages - 4, pagination.page - 2)) + i
                     if (n > pagination.totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

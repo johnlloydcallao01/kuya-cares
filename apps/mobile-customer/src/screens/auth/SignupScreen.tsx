@@ -102,7 +102,7 @@ export default function SignupScreen() {
         agreeToTerms: data.agreeToTerms,
       };
 
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
       const response = await fetch(`${API_URL}/customer-register`, {
         method: 'POST',
         headers: {

@@ -42,7 +42,7 @@ export type CheckoutPaymentStatus =
     };
 
 const pendingCheckoutKey = (customerId: string, merchantId: string) =>
-  `tap2go:pending-checkout:${customerId}:${merchantId}`;
+  `kuyacares:pending-checkout:${customerId}:${merchantId}`;
 
 export async function waitForPaidTransaction(
   paymentIntentId: string,

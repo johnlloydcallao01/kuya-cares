@@ -120,8 +120,8 @@ export default function WalletsPage() {
               onClick={handleTopUpWallet}
               className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
               style={{
-                border: '1px solid #eba236',
-                color: '#eba236',
+                border: '1px solid #239459',
+                color: '#239459',
                 backgroundColor: 'white'
               }}
             >
@@ -159,7 +159,7 @@ export default function WalletsPage() {
                   ? 'bg-gray-50 text-gray-900 border-b-2'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
-              style={activeTab === 'balance' ? { borderBottomColor: '#eba236' } : {}}
+              style={activeTab === 'balance' ? { borderBottomColor: '#239459' } : {}}
             >
               <i className="fas fa-history mr-2"></i>
               Transactions
@@ -171,7 +171,7 @@ export default function WalletsPage() {
                   ? 'bg-gray-50 text-gray-900 border-b-2'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
-              style={activeTab === 'cards' ? { borderBottomColor: '#eba236' } : {}}
+              style={activeTab === 'cards' ? { borderBottomColor: '#239459' } : {}}
             >
               <i className="fas fa-credit-card mr-2"></i>
               Payment Methods
@@ -239,8 +239,8 @@ export default function WalletsPage() {
                 onClick={handleAddPaymentMethod}
                 className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
                 style={{
-                  border: '1px solid #eba236',
-                  color: '#eba236',
+                  border: '1px solid #239459',
+                  color: '#239459',
                   backgroundColor: 'white'
                 }}
               >
@@ -262,7 +262,7 @@ export default function WalletsPage() {
                           {card.brand} •••• {card.last4}
                         </p>
                         {card.isDefault && (
-                          <span className="text-xs font-medium text-white px-2 py-1 rounded" style={{backgroundColor: '#eba236'}}>
+                          <span className="text-xs font-medium text-white px-2 py-1 rounded" style={{backgroundColor: '#239459'}}>
                             DEFAULT
                           </span>
                         )}
@@ -278,8 +278,8 @@ export default function WalletsPage() {
                         onClick={() => handleSetDefaultCard(card.id)}
                         className="px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
                         style={{
-                          border: '1px solid #eba236',
-                          color: '#eba236',
+                          border: '1px solid #239459',
+                          color: '#239459',
                           backgroundColor: 'white'
                         }}
                       >
@@ -308,8 +308,8 @@ export default function WalletsPage() {
                   onClick={handleAddPaymentMethod}
                   className="px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                   style={{
-                    border: '1px solid #eba236',
-                    color: '#eba236',
+                    border: '1px solid #239459',
+                    color: '#239459',
                     backgroundColor: 'white'
                   }}
                 >

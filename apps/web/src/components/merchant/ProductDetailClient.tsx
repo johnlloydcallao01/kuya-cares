@@ -72,9 +72,9 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const anyWindow = window as any;
-    anyWindow.__tap2goProductDetailHasInvalidModifiers = hasInvalidModifiers;
+    anyWindow.__kuyaCaresProductDetailHasInvalidModifiers = hasInvalidModifiers;
     window.dispatchEvent(
-      new CustomEvent('tap2go:productDetail:validation', {
+      new CustomEvent('kuyaCares:productDetail:validation', {
         detail: { hasInvalidModifiers },
       }),
     );
@@ -312,14 +312,14 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const anyWindow = window as any;
-    anyWindow.__tap2goProductDetailAddToCart = async (q?: number) => {
+    anyWindow.__kuyaCaresProductDetailAddToCart = async (q?: number) => {
       await handleAddToCart(q);
     };
     return () => {
       if (typeof window === 'undefined') return;
       const w = window as any;
-      if (w.__tap2goProductDetailAddToCart) {
-        delete w.__tap2goProductDetailAddToCart;
+      if (w.__kuyaCaresProductDetailAddToCart) {
+        delete w.__kuyaCaresProductDetailAddToCart;
       }
     };
   }, [handleAddToCart]);
@@ -572,7 +572,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                     type="button"
                     disabled={hasInvalidModifiers}
                     className="h-11 px-6 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#eba236' }}
+                    style={{ backgroundColor: '#239459' }}
                     onClick={() => {
                       if (!hasInvalidModifiers) {
                         handleAddToCart();

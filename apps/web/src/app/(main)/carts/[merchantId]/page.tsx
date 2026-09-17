@@ -266,8 +266,8 @@ export default function MerchantCartPage() {
                       }
                       className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50"
                       style={{
-                        border: '1px solid #eba236',
-                        color: '#eba236',
+                        border: '1px solid #239459',
+                        color: '#239459',
                         backgroundColor: 'white',
                       }}
                     >
@@ -359,7 +359,7 @@ export default function MerchantCartPage() {
             onClick={handleCheckout}
             disabled={totalSubtotal <= 0}
             className="w-full text-white rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#eba236' }}
+            style={{ backgroundColor: '#239459' }}
           >
             Proceed to Checkout
           </button>

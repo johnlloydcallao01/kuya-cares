@@ -167,7 +167,7 @@ function OrderItemsContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Layers className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Layers className="w-4 h-4" /></span>
             Order Items
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Individual line items from your orders with snapshot pricing, modifiers, and live product links (read-only).</p>
@@ -183,7 +183,7 @@ function OrderItemsContent() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard title="Total Items" value={String(kpiTotalItems)} sub={stats?.totalAll ? `${stats.totalAll} overall` : `${pagination?.totalDocs ?? kpiTotalItems} in page`} icon={<Package className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+        <KpiCard title="Total Items" value={String(kpiTotalItems)} sub={stats?.totalAll ? `${stats.totalAll} overall` : `${pagination?.totalDocs ?? kpiTotalItems} in page`} icon={<Package className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
         <KpiCard title="Revenue" value={fmtPeso(kpiRevenue)} sub="sum of line totals" icon={<TrendingUp className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
         <KpiCard title="Quantity Sold" value={String(kpiQuantity)} sub="units across items" icon={<Layers className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
         <KpiCard title="Unique Orders" value={String(kpiUniqueOrders)} sub={`${kpiTotalItems} items`} icon={<Users className="w-5 h-5 text-white" />} iconBg="bg-violet-600" />
@@ -194,7 +194,7 @@ function OrderItemsContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product name, item #…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product name, item #…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-700 dark:text-white">
@@ -209,7 +209,7 @@ function OrderItemsContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load order items</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -217,7 +217,7 @@ function OrderItemsContent() {
           </div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-14 w-14 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-full flex items-center justify-center mb-4"><Layers className="w-7 h-7 text-[#eba236]" /></div>
+            <div className="h-14 w-14 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-full flex items-center justify-center mb-4"><Layers className="w-7 h-7 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No order items found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Order items appear here once customers place orders at your outlets. Try adjusting search or filters.</p>
           </div>
@@ -255,7 +255,7 @@ function OrderItemsContent() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-semibold border border-[#eba236]/30">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-semibold border border-[#239459]/30">
                             #{String(orderId).padStart(5, '0')}
                           </span>
                           {orderStatus && <div className="text-[11px] text-gray-400 mt-0.5 capitalize">{orderStatus.replace('_', ' ')}</div>}
@@ -294,7 +294,7 @@ function OrderItemsContent() {
                   {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
                     if (n > totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>
@@ -305,7 +305,7 @@ function OrderItemsContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Each line item is an <span className="font-semibold text-gray-700 dark:text-white">immutable audit record</span> capturing the exact product snapshot, unit price, and modifier selections at the time of purchase — these never change even if the catalog is updated. Revenue totals use <span className="font-semibold text-gray-700 dark:text-white">line totals</span> (quantity × unit price). See the parent <Link href="/orders" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Orders</Link> page for full order context.
+        Each line item is an <span className="font-semibold text-gray-700 dark:text-white">immutable audit record</span> capturing the exact product snapshot, unit price, and modifier selections at the time of purchase — these never change even if the catalog is updated. Revenue totals use <span className="font-semibold text-gray-700 dark:text-white">line totals</span> (quantity × unit price). See the parent <Link href="/orders" className="font-semibold text-[#239459] hover:text-[#215035]">Orders</Link> page for full order context.
       </div>
     </div>
   )

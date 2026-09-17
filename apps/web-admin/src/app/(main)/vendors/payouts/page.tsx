@@ -57,7 +57,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
       <div className="flex flex-wrap gap-1.5">
         {options.map(o=>{
           const active=value.includes(o.value)
-          return <button key={o.value} onClick={()=>onToggle(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${active?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
+          return <button key={o.value} onClick={()=>onToggle(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${active?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
         })}
       </div>
     </div>
@@ -152,7 +152,7 @@ function PayoutsPageContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Coins className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Coins className="w-4 h-4" /></span>
             Vendor Payouts Overview
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Settlements per vendor — gross, platform & delivery fees, refunds, net payout. Period: {data?.meta.range || range} • {data ? fmtDate(data.meta.periodStart) + ' → ' + fmtDate(data.meta.periodEnd) : '—'}</p>
@@ -177,7 +177,7 @@ function PayoutsPageContent() {
         </div>
       ) : data ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Net Payout" value={fmtCompact(data.summary.totalNet)} sub={`${data.summary.totalVendors} vendors • ${data.summary.totalOrders} orders`} icon={<Coins className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Net Payout" value={fmtCompact(data.summary.totalNet)} sub={`${data.summary.totalVendors} vendors • ${data.summary.totalOrders} orders`} icon={<Coins className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Total Gross" value={fmtCompact(data.summary.totalGross)} sub={`Avg order ${fmtPHP(data.summary.avgOrder)}`} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Platform + Delivery Fees" value={fmtCompact(data.summary.totalPlatformFees + data.summary.totalDeliveryFees)} sub={`Platform ${fmtCompact(data.summary.totalPlatformFees)} • Delivery ${fmtCompact(data.summary.totalDeliveryFees)}`} icon={<Receipt className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
           <KpiCard title="Refunded" value={fmtCompact(data.summary.totalRefunded)} sub={`${((data.summary.totalRefunded/Math.max(1,data.summary.totalGross))*100).toFixed(1)}% of gross`} icon={<TrendingDown className="w-5 h-5 text-white" />} iconBg="bg-red-500" />
@@ -219,13 +219,13 @@ function PayoutsPageContent() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search vendor, legal name, registration…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search vendor, legal name, registration…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-600 dark:text-[#a1a1aa]">10 / page</span>
-            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
+            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
             </button>
             {activeFilterCount>0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear</button>}
           </div>
@@ -236,7 +236,7 @@ function PayoutsPageContent() {
               <FilterPills label="Verification" options={VERIFICATION_OPTS} value={verificationFilter} onToggle={(v)=> setVerificationFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])} />
               <FilterPills label="Business Type" options={BUSINESS_OPTS} value={businessTypeFilter} onToggle={(v)=> setBusinessTypeFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])} />
             </div>
-            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
       </div>
@@ -246,14 +246,14 @@ function PayoutsPageContent() {
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load payouts</h3><p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
+            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
           </div>
         )}
         {isInitialLoading ? (
           <div className="p-4 space-y-3 animate-pulse">{Array.from({length:6}).map((_,i)=><div key={i} className="h-16 bg-gray-100 dark:bg-[#0a0a0a] rounded-lg" />)}</div>
         ) : !error && pagedRows.length===0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Coins className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Coins className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No payouts in this period</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Try a larger range (90d / All) or clear filters.</p>
           </div>
@@ -279,7 +279,7 @@ function PayoutsPageContent() {
                     <tr key={r.vendorId} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="min-w-[180px] flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
                             {r.logo?.url ? <img src={r.logo.url} alt={r.businessName} className="h-9 w-9 rounded-xl object-cover" /> : initials(r.businessName)}
                           </div>
                           <div className="min-w-0">
@@ -313,7 +313,7 @@ function PayoutsPageContent() {
                 <button disabled={loading || page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                 {Array.from({length:Math.min(5,totalPages)}).map((_,i)=>{
                   const n=Math.max(1,Math.min(totalPages-4,page-2))+i; if(n>totalPages) return null
-                  return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                  return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                 })}
                 <button disabled={loading || page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
               </div>
@@ -324,14 +324,14 @@ function PayoutsPageContent() {
 
       {!isInitialLoading && data && data.daily.length>0 && (
         <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-4">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Daily Net Payout Trend</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Daily Net Payout Trend</h3>
           <div className="overflow-x-auto">
             <div className="flex items-end gap-1 h-24">
               {data.daily.slice(-14).map(d=>{
                 const max=Math.max(...data.daily.slice(-14).map(x=>x.net),1)
                 const h=Math.max(4, (d.net/max)*80)
                 return <div key={d.date} className="flex-1 flex flex-col items-center gap-1" title={`${d.date}: ${fmtPHP(d.net)} (${d.orders} orders)`}>
-                  <div className="w-full bg-[#eba236] rounded-t" style={{height:`${h}px`}} />
+                  <div className="w-full bg-[#239459] rounded-t" style={{height:`${h}px`}} />
                   <span className="text-[10px] text-gray-500 dark:text-[#a1a1aa]">{d.date.slice(5)}</span>
                 </div>
               })}

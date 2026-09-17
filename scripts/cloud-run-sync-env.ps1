@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Sync apps/cms/.env -> Cloud Run (tap2go-git) + Secret Manager (Windows).
+  Sync apps/cms/.env -> Cloud Run (kuya-cares-git) + Secret Manager (Windows).
   Run from repo root: powershell -ExecutionPolicy Bypass -File scripts\cloud-run-sync-env.ps1
 
   Google docs followed:
@@ -17,29 +17,29 @@
   NEVER prints secret values. Reads apps/cms/.env locally and uploads via gcloud.
 #>
 $ErrorActionPreference = 'Stop'
-$Service = 'tap2go-git'
+$Service = 'kuya-cares-git'
 $Region = 'asia-southeast1'
 $Project = 'grandline-508001'
 $EnvFile = 'apps/cms/.env'
 
 $Secrets = [ordered]@{
-  'DATABASE_URI' = 'tap2go-database-uri'
-  'PAYLOAD_SECRET' = 'tap2go-payload-secret'
-  'PAYLOAD_API_KEY' = 'tap2go-payload-api-key'
-  'UPSTASH_REDIS_REST_TOKEN' = 'tap2go-upstash-redis-rest-token'
-  'SUPABASE_SERVICE_ROLE_KEY' = 'tap2go-supabase-service-role-key'
-  'CLOUDINARY_API_KEY' = 'tap2go-cloudinary-api-key'
-  'CLOUDINARY_API_SECRET' = 'tap2go-cloudinary-api-secret'
-  'GOOGLE_MAPS_API_KEY' = 'tap2go-google-maps-api-key'
-  'RESEND_API_KEY' = 'tap2go-resend-api-key'
-  'PAYMONGO_SECRET_KEY_LIVE' = 'tap2go-paymongo-secret-key-live'
-  'PAYMONGO_SANDBOX_API_KEY' = 'tap2go-paymongo-sandbox-api-key'
-  'PAYMONGO_WEBHOOK_SECRET' = 'tap2go-paymongo-webhook-secret'
-  'PAYMONGO_SANDBOX_WEBHOOK_SECRET' = 'tap2go-paymongo-sandbox-webhook-secret'
-  'LALAMOVE_API_KEY' = 'tap2go-lalamove-api-key'
-  'LALAMOVE_API_SECRET' = 'tap2go-lalamove-api-secret'
-  'LALAMOVE_SANDBOX_API_KEY' = 'tap2go-lalamove-sandbox-api-key'
-  'LALAMOVE_SANDBOX_API_SECRET' = 'tap2go-lalamove-sandbox-api-secret'
+  'DATABASE_URI' = 'kuya-cares-database-uri'
+  'PAYLOAD_SECRET' = 'kuya-cares-payload-secret'
+  'PAYLOAD_API_KEY' = 'kuya-cares-payload-api-key'
+  'UPSTASH_REDIS_REST_TOKEN' = 'kuya-cares-upstash-redis-rest-token'
+  'SUPABASE_SERVICE_ROLE_KEY' = 'kuya-cares-supabase-service-role-key'
+  'CLOUDINARY_API_KEY' = 'kuya-cares-cloudinary-api-key'
+  'CLOUDINARY_API_SECRET' = 'kuya-cares-cloudinary-api-secret'
+  'GOOGLE_MAPS_API_KEY' = 'kuya-cares-google-maps-api-key'
+  'RESEND_API_KEY' = 'kuya-cares-resend-api-key'
+  'PAYMONGO_SECRET_KEY_LIVE' = 'kuya-cares-paymongo-secret-key-live'
+  'PAYMONGO_SANDBOX_API_KEY' = 'kuya-cares-paymongo-sandbox-api-key'
+  'PAYMONGO_WEBHOOK_SECRET' = 'kuya-cares-paymongo-webhook-secret'
+  'PAYMONGO_SANDBOX_WEBHOOK_SECRET' = 'kuya-cares-paymongo-sandbox-webhook-secret'
+  'LALAMOVE_API_KEY' = 'kuya-cares-lalamove-api-key'
+  'LALAMOVE_API_SECRET' = 'kuya-cares-lalamove-api-secret'
+  'LALAMOVE_SANDBOX_API_KEY' = 'kuya-cares-lalamove-sandbox-api-key'
+  'LALAMOVE_SANDBOX_API_SECRET' = 'kuya-cares-lalamove-sandbox-api-secret'
 }
 $SkipKeys = @('PORT', 'GOOGLE_APPLICATION_CREDENTIALS')
 
@@ -117,4 +117,4 @@ if ($needsRebuild) {
   Write-Output 'NOTE: NEXT_PUBLIC_* uploaded as runtime vars, but Next.js inlines them at BUILD time.'
   Write-Output 'Trigger a rebuild (git push / redeploy) for browser bundles to pick them up.'
 }
-Write-Output 'Verify: $url = gcloud run services describe tap2go-git --project=grandline-508001 --region=asia-southeast1 --format=value(status.url); curl "$url/api/health"'
+Write-Output 'Verify: $url = gcloud run services describe kuya-cares-git --project=grandline-508001 --region=asia-southeast1 --format=value(status.url); curl "$url/api/health"'

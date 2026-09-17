@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tap2Go Driver",
-  description: "Driver application for Tap2Go",
+  title: "Kuya Cares Driver",
+  description: "Driver application for Kuya Cares",
 };
 
 export default function RootLayout({

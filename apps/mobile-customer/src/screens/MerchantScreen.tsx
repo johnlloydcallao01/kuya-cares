@@ -453,7 +453,7 @@ export default function MerchantScreen() {
 
   // Helper to get image URL with fallbacks (Cloudinary > URL > Thumbnail)
   // And handle relative URLs by prepending API base
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
   const BASE_URL = API_URL.replace(/\/api\/?$/, ''); // Strip trailing /api or /api/
 
   function formatDistanceKm(distanceKm?: number): string | null {

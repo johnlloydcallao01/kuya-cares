@@ -113,7 +113,7 @@ function AddressFormModal({
 
   if (!open || typeof document === 'undefined') return null
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }))
-  const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+  const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
   const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
   const submit = async () => {
@@ -149,7 +149,7 @@ function AddressFormModal({
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-[#262626] shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center shrink-0"><MapPin className="w-5 h-5" /></div>
+              <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center shrink-0"><MapPin className="w-5 h-5" /></div>
               <div className="min-w-0">
                 <h3 className="font-bold text-gray-900 dark:text-white leading-tight">{isEdit ? `Edit Address #${initial?.id}` : 'New Saved Address'}</h3>
                 <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">{isEdit ? 'Update saved address.' : `Save a new address${presetUserLabel ? ` for ${presetUserLabel}` : ''}.`}</p>
@@ -177,7 +177,7 @@ function AddressFormModal({
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-2xl shrink-0">
           <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
             {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create address'}
           </button>
         </div>
@@ -284,7 +284,7 @@ function AddressBookViewContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load address book</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/customers/addresses" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back to list</Link>
+          <Link href="/customers/addresses" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back to list</Link>
         </div>
       </div>
     )
@@ -300,7 +300,7 @@ function AddressBookViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
             {user ? initials(user.firstName, user.lastName) : 'C'}
           </div>
           <div>
@@ -309,16 +309,16 @@ function AddressBookViewContent() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setEditing(null); setShowForm(true) }} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Plus className="w-4 h-4" /> New Address</button>
+          <button onClick={() => { setEditing(null); setShowForm(true) }} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Plus className="w-4 h-4" /> New Address</button>
           <Link href="/customers/addresses" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">Close</Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Active Current</p><p className={`mt-2 font-semibold text-sm ${activeAddr ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>{activeAddr ? `#${activeAddr.id} set` : 'Not set'}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">{activeAddr ? activeAddr.address_type : 'pick a saved address'}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Saved Addresses</p><p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><MapPin className="w-5 h-5 text-[#eba236]" /> {savedAddrs.length}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">{addresses.length} total rows</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Orders</p><p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><ShoppingBag className="w-5 h-5 text-[#eba236]" /> {doc.orderCount}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">customer orders</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Customer</p><p className="mt-2 font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-1"><Users className="w-4 h-4 text-[#eba236]" /> {doc.srn || 'no SRN'}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">{doc.currentLevel}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Saved Addresses</p><p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><MapPin className="w-5 h-5 text-[#239459]" /> {savedAddrs.length}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">{addresses.length} total rows</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Orders</p><p className="mt-2 font-bold flex items-center gap-1 text-lg text-gray-900 dark:text-white"><ShoppingBag className="w-5 h-5 text-[#239459]" /> {doc.orderCount}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">customer orders</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Customer</p><p className="mt-2 font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-1"><Users className="w-4 h-4 text-[#239459]" /> {doc.srn || 'no SRN'}</p><p className="text-xs text-gray-500 dark:text-[#a1a1aa] mt-1">{doc.currentLevel}</p></div>
       </div>
 
       {actionError && <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 flex items-start gap-2"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> <span>{actionError}</span></div>}
@@ -364,7 +364,7 @@ function AddressBookViewContent() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => void handleSetActive(a)} disabled={settingActiveId === a.id} title="Set as active current" className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-[#eba236] hover:text-[#c88a20] disabled:opacity-50">
+                      <button onClick={() => void handleSetActive(a)} disabled={settingActiveId === a.id} title="Set as active current" className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-[#239459] hover:text-[#215035] disabled:opacity-50">
                         {settingActiveId === a.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Set Active
                       </button>
                       <button onClick={() => setViewing(a)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white" title="View"><Eye className="w-4 h-4" /></button>
@@ -379,7 +379,7 @@ function AddressBookViewContent() {
             )}
           </Section>
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Timeline</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Timeline</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500 dark:text-[#a1a1aa]">Created</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.createdAt)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 dark:text-[#a1a1aa]">Updated</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.updatedAt)}</span></div>

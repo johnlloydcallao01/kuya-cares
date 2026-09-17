@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-const ctaUrl = "https://tap2go.menue.io/";
+const ctaUrl = "https://app.kuyacares.com/";
 
 const featuredCards = [
   {
@@ -54,9 +54,9 @@ const highlights = [
 ];
 
 export const metadata: Metadata = {
-  title: "Get Started | Tap2Go",
+  title: "Get Started | Kuya Cares",
   description:
-    "A modern food landing page for restaurants ready to launch a professional online ordering experience with Tap2Go.",
+    "A modern food landing page for restaurants ready to launch a professional online ordering experience with Kuya Cares.",
 };
 
 export default function GetStartedPage() {
@@ -74,14 +74,14 @@ export default function GetStartedPage() {
             <div className="flex items-center gap-3">
               <Image
                 src="/logo.webp"
-                alt="Tap2Go"
+                alt="Kuya Cares"
                 width={40}
                 height={40}
                 className="rounded-xl"
                 priority
               />
               <div>
-                <p className="font-display text-lg font-semibold text-slate-900">Tap2Go</p>
+                <p className="font-display text-lg font-semibold text-slate-900">Kuya Cares</p>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
                   Food Ordering Platform
                 </p>

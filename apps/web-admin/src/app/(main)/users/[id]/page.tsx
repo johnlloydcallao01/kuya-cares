@@ -62,7 +62,7 @@ function UserDetailContent() {
       <div className="flex flex-col items-center justify-center py-16 px-6 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
         <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
         <h3 className="font-semibold">Failed to load user</h3><p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-        <button onClick={()=>void load()} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+        <button onClick={()=>void load()} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
       </div>
     </div>
   )
@@ -73,10 +73,10 @@ function UserDetailContent() {
       <div className="flex items-center gap-3">
         <button onClick={()=> router.push('/users')} className="h-9 w-9 inline-flex items-center justify-center bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl"><ArrowLeft className="w-4 h-4" /></button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate"><span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center shrink-0"><Users className="w-4 h-4" /></span>{doc.firstName} {doc.lastName}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate"><span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center shrink-0"><Users className="w-4 h-4" /></span>{doc.firstName} {doc.lastName}</h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] truncate">{doc.email} • {doc.role}</p>
         </div>
-        <Link href={`/users/${doc.id}/edit`} className="px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold">Edit</Link>
+        <Link href={`/users/${doc.id}/edit`} className="px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold">Edit</Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

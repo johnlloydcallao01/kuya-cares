@@ -108,7 +108,7 @@ function SearchPageContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center">
               <Search className="w-4 h-4" />
             </span>
             {query ? (
@@ -148,8 +148,8 @@ function SearchPageContent() {
       {/* Empty State */}
       {!isLoading && query && results.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
-          <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4">
-            <Search className="w-8 h-8 text-[#eba236]" />
+          <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4">
+            <Search className="w-8 h-8 text-[#239459]" />
           </div>
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No results found</h2>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">
@@ -201,8 +201,8 @@ function SearchPageContent() {
       {/* No query state */}
       {!query && (
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
-          <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4">
-            <Search className="w-8 h-8 text-[#eba236]" />
+          <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4">
+            <Search className="w-8 h-8 text-[#239459]" />
           </div>
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Search the merchant portal</h2>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">

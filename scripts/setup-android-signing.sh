@@ -18,7 +18,7 @@ keytool -genkeypair -v -storetype PKCS12 \
   -keyalg RSA \
   -keysize 2048 \
   -validity 10000 \
-  -dname "CN=Tap2Go, OU=Mobile, O=Tap2Go, L=City, S=State, C=US"
+  -dname "CN=Kuya Cares, OU=Mobile, O=Kuya Cares, L=City, S=State, C=US"
 
 echo ""
 echo "✅ Keystore generated successfully!"

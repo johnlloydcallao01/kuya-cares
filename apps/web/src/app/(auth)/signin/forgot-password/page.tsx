@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import Image from '@/components/ui/ImageWrapper';
@@ -59,13 +59,13 @@ export default function ForgotPasswordPage() {
                   <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
                     <Image
                       src="/kuya-cares.png"
-                      alt="Tap2Go Logo"
+                      alt="Kuya Cares Logo"
                       width={64}
                       height={64}
                       style={{ objectFit: 'contain' }}
                     />
                   </div>
-                  <h1 className="text-3xl font-bold mb-2">Tap2Go</h1>
+                  <h1 className="text-3xl font-bold mb-2">Kuya Cares</h1>
                   <p className="text-blue-100">Food Delivery from Laguna</p>
                 </div>
 
@@ -128,7 +128,7 @@ export default function ForgotPasswordPage() {
                 <div className="hidden lg:block text-center mb-8">
                   <Image
                     src="/kuya-cares.png"
-                    alt="Tap2Go Logo"
+                    alt="Kuya Cares Logo"
                     width={64}
                     height={64}
                     className="mx-auto mb-3"
@@ -141,7 +141,7 @@ export default function ForgotPasswordPage() {
                 <div className="lg:hidden text-center mb-6">
                   <Image
                     src="/kuya-cares.png"
-                    alt="Tap2Go Logo"
+                    alt="Kuya Cares Logo"
                     width={64}
                     height={64}
                     className="mx-auto mb-3"
@@ -203,7 +203,7 @@ export default function ForgotPasswordPage() {
 
                   <div className="flex items-center justify-end gap-3">
                     <button type="button" onClick={() => router.push('/signin')} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700">Cancel</button>
-                    <button type="button" onClick={handleSend} disabled={isSubmitting} className="px-4 py-2 rounded-lg bg-[#eba336] text-white font-semibold disabled:opacity-50">
+                    <button type="button" onClick={handleSend} disabled={isSubmitting} className="px-4 py-2 rounded-lg bg-[#239459] text-white font-semibold disabled:opacity-50">
                       {isSubmitting ? 'Sending...' : 'Send reset link'}
                     </button>
                   </div>

@@ -184,7 +184,7 @@ function CartsContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><ShoppingCart className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><ShoppingCart className="w-4 h-4" /></span>
             Abandoned Carts
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Products customers added but did not check out at your outlets (read-only).</p>
@@ -201,7 +201,7 @@ function CartsContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Abandoned Carts" value={String(stats.filteredTotal)} sub={`${stats.totalCarts} overall`} icon={<ShoppingCart className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Abandoned Carts" value={String(stats.filteredTotal)} sub={`${stats.totalCarts} overall`} icon={<ShoppingCart className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Recoverable Revenue" value={fmtMoney(stats.recoverableRevenue)} sub="sum of line subtotals" icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Unique Customers" value={String(stats.uniqueCustomers)} sub="carts left behind" icon={<Users className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
           <KpiCard title="Top Outlet" value={topOutlet} sub={`${stats.perOutlet.length} outlet(s)`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
@@ -216,15 +216,15 @@ function CartsContent() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer, outlet, or product…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer, outlet, or product…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-700 dark:text-white">
               {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -239,13 +239,13 @@ function CartsContent() {
                 {merchants.map((m) => <option key={m.id} value={String(m.id)}>{m.outletName} (#{m.id})</option>)}
               </select>
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {outletFilter && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">{merchants.find((m) => String(m.id) === outletFilter)?.outletName || `Outlet #${outletFilter}`} <button onClick={() => setOutletFilter('')}><X className="w-3 h-3" /></button></span>}
           </div>
         )}
@@ -257,7 +257,7 @@ function CartsContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load abandoned carts</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -265,7 +265,7 @@ function CartsContent() {
           </div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><ShoppingCart className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><ShoppingCart className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No abandoned carts found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Carts appear here when customers add items at your outlets but don&apos;t check out. Try adjusting search or filters.</p>
           </div>
@@ -287,7 +287,7 @@ function CartsContent() {
                     <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-[180px]">
-                          <div className="h-9 w-9 rounded-xl bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] flex items-center justify-center text-xs font-bold shrink-0">
+                          <div className="h-9 w-9 rounded-xl bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] flex items-center justify-center text-xs font-bold shrink-0">
                             {customerInitials(d.customer)}
                           </div>
                           <div className="min-w-0">
@@ -299,14 +299,14 @@ function CartsContent() {
                       <td className="px-4 py-3">
                         <div className="min-w-0">
                           <div className="font-medium text-gray-900 dark:text-white truncate max-w-[220px] flex items-center gap-1">
-                            <Package className="w-3 h-3 text-[#eba236] shrink-0" /> {itemLabel(d)}
+                            <Package className="w-3 h-3 text-[#239459] shrink-0" /> {itemLabel(d)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-[#a1a1aa] truncate max-w-[220px]">{itemSub(d)}</div>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-xs font-medium text-gray-700 dark:text-white">
-                          <Store className="w-3 h-3 text-[#eba236]" /> {d.merchant?.outletName || '—'}
+                          <Store className="w-3 h-3 text-[#239459]" /> {d.merchant?.outletName || '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -328,7 +328,7 @@ function CartsContent() {
                   {Array.from({ length: Math.min(5, pagination.totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(pagination.totalPages - 4, pagination.page - 2)) + i
                     if (n > pagination.totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === pagination.page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

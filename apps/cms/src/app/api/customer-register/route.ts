@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     const successResponse = {
       success: true,
-      message: 'Customer registration successful! Welcome to Tap2Go.',
+      message: 'Customer registration successful! Welcome to Kuya Cares.',
       data: {
         user: {
           id: user.id,

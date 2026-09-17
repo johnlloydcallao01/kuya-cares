@@ -164,7 +164,7 @@ export function VariationForm({ initial, onSuccess, onCancel }: { initial?: Vari
         {/* 1. Product & Mode */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Building className="w-4 h-4 text-[#eba236]" /> Product &amp; Mode
+            <Building className="w-4 h-4 text-[#239459]" /> Product &amp; Mode
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -241,7 +241,7 @@ export function VariationForm({ initial, onSuccess, onCancel }: { initial?: Vari
         {/* 4. Media */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-[#eba236]" /> Media
+            <ImageIcon className="w-4 h-4 text-[#239459]" /> Media
           </h4>
           <div>
             <label className={labelCls}>Variation image</label>
@@ -256,11 +256,11 @@ export function VariationForm({ initial, onSuccess, onCancel }: { initial?: Vari
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 dark:border-[#262626] p-3">
-              <input type="checkbox" checked={!!form.is_used_for_variations} onChange={(e) => set('is_used_for_variations', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={!!form.is_used_for_variations} onChange={(e) => set('is_used_for_variations', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Used for variations</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 dark:border-[#262626] p-3">
-              <input type="checkbox" checked={!!form.is_visible} onChange={(e) => set('is_visible', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={!!form.is_visible} onChange={(e) => set('is_visible', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Visible</span>
             </label>
             <div>
@@ -275,7 +275,7 @@ export function VariationForm({ initial, onSuccess, onCancel }: { initial?: Vari
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">
           Cancel
         </button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create variation'}
         </button>
       </div>

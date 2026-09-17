@@ -105,7 +105,7 @@ export default function HomeScreen() {
         >
           {/* Banner Image */}
           <Image
-            source={require('../../assets/tap2go-campaign-banner(1).png')}
+            source={require('../../assets/kuya-cares-campaign-banner.png')}
             style={{
               width: width - 20, // Full width minus 10px padding on each side (margin: 10 * 2)
               height: (width - 20) * (300 / 1400), // Maintain aspect ratio based on new width

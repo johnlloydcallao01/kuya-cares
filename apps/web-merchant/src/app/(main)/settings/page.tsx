@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
     general: {
-      siteName: 'tap2go Merchant Portal',
+      siteName: 'Kuya Cares Merchant Portal',
       siteDescription: 'Merchant dashboard for managing outlets, products, and orders',
       timezone: 'UTC',
       dateFormat: 'MM/DD/YYYY',

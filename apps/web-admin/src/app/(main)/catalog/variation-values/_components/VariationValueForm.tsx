@@ -202,7 +202,7 @@ export function VariationValueForm({
         {/* 1. Variation & Attribute */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Building className="w-4 h-4 text-[#eba236]" /> Variation &amp; Attribute
+            <Building className="w-4 h-4 text-[#239459]" /> Variation &amp; Attribute
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -299,7 +299,7 @@ export function VariationValueForm({
             </div>
             {selectedTerm?.value && isHex && (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626]">
-                <Palette className="w-4 h-4 text-[#eba236]" />
+                <Palette className="w-4 h-4 text-[#239459]" />
                 <span className="h-8 w-8 rounded-full border border-gray-200 dark:border-[#333] shrink-0" style={{ backgroundColor: String(selectedTerm.value) }} />
                 <div>
                   <p className="text-xs font-medium text-gray-700 dark:text-white">Swatch preview</p>
@@ -309,7 +309,7 @@ export function VariationValueForm({
             )}
             {!selectedTerm && termForSwatch?.value && isHex && (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626]">
-                <Palette className="w-4 h-4 text-[#eba236]" />
+                <Palette className="w-4 h-4 text-[#239459]" />
                 <span className="h-8 w-8 rounded-full border border-gray-200 dark:border-[#333] shrink-0" style={{ backgroundColor: String(termForSwatch.value) }} />
                 <div>
                   <p className="text-xs font-medium text-gray-700 dark:text-white">Swatch preview</p>
@@ -322,7 +322,7 @@ export function VariationValueForm({
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create value'}
         </button>
       </div>

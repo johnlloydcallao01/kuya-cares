@@ -16,7 +16,7 @@ export type TagGroupDoc = {
   is_active: boolean
 }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
 export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGroupDoc | null; onSuccess: () => void; onCancel: () => void }) {
@@ -79,7 +79,7 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
       slugToSend = rawSlug
     }
     if (form.color.trim()) {
-      if (!/^#([0-9a-fA-F]{6})$/.test(form.color.trim())) return setError('Color must be hex #RRGGBB (e.g. #eba236)')
+      if (!/^#([0-9a-fA-F]{6})$/.test(form.color.trim())) return setError('Color must be hex #RRGGBB (e.g. #239459)')
       if (form.color.trim().length > 7) return setError('Color must be at most 7 chars')
     }
     if (form.icon.trim() && form.icon.trim().length > 50) return setError('Icon must be at most 50 chars')
@@ -126,7 +126,7 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
         {/* Basic */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Building className="w-4 h-4 text-[#eba236]" /> Basic Information
+            <Building className="w-4 h-4 text-[#239459]" /> Basic Information
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -153,15 +153,15 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
         {/* Appearance */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <Palette className="w-4 h-4 text-[#eba236]" /> Appearance
+            <Palette className="w-4 h-4 text-[#239459]" /> Appearance
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Color <span className="text-gray-400 font-normal">(hex #RRGGBB, optional)</span></label>
               <div className="flex items-center gap-2">
-                <input value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="#eba236" className={`${inputCls} font-mono flex-1`} maxLength={7} />
+                <input value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="#239459" className={`${inputCls} font-mono flex-1`} maxLength={7} />
                 <div className="h-10 w-10 rounded-lg border border-gray-200 dark:border-[#262626] shrink-0" style={{ backgroundColor: /^#([0-9a-fA-F]{6})$/.test(form.color) ? form.color : 'transparent' }} title={form.color || 'no color'} />
-                <input type="color" value={/^#([0-9a-fA-F]{6})$/.test(form.color) ? form.color : '#eba236'} onChange={(e) => set('color', e.target.value)} className="h-10 w-10 rounded-lg border border-gray-200 dark:border-[#262626] p-1 bg-white dark:bg-[#0a0a0a]" />
+                <input type="color" value={/^#([0-9a-fA-F]{6})$/.test(form.color) ? form.color : '#239459'} onChange={(e) => set('color', e.target.value)} className="h-10 w-10 rounded-lg border border-gray-200 dark:border-[#262626] p-1 bg-white dark:bg-[#0a0a0a]" />
               </div>
               <p className="text-xs text-gray-400 mt-1">Used as swatch/dot — must be valid hex if provided.</p>
             </div>
@@ -174,7 +174,7 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
               <div className="w-full rounded-xl border border-gray-200 dark:border-[#262626] p-3 bg-gray-50 dark:bg-[#0a0a0a]">
                 <p className="text-xs text-gray-500 dark:text-[#a1a1aa] mb-2">Preview</p>
                 <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border bg-white dark:bg-[#171717] border-gray-200 dark:border-[#262626]">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: /^#([0-9a-fA-F]{6})$/.test(form.color) ? form.color : '#eba236' }} />
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: /^#([0-9a-fA-F]{6})$/.test(form.color) ? form.color : '#239459' }} />
                   {form.icon && <span className="text-gray-500 font-mono">{form.icon}</span>}
                   {form.name || 'Group preview'} <span className="text-gray-400 font-mono">/{form.slug || 'slug'}</span>
                 </span>
@@ -186,16 +186,16 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
         {/* Settings */}
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <ToggleLeft className="w-4 h-4 text-[#eba236]" /> Settings
+            <ToggleLeft className="w-4 h-4 text-[#239459]" /> Settings
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 dark:border-[#262626] px-4 py-3 bg-gray-50 dark:bg-[#0a0a0a]">
-              <input type="checkbox" checked={form.is_filterable} onChange={(e) => set('is_filterable', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.is_filterable} onChange={(e) => set('is_filterable', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Filterable</span>
               <span className="text-xs text-gray-400">Show in filter UI</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 dark:border-[#262626] px-4 py-3 bg-gray-50 dark:bg-[#0a0a0a]">
-              <input type="checkbox" checked={form.is_searchable} onChange={(e) => set('is_searchable', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.is_searchable} onChange={(e) => set('is_searchable', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Searchable</span>
               <span className="text-xs text-gray-400">Include in search</span>
             </label>
@@ -204,7 +204,7 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
               <input type="number" value={form.display_order} onChange={(e) => set('display_order', e.target.value)} placeholder="0" className={inputCls} />
             </div>
             <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 dark:border-[#262626] px-4 py-3 bg-gray-50 dark:bg-[#0a0a0a] h-fit mt-6">
-              <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Active</span>
               <span className="text-xs text-gray-400">Visible to search & filters</span>
             </label>
@@ -213,7 +213,7 @@ export function TagGroupForm({ initial, onSuccess, onCancel }: { initial?: TagGr
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create tag group'}
         </button>
       </div>

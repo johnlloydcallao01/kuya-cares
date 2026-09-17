@@ -78,7 +78,7 @@ function AttributeViewContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load attribute</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/catalog/attributes" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
+          <Link href="/catalog/attributes" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
         </div>
       </div>
     )
@@ -92,14 +92,14 @@ function AttributeViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Building className="w-5 h-5" /></div>
+          <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Building className="w-5 h-5" /></div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{doc.name}</h1>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] font-mono">{doc.slug} • <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${typeBadge(doc.type)}`}>{doc.type}</span></p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/catalog/attributes/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
+          <Link href={`/catalog/attributes/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
           <Link href="/catalog/attributes" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">Close</Link>
         </div>
       </div>

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Sync apps/cms/.env -> Cloud Run (tap2go-git) + Secret Manager
+# Sync apps/cms/.env -> Cloud Run (kuya-cares-git) + Secret Manager
 # Run in Google Cloud Shell (or any machine with gcloud auth):
 #   bash scripts/cloud-run-sync-env.sh
 #
@@ -22,32 +22,32 @@
 # =============================================================================
 set -euo pipefail
 
-SERVICE="tap2go-git"
+SERVICE="kuya-cares-git"
 REGION="asia-southeast1"
 PROJECT="grandline-508001"
 ENV_FILE="apps/cms/.env"
 
 # ENV var -> Secret Manager secret name (sensitive per Google docs: credentials,
 # API keys, tokens, DB URIs). Everything else in .env becomes a plain var.
-# Existing names tap2go-database-uri / tap2go-payload-secret are kept stable.
+# Existing names kuya-cares-database-uri / kuya-cares-payload-secret are kept stable.
 declare -A SECRETS=(
-  [DATABASE_URI]="tap2go-database-uri"
-  [PAYLOAD_SECRET]="tap2go-payload-secret"
-  [PAYLOAD_API_KEY]="tap2go-payload-api-key"
-  [UPSTASH_REDIS_REST_TOKEN]="tap2go-upstash-redis-rest-token"
-  [SUPABASE_SERVICE_ROLE_KEY]="tap2go-supabase-service-role-key"
-  [CLOUDINARY_API_KEY]="tap2go-cloudinary-api-key"
-  [CLOUDINARY_API_SECRET]="tap2go-cloudinary-api-secret"
-  [GOOGLE_MAPS_API_KEY]="tap2go-google-maps-api-key"
-  [RESEND_API_KEY]="tap2go-resend-api-key"
-  [PAYMONGO_SECRET_KEY_LIVE]="tap2go-paymongo-secret-key-live"
-  [PAYMONGO_SANDBOX_API_KEY]="tap2go-paymongo-sandbox-api-key"
-  [PAYMONGO_WEBHOOK_SECRET]="tap2go-paymongo-webhook-secret"
-  [PAYMONGO_SANDBOX_WEBHOOK_SECRET]="tap2go-paymongo-sandbox-webhook-secret"
-  [LALAMOVE_API_KEY]="tap2go-lalamove-api-key"
-  [LALAMOVE_API_SECRET]="tap2go-lalamove-api-secret"
-  [LALAMOVE_SANDBOX_API_KEY]="tap2go-lalamove-sandbox-api-key"
-  [LALAMOVE_SANDBOX_API_SECRET]="tap2go-lalamove-sandbox-api-secret"
+  [DATABASE_URI]="kuya-cares-database-uri"
+  [PAYLOAD_SECRET]="kuya-cares-payload-secret"
+  [PAYLOAD_API_KEY]="kuya-cares-payload-api-key"
+  [UPSTASH_REDIS_REST_TOKEN]="kuya-cares-upstash-redis-rest-token"
+  [SUPABASE_SERVICE_ROLE_KEY]="kuya-cares-supabase-service-role-key"
+  [CLOUDINARY_API_KEY]="kuya-cares-cloudinary-api-key"
+  [CLOUDINARY_API_SECRET]="kuya-cares-cloudinary-api-secret"
+  [GOOGLE_MAPS_API_KEY]="kuya-cares-google-maps-api-key"
+  [RESEND_API_KEY]="kuya-cares-resend-api-key"
+  [PAYMONGO_SECRET_KEY_LIVE]="kuya-cares-paymongo-secret-key-live"
+  [PAYMONGO_SANDBOX_API_KEY]="kuya-cares-paymongo-sandbox-api-key"
+  [PAYMONGO_WEBHOOK_SECRET]="kuya-cares-paymongo-webhook-secret"
+  [PAYMONGO_SANDBOX_WEBHOOK_SECRET]="kuya-cares-paymongo-sandbox-webhook-secret"
+  [LALAMOVE_API_KEY]="kuya-cares-lalamove-api-key"
+  [LALAMOVE_API_SECRET]="kuya-cares-lalamove-api-secret"
+  [LALAMOVE_SANDBOX_API_KEY]="kuya-cares-lalamove-sandbox-api-key"
+  [LALAMOVE_SANDBOX_API_SECRET]="kuya-cares-lalamove-sandbox-api-secret"
 )
 
 # Keys that must never be uploaded (docs: reserved / injected).

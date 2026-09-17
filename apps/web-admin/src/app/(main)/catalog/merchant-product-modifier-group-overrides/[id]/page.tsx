@@ -79,7 +79,7 @@ function MerchantProductModifierGroupOverrideViewContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load override</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/catalog/merchant-product-modifier-group-overrides" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
+          <Link href="/catalog/merchant-product-modifier-group-overrides" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
         </div>
       </div>
     )
@@ -93,14 +93,14 @@ function MerchantProductModifierGroupOverrideViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-[#eba236] text-white flex items-center justify-center font-bold text-lg shrink-0"><Layers className="w-6 h-6" /></div>
+          <div className="h-12 w-12 rounded-xl bg-[#239459] text-white flex items-center justify-center font-bold text-lg shrink-0"><Layers className="w-6 h-6" /></div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Override #{doc.id}</h1>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{doc.mode} • {doc.is_active ? 'Active' : 'Inactive'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/catalog/merchant-product-modifier-group-overrides/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
+          <Link href={`/catalog/merchant-product-modifier-group-overrides/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
           <Link href="/catalog/merchant-product-modifier-group-overrides" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">Close</Link>
         </div>
       </div>
@@ -128,7 +128,7 @@ function MerchantProductModifierGroupOverrideViewContent() {
         </div>
         <div className="space-y-5">
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Timeline</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Timeline</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.createdAt)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Updated</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.updatedAt)}</span></div>

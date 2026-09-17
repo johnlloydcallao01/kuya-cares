@@ -150,7 +150,7 @@ export function OrderForm({ onSuccess, onCancel }: { onSuccess: () => void; onCa
           <div><label className={labelCls}>Coupon code</label><input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="Optional" className={`${inputCls} font-mono`} /></div>
           <div><label className={labelCls}>Placed at</label><input type="datetime-local" value={placedAt} onChange={(e) => setPlacedAt(e.target.value)} className={`${inputCls} font-mono`} /></div>
           <div className="sm:col-span-2"><label className={labelCls}>Notes</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Merchant instructions…" className={inputCls} /></div>
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-[#a1a1aa]"><input type="checkbox" checked={freeDelivery} onChange={(e) => setFreeDelivery(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236] focus:ring-[#eba236]" /> Free delivery applied</label>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-[#a1a1aa]"><input type="checkbox" checked={freeDelivery} onChange={(e) => setFreeDelivery(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459] focus:ring-[#239459]" /> Free delivery applied</label>
         </div>
 
         <div>
@@ -170,7 +170,7 @@ export function OrderForm({ onSuccess, onCancel }: { onSuccess: () => void; onCa
 
         <div className="flex gap-2">
           <button onClick={onCancel} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] text-sm font-medium bg-white dark:bg-[#171717] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-          <button onClick={submit} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#eba236] hover:bg-[#c88a20] text-white text-sm font-semibold disabled:opacity-50">{saving ? 'Creating…' : `Create order • ₱${total.toFixed(2)}`}</button>
+          <button onClick={submit} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-[#239459] hover:bg-[#215035] text-white text-sm font-semibold disabled:opacity-50">{saving ? 'Creating…' : `Create order • ₱${total.toFixed(2)}`}</button>
         </div>
       </div>
     </div>

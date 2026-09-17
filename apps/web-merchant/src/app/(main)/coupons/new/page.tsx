@@ -28,7 +28,7 @@ function NewCouponContent() {
         <ArrowLeft className="w-4 h-4" /> Back to coupons
       </button>
       <div className="flex items-center gap-3">
-        <span className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Ticket className="w-5 h-5" /></span>
+        <span className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Ticket className="w-5 h-5" /></span>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Create coupon</h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">A new promo code for your brand — platform-funded.</p>

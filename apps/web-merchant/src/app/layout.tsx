@@ -18,14 +18,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tap2Go Merchant Portal",
-  description: "Merchant portal for managing your Tap2Go restaurant operations",
-  keywords: "merchant portal, restaurant management, orders, analytics, Tap2Go",
-  authors: [{ name: "Tap2Go Merchant Team" }],
+  title: "Kuya Cares Merchant Portal",
+  description: "Merchant portal for managing your Kuya Cares restaurant operations",
+  keywords: "merchant portal, restaurant management, orders, analytics, Kuya Cares",
+  authors: [{ name: "Kuya Cares Merchant Team" }],
   robots: "noindex, nofollow",
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/favicon.png" }],
+  },
   openGraph: {
-    title: "Tap2Go Merchant Portal",
-    description: "Merchant portal for managing your Tap2Go restaurant operations.",
+    title: "Kuya Cares Merchant Portal",
+    description: "Merchant portal for managing your Kuya Cares restaurant operations.",
     type: "website",
   },
 };
@@ -50,7 +54,7 @@ export default async function RootLayout({ children }: LayoutProps) {
         <Script id="theme-init" strategy="beforeInteractive">
           {`
             (function() {
-              const theme = localStorage.getItem('tap2go-merchant-theme') || 'system';
+              const theme = localStorage.getItem('kuyacares-merchant-theme') || 'system';
               const resolved = theme === 'system'
                 ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
                 : theme;
@@ -72,8 +76,8 @@ export default async function RootLayout({ children }: LayoutProps) {
                 <div className="facebook-logo">
                   {/* @ts-ignore -- Next.js Image component type issue with React 19 */}
                   <Image
-                    src="/logo.png"
-                    alt="Tap2Go Merchant Logo"
+                    src="/kuya-cares.png"
+                    alt="Kuya Cares Merchant Logo"
                     width={48}
                     height={48}
                     className="facebook-logo-image"
@@ -89,7 +93,7 @@ export default async function RootLayout({ children }: LayoutProps) {
 
               {/* Loading Text */}
               <div className="facebook-loading-text">
-                <h2>Tap2Go Merchant Portal</h2>
+                <h2>Kuya Cares Merchant Portal</h2>
                 <p>Loading your portal...</p>
               </div>
 

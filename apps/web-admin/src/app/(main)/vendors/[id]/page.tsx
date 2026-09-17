@@ -111,7 +111,7 @@ function VendorViewContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load vendor</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/vendors" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
+          <Link href="/vendors" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
         </div>
       </div>
     )
@@ -125,14 +125,14 @@ function VendorViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold text-lg shrink-0">{initials(doc.businessName)}</div>
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold text-lg shrink-0">{initials(doc.businessName)}</div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{doc.businessName}</h1>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{doc.legalName} • {businessLabel(doc.businessType)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/vendors/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
+          <Link href={`/vendors/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
           <Link href="/vendors" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">Close</Link>
         </div>
       </div>
@@ -140,7 +140,7 @@ function VendorViewContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Verification</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${verificationBadge(doc.verificationStatus)}`}>{doc.verificationStatus}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Status</p><p className={`mt-2 font-semibold text-sm ${doc.isActive ? 'text-emerald-600' : 'text-zinc-500'}`}>{doc.isActive ? 'Active partner' : 'Inactive'}</p><p className="text-xs text-gray-500 mt-1">Onboarded {fmtDate(doc.onboardingDate || doc.createdAt)}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Outlets</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Store className="w-5 h-5 text-[#eba236]" /> {doc.totalMerchants}</p><p className="text-xs text-gray-500">merchant stores</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Outlets</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Store className="w-5 h-5 text-[#239459]" /> {doc.totalMerchants}</p><p className="text-xs text-gray-500">merchant stores</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Rating</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Star className="w-5 h-5 text-amber-400" /> {doc.averageRating ? doc.averageRating.toFixed(1) : '—'} <span className="text-sm font-normal text-gray-500">({doc.totalReviews})</span></p><p className="text-xs text-gray-500">{doc.totalOrders} total orders</p></div>
       </div>
 
@@ -173,21 +173,21 @@ function VendorViewContent() {
             <Section title="Business Documents">
               <div className="p-4 grid grid-cols-3 gap-3 text-center">
                 {doc.logo?.url ? (
-                  <a href={doc.logo.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#eba236]">
+                  <a href={doc.logo.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#239459]">
                     <img src={doc.logo.url} alt="Logo" className="h-12 w-12 rounded-lg object-cover" />
-                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#eba236]">Logo</span>
+                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#239459]">Logo</span>
                   </a>
                 ) : null}
                 {doc.businessLicense?.url ? (
-                  <a href={doc.businessLicense.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#eba236]">
-                    <FileText className="w-8 h-8 text-gray-400 group-hover:text-[#eba236]" />
-                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#eba236]">License</span>
+                  <a href={doc.businessLicense.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#239459]">
+                    <FileText className="w-8 h-8 text-gray-400 group-hover:text-[#239459]" />
+                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#239459]">License</span>
                   </a>
                 ) : null}
                 {doc.taxCertificate?.url ? (
-                  <a href={doc.taxCertificate.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#eba236]">
-                    <FileText className="w-8 h-8 text-gray-400 group-hover:text-[#eba236]" />
-                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#eba236]">Tax Cert</span>
+                  <a href={doc.taxCertificate.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-[#262626] p-3 hover:border-[#239459]">
+                    <FileText className="w-8 h-8 text-gray-400 group-hover:text-[#239459]" />
+                    <span className="text-xs text-gray-600 dark:text-[#a1a1aa] group-hover:text-[#239459]">Tax Cert</span>
                   </a>
                 ) : null}
               </div>
@@ -220,7 +220,7 @@ function VendorViewContent() {
             </Section>
           )}
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Timeline</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Timeline</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.createdAt)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Updated</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.updatedAt)}</span></div>

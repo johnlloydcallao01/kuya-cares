@@ -99,7 +99,7 @@ function CouponDetailContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load coupon</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/coupons" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Back</Link>
+          <Link href="/coupons" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Back</Link>
         </div>
       </div>
     )
@@ -113,21 +113,21 @@ function CouponDetailContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center shrink-0"><Ticket className="w-6 h-6" /></div>
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center shrink-0"><Ticket className="w-6 h-6" /></div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight font-mono">{doc.code}</h1>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{discountSummary(doc)} • {vendorName(doc.vendor)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/coupons/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
+          <Link href={`/coupons/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
           <Link href="/coupons" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626]">Close</Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Status</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${statusBadge(doc.status)}`}>{doc.status}</p><p className="text-xs text-gray-500 mt-1">Updated {fmtDate(doc.updatedAt)}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Usage</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><TrendingUp className="w-5 h-5 text-[#eba236]" /> {doc.usage_count}{doc.usage_limit > 0 ? ` / ${doc.usage_limit}` : ''}</p><p className="text-xs text-gray-500">{doc.usage_limit_per_user > 0 ? `max ${doc.usage_limit_per_user} per customer` : 'no per-customer cap'}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Usage</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><TrendingUp className="w-5 h-5 text-[#239459]" /> {doc.usage_count}{doc.usage_limit > 0 ? ` / ${doc.usage_limit}` : ''}</p><p className="text-xs text-gray-500">{doc.usage_limit_per_user > 0 ? `max ${doc.usage_limit_per_user} per customer` : 'no per-customer cap'}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Discount</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><DollarSign className="w-5 h-5 text-emerald-600" /> {discountSummary(doc)}</p><p className="text-xs text-gray-500">{doc.free_delivery ? ' + free delivery' : doc.applies_to === 'both' ? 'food + delivery' : doc.applies_to === 'delivery_fee' ? 'delivery fee' : 'food subtotal'}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Validity</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Clock className="w-5 h-5 text-amber-500" /> {doc.expires_at ? fmtDate(doc.expires_at) : 'No expiry'}</p><p className="text-xs text-gray-500">{doc.minimum_basket ? `min ${fmtMoney(doc.minimum_basket)}` : 'no minimum basket'}</p></div>
       </div>
@@ -180,10 +180,10 @@ function CouponDetailContent() {
                 ))}
               </div>
             ) : <div className="p-6 text-sm text-gray-500 text-center">No redemptions yet — share this code to start tracking usage.</div>}
-            <div className="px-4 py-3"><Link href="/coupons/usage" className="text-xs font-semibold text-[#eba236] hover:underline">Open full usage report →</Link></div>
+            <div className="px-4 py-3"><Link href="/coupons/usage" className="text-xs font-semibold text-[#239459] hover:underline">Open full usage report →</Link></div>
           </Section>
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Timeline</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Timeline</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.createdAt)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Updated</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.updatedAt)}</span></div>

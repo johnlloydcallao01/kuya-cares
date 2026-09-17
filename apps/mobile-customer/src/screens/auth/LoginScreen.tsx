@@ -66,7 +66,7 @@ export default function LoginScreen() {
                     resizeMode="contain"
                   />
                 </View>
-                <Text className="text-3xl font-bold text-gray-900 mb-1">Tap2Go</Text>
+                <Text className="text-3xl font-bold text-gray-900 mb-1">Kuya Cares</Text>
                 <Text className="text-[#eba336] text-base">Food Delivery from Laguna</Text>
               </View>
 

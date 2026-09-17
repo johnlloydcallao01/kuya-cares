@@ -631,7 +631,7 @@ export default function CheckoutScreen() {
 
       // 1. Create Payment Method directly with PayMongo API
       const billing = {
-        name: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Tap2Go Customer',
+        name: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Kuya Cares Customer',
         email: user.email || 'customer@example.com',
         phone: '',
         address: { line1: '', line2: '', city: '', state: '', postal_code: '', country: 'PH' },
@@ -893,7 +893,7 @@ export default function CheckoutScreen() {
         },
       });
       const returnUrlAPI =
-        `https://app.tap2goph.com/checkout/${merchantId}/return?` +
+        `https://app.kuyacares.com/checkout/${merchantId}/return?` +
         `payment_intent_id=${encodeURIComponent(intentId)}` +
         `&order_id=${encodeURIComponent(String(createdOrderId))}` +
         `&app_redirect=${encodeURIComponent(appReturnUrl)}`;

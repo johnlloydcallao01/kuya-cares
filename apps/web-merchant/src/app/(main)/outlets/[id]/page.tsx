@@ -138,7 +138,7 @@ function OutletViewContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load outlet</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/outlets" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
+          <Link href="/outlets" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</Link>
         </div>
       </div>
     );
@@ -152,7 +152,7 @@ function OutletViewContent() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
             {doc.media?.thumbnail?.url ? <img src={doc.media.thumbnail.url} alt={doc.outletName} className="h-12 w-12 rounded-xl object-cover" /> : doc.outletName.slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -161,7 +161,7 @@ function OutletViewContent() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/outlets/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Edit className="w-4 h-4" /> Edit</Link>
+          <Link href={`/outlets/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Edit className="w-4 h-4" /> Edit</Link>
           <Link href="/outlets" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50">Close</Link>
         </div>
       </div>
@@ -169,7 +169,7 @@ function OutletViewContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Operational Status</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${operationalBadge(doc.operationalStatus)}`}>{doc.operationalStatus.replace('_', ' ')}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Active</p><p className={`mt-2 font-semibold text-sm ${doc.isActive ? 'text-emerald-600' : 'text-zinc-500'}`}>{doc.isActive ? 'Active branch' : 'Inactive'}</p><p className="text-xs text-gray-500 mt-1">{doc.isAcceptingOrders ? 'Accepting orders' : 'Not accepting'}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Delivery Radius</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Truck className="w-5 h-5 text-[#eba236]" /> {(doc.deliverySettings.deliveryRadiusMeters / 1000).toFixed(1)} km</p><p className="text-xs text-gray-500">Min ₱{doc.deliverySettings.minimumOrderAmount} • Fee ₱{doc.deliverySettings.deliveryFee}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Delivery Radius</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Truck className="w-5 h-5 text-[#239459]" /> {(doc.deliverySettings.deliveryRadiusMeters / 1000).toFixed(1)} km</p><p className="text-xs text-gray-500">Min ₱{doc.deliverySettings.minimumOrderAmount} • Fee ₱{doc.deliverySettings.deliveryFee}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Location</p><p className="mt-2 font-semibold text-sm text-gray-900 dark:text-white truncate">{doc.address?.locality || '—'}</p><p className="text-xs text-gray-500 truncate">{doc.address?.province || doc.address?.formattedAddress || '—'}</p></div>
       </div>
 

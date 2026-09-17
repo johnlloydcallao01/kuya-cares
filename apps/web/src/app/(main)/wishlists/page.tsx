@@ -347,13 +347,13 @@ export default function WishlistsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 text-sm"
-              style={{ '--tw-ring-color': '#eba236' } as any}
+              style={{ '--tw-ring-color': '#239459' } as any}
             />
             {searchQuery && (
               <button
                 onClick={handleClearSearch}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-white rounded-r-lg px-3 hover:opacity-90 transition-colors"
-                style={{ backgroundColor: '#eba236' }}
+                style={{ backgroundColor: '#239459' }}
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -365,7 +365,7 @@ export default function WishlistsPage() {
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === 'all'
-                  ? 'bg-[#eba236] text-white'
+                  ? 'bg-[#239459] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -376,7 +376,7 @@ export default function WishlistsPage() {
               onClick={() => setActiveTab('merchants')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === 'merchants'
-                  ? 'bg-[#eba236] text-white'
+                  ? 'bg-[#239459] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -387,7 +387,7 @@ export default function WishlistsPage() {
               onClick={() => setActiveTab('products')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeTab === 'products'
-                  ? 'bg-[#eba236] text-white'
+                  ? 'bg-[#239459] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -444,7 +444,7 @@ export default function WishlistsPage() {
               <button
                 onClick={handleClearSearch}
                 className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium"
-                style={{ backgroundColor: '#eba236' }}
+                style={{ backgroundColor: '#239459' }}
               >
                 Clear Search
               </button>

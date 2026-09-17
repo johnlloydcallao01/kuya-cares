@@ -100,7 +100,7 @@ export interface LocationBasedProductCategoriesServiceOptions {
 }
 
 export class LocationBasedProductCategoriesService {
-  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
   
   /**
    * Fetch location-based product categories from CMS (Client-side) with caching

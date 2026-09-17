@@ -106,7 +106,7 @@ export function AttributeForm({ initial, onSuccess, onCancel }: { initial?: Attr
         {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}</div>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#eba236]" /> Basic Information</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#239459]" /> Basic Information</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2"><label className={labelCls}>Name * <span className="text-gray-400 font-normal">(e.g. Size, Color, Flavor)</span></label><input value={form.name} onChange={(e) => set('name', e.target.value)} onBlur={(e) => { if (!form.slug.trim()) set('slug', slugify(e.target.value)) }} placeholder="Color" className={inputCls} /></div>
             <div>
@@ -122,7 +122,7 @@ export function AttributeForm({ initial, onSuccess, onCancel }: { initial?: Attr
             </div>
             <div className="sm:col-span-2 flex items-center gap-3 pt-2">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+                <input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
                 <span className="text-sm font-medium text-gray-700 dark:text-white">Active</span>
               </label>
               <span className="text-xs text-gray-400">Inactive attributes are hidden from product forms.</span>
@@ -132,7 +132,7 @@ export function AttributeForm({ initial, onSuccess, onCancel }: { initial?: Attr
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create attribute'}
         </button>
       </div>

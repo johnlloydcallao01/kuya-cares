@@ -184,7 +184,7 @@ export default function ForgotPasswordPage() {
 
               <div className="mt-8 text-center">
                 <p className="text-xs text-gray-400 dark:text-[#a1a1aa]">
-                  &copy; 2025 Kuya Cares. All rights reserved.
+                  &copy; {new Date().getFullYear()} Kuya Cares. All rights reserved.
                 </p>
               </div>
             </div>

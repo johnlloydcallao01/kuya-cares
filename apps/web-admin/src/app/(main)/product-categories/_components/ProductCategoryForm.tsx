@@ -177,7 +177,7 @@ export function ProductCategoryForm({ initial, onSuccess, onCancel }: { initial?
         {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}</div>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Tag className="w-4 h-4 text-[#eba236]" /> Basic Information</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Tag className="w-4 h-4 text-[#239459]" /> Basic Information</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2"><label className={labelCls}>Name *</label><input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Main Dishes, Beverages, Pharmacy…" className={inputCls} /></div>
             <div className="sm:col-span-2"><label className={labelCls}>Slug * <span className="text-gray-400 font-normal">(auto from name, unique)</span></label><input value={form.slug} onChange={(e) => set('slug', e.target.value)} placeholder="main-dishes" className={`${inputCls} font-mono`} /></div>
@@ -205,14 +205,14 @@ export function ProductCategoryForm({ initial, onSuccess, onCancel }: { initial?
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className={labelCls}><Hash className="w-3.5 h-3.5 inline mr-1" />Display order</label><input type="number" value={form.displayOrder} onChange={(e) => set('displayOrder', e.target.value)} placeholder="0" className={inputCls} /></div>
             <div className="flex items-center gap-4 pt-6">
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active</span></label>
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isFeatured} onChange={(e) => set('isFeatured', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-amber-500" /> Featured</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isFeatured} onChange={(e) => set('isFeatured', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-amber-500" /> Featured</span></label>
             </div>
           </div>
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#eba236]" /> Visual</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#239459]" /> Visual</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div><label className={labelCls}>Icon (SVG)</label><MediaUploader value={iconId} onChange={(id) => setIconId(id)} accept="image/*" className="mt-1" /></div>
             <div><label className={labelCls}>Banner image</label><MediaUploader value={bannerId} onChange={(id) => setBannerId(id)} accept="image/*" className="mt-1" /></div>
@@ -221,12 +221,12 @@ export function ProductCategoryForm({ initial, onSuccess, onCancel }: { initial?
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Store className="w-4 h-4 text-[#eba236]" /> Attributes</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Store className="w-4 h-4 text-[#239459]" /> Attributes</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Category type</label><select value={form.categoryType} onChange={(e) => set('categoryType', e.target.value)} className={inputCls}><option value="">— Select —</option>{CATEGORY_TYPES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className={labelCls}>Age restriction</label><select value={form.ageRestriction} onChange={(e) => set('ageRestriction', e.target.value)} className={inputCls}>{AGE_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div className="sm:col-span-2"><label className={labelCls}>Dietary tags <span className="text-gray-400 font-normal">(comma-separated)</span></label><input value={form.dietaryTags} onChange={(e) => set('dietaryTags', e.target.value)} placeholder="vegan, gluten-free, halal" className={inputCls} /></div>
-            <div className="sm:col-span-2 flex items-center gap-2 pt-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.requiresPrescription} onChange={(e) => set('requiresPrescription', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white flex items-center gap-1"><ShieldCheck className="w-4 h-4 text-amber-600" /> Requires prescription</span></label></div>
+            <div className="sm:col-span-2 flex items-center gap-2 pt-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.requiresPrescription} onChange={(e) => set('requiresPrescription', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white flex items-center gap-1"><ShieldCheck className="w-4 h-4 text-amber-600" /> Requires prescription</span></label></div>
           </div>
         </div>
 
@@ -242,7 +242,7 @@ export function ProductCategoryForm({ initial, onSuccess, onCancel }: { initial?
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create category'}
         </button>
       </div>

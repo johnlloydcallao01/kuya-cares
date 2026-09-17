@@ -125,7 +125,7 @@ export const deliveryBookHandler = async (req: PayloadRequest) => {
     let senderPhone = merchant.contactInfo?.phone || '+639000000000'
 
     // Recipient = customer (dropoff)
-    let recipientName = 'Tap2Go Customer'
+    let recipientName = 'Kuya Cares Customer'
     let recipientPhone = '+639000000000'
 
     if (customer) {

@@ -139,7 +139,7 @@ function MerchantProductsListPageContent(){
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load products</h3><p className="text-sm text-gray-500 mt-1">{error}</p>
-          <button onClick={()=>void load()} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4" /> Retry</button>
+          <button onClick={()=>void load()} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4" /> Retry</button>
         </div>
       </div>
     )
@@ -153,7 +153,7 @@ function MerchantProductsListPageContent(){
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
             {(merchant as any)?.media?.thumbnail?.url || (merchant as any)?.thumbnail?.url ? (
               <img src={(merchant as any).media?.thumbnail?.url || (merchant as any).thumbnail?.url} alt={merchant?.outletName || 'Outlet'} className="h-10 w-10 object-cover" />
             ) : vendor?.logo?.url ? (
@@ -168,7 +168,7 @@ function MerchantProductsListPageContent(){
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Plus className="w-4 h-4" /> Assign Product
           </Link>
         </div>
@@ -177,7 +177,7 @@ function MerchantProductsListPageContent(){
       <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-3 shadow-sm">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search product, SKU, slug…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search product, SKU, slug…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
           {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
         </div>
       </div>
@@ -188,7 +188,7 @@ function MerchantProductsListPageContent(){
             <div className="h-16 w-16 bg-gray-100 dark:bg-[#262626] rounded-2xl flex items-center justify-center mb-4"><Package className="w-8 h-8 text-gray-400" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No products for this outlet</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Assign a product to this merchant to get started.</p>
-            <Link href="/products/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> Assign Product</Link>
+            <Link href="/products/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> Assign Product</Link>
           </div>
         ) : (
           <>
@@ -244,7 +244,7 @@ function MerchantProductsListPageContent(){
                   <button disabled={loading || page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                   {Array.from({length:Math.min(5,totalPages)}).map((_,i)=>{
                     const n=Math.max(1,Math.min(totalPages-4,page-2))+i; if(n>totalPages) return null
-                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

@@ -522,7 +522,7 @@ export default function OrderDetailScreen() {
       ? 'A rider was matched but could not accept this delivery. We’ll stop trying and this delivery won’t be completed.'
       : delivery?.status === 'expired' || order.delivery_status === 'expired'
         ? 'No rider accepted this delivery in time. This delivery was not completed.'
-        : 'This delivery could not be completed. Your order will not be delivered by a Tap2Go rider.';
+        : 'This delivery could not be completed. Your order will not be delivered by a Kuya Cares rider.';
   const activeIdx = getActiveStepIndex(
     delivery?.status || order.delivery_status || order.status || 'pending',
   );
@@ -542,7 +542,7 @@ export default function OrderDetailScreen() {
   // Recipient = customer (dropoff)
   const recipientName = deliveryLocation?.contact_name ||
     [customerUser?.firstName, customerUser?.lastName].filter(Boolean).join(' ') ||
-    (order.customer?.email ? order.customer.email : 'Tap2Go Customer');
+    (order.customer?.email ? order.customer.email : 'Kuya Cares Customer');
   const recipientPhone = deliveryLocation?.contact_phone || customerUser?.phone || '+639000000000';
   const notesForRider = [
     deliveryLocation?.merchant_delivery_instructions,

@@ -178,7 +178,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
 
         {/* 1. Personal Information */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><UserIcon className="w-4 h-4 text-[#eba236]" /> Personal Information</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><UserIcon className="w-4 h-4 text-[#239459]" /> Personal Information</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>First name *</label><input value={form.firstName} onChange={(e) => set('firstName', e.target.value)} placeholder="Juan" className={inputCls} /></div>
             <div><label className={labelCls}>Last name *</label><input value={form.lastName} onChange={(e) => set('lastName', e.target.value)} placeholder="Dela Cruz" className={inputCls} /></div>
@@ -215,7 +215,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-amber-600" /> Account & Role</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Role *</label><select value={form.role} onChange={(e) => set('role', e.target.value)} className={inputCls}>{ROLE_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active account</span><span className="text-xs text-gray-400"> — inactive users cannot log in</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active account</span><span className="text-xs text-gray-400"> — inactive users cannot log in</span></label></div>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
 
         {/* 6. Profile Picture (Payload upload) */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#eba236]" /> Profile Picture</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#239459]" /> Profile Picture</h4>
           <div className="max-w-sm">
             <label className={labelCls}><ImageIcon className="w-3.5 h-3.5 inline mr-1" /> Avatar image</label>
             <MediaUploader value={profilePictureId} onChange={(id) => setProfilePictureId(id)} accept="image/*" className="mt-1" />
@@ -242,7 +242,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create user'}
         </button>
       </div>

@@ -31,7 +31,7 @@ function NewMerchantCategoryContent() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Tag className="w-5 h-5" /></div>
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Tag className="w-5 h-5" /></div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">New merchant category</h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">Create a category for organizing merchant outlets.</p>

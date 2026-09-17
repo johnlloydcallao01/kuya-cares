@@ -8,7 +8,7 @@ import ImageWrapper from '@/components/ui/ImageWrapper';
  * Features professional referral system with minimal design
  */
 export default function InviteFriendsPage() {
-  const [referralCode] = useState('TAP2GO-JD2024');
+  const [referralCode] = useState('KUYACARES-JD2024');
   const [inviteMethod, setInviteMethod] = useState('link');
   const [friendEmail, setFriendEmail] = useState('');
 
@@ -62,7 +62,7 @@ export default function InviteFriendsPage() {
   };
 
   const handleCopyLink = () => {
-    const referralLink = `https://tap2go.com/join?ref=${referralCode}`;
+    const referralLink = `https://kuyacares.com/join?ref=${referralCode}`;
     navigator.clipboard.writeText(referralLink);
     console.log('Referral link copied');
   };
@@ -178,8 +178,8 @@ export default function InviteFriendsPage() {
               onClick={handleCopyCode}
               className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
               style={{
-                border: '1px solid #eba236',
-                color: '#eba236',
+                border: '1px solid #239459',
+                color: '#239459',
                 backgroundColor: 'white'
               }}
             >
@@ -236,15 +236,15 @@ export default function InviteFriendsPage() {
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-sm text-gray-600 mb-2">Your referral link:</p>
                 <p className="font-mono text-sm text-gray-900 break-all">
-                  https://tap2go.com/join?ref={referralCode}
+                  https://kuyacares.com/join?ref={referralCode}
                 </p>
               </div>
               <button
                 onClick={handleCopyLink}
                 className="w-full py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 style={{
-                  border: '1px solid #eba236',
-                  color: '#eba236',
+                  border: '1px solid #239459',
+                  color: '#239459',
                   backgroundColor: 'white'
                 }}
               >
@@ -274,8 +274,8 @@ export default function InviteFriendsPage() {
                 disabled={!friendEmail}
                 className="w-full py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  border: '1px solid #eba236',
-                  color: '#eba236',
+                  border: '1px solid #239459',
+                  color: '#239459',
                   backgroundColor: 'white'
                 }}
               >

@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_DIR="/home/opc/tap2go"
+APP_DIR="/home/opc/kuyacares"
 ENV_FILE="/home/opc/original-cms.env"
-REPO_URL="https://github.com/johnlloydcallao01/tap2go.git"
-SERVICE_NAME="tap2go-cms"
+REPO_URL="https://github.com/johnlloydcallao01/kuyacares.git"
+SERVICE_NAME="kuya-cares-cms"
 
 log() { echo "[bootstrap-cms] $*"; }
 
@@ -16,7 +16,7 @@ fi
 if [ ! -f "$ENV_FILE" ]; then
   log "ERROR: $ENV_FILE not found."
   log "Upload your local env file first from Windows:"
-  log "  scp -i <key> tap2go/apps/cms/.env opc@<new-ip>:/home/opc/original-cms.env"
+  log "  scp -i <key> kuyacares/apps/cms/.env opc@<new-ip>:/home/opc/original-cms.env"
   exit 1
 fi
 
@@ -56,18 +56,18 @@ NEW_IP=$(curl -s http://169.254.169.254/opc/v2/vnics/ | grep -o '"publicIp": *"[
 log "Detected public IP: ${NEW_IP:-unknown}"
 
 log "Installing nginx site"
-sudo cp "$APP_DIR/apps/cms/deploy/tap2go-cms.nginx.http-only.conf" /etc/nginx/sites-available/tap2go-cms.conf
+sudo cp "$APP_DIR/apps/cms/deploy/kuya-cares-cms.nginx.http-only.conf" /etc/nginx/sites-available/kuya-cares-cms.conf
 if [ -n "${NEW_IP:-}" ]; then
-  sudo sed -i "s/140\.245\.35\.15/$NEW_IP/" /etc/nginx/sites-available/tap2go-cms.conf
+  sudo sed -i "s/140\.245\.35\.15/$NEW_IP/" /etc/nginx/sites-available/kuya-cares-cms.conf
 fi
-sudo ln -sf /etc/nginx/sites-available/tap2go-cms.conf /etc/nginx/sites-enabled/tap2go-cms.conf
+sudo ln -sf /etc/nginx/sites-available/kuya-cares-cms.conf /etc/nginx/sites-enabled/kuya-cares-cms.conf
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo mkdir -p /var/www/acme
 sudo nginx -t
 sudo systemctl reload nginx
 
 log "Installing systemd service"
-sudo cp "$APP_DIR/apps/cms/deploy/tap2go-cms.service" /etc/systemd/system/$SERVICE_NAME.service
+sudo cp "$APP_DIR/apps/cms/deploy/kuya-cares-cms.service" /etc/systemd/system/$SERVICE_NAME.service
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME
 
@@ -76,6 +76,6 @@ log "Running first deploy (git pull, pnpm install, build, start)"
 
 PUBLIC_IP=$(curl -s https://api.ipify.org || echo "<your-ip>")
 log "Bootstrap complete. CMS should be live on port 80 at http://$PUBLIC_IP"
-log "Next: point DNS cms.tap2goph.com -> $PUBLIC_IP, then run:"
+log "Next: point DNS cms.kuyacaresph.com -> $PUBLIC_IP, then run:"
 log "  sudo apt-get install -y certbot python3-certbot-nginx"
-log "  sudo certbot --nginx -d cms.tap2goph.com"
+log "  sudo certbot --nginx -d cms.kuyacaresph.com"

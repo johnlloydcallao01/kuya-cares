@@ -292,9 +292,9 @@ export default function MerchantProductGrid({ products, categories }: { products
                                 )}
                               </>
                             ) : p.productType === "variable" ? (
-                              <span className="text-sm font-medium text-[#eba236]">Show Variations</span>
+                              <span className="text-sm font-medium text-[#239459]">Show Variations</span>
                             ) : p.productType === "grouped" ? (
-                              <span className="text-sm font-medium text-[#eba236]">Show Grouped Items</span>
+                              <span className="text-sm font-medium text-[#239459]">Show Grouped Items</span>
                             ) : null}
                           </div>
                           {p.shortDescription && (

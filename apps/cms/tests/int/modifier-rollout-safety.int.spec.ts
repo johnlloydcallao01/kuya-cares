@@ -75,7 +75,7 @@ function createBaseCollections(overrides: CollectionMap = {}): CollectionMap {
     merchants: [
       {
         id: 300,
-        outletName: 'Tap2Go Burgers',
+        outletName: 'Kuya Cares Burgers',
         vendor: 700,
       },
     ],

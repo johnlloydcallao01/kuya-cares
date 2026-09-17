@@ -27,7 +27,7 @@ export function NotificationsPanel({ mode = 'page', onClose }: { mode?: 'page' |
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-              <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center">
+              <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center">
                 <i className="fa fa-bell text-base leading-none" />
               </span>
               Notifications

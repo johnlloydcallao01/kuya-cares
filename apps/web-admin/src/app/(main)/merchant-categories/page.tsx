@@ -145,7 +145,7 @@ function MerchantCategoriesPageContent(){
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Tag className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Tag className="w-4 h-4" /></span>
             Merchant Categories
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Organize outlets by category — cuisine, store type, and featured placement.</p>
@@ -154,7 +154,7 @@ function MerchantCategoriesPageContent(){
           <button onClick={handleHardRefresh} disabled={loading} aria-label="Refresh" className="h-9 w-9 inline-flex items-center justify-center bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-[#a1a1aa] ${loading?'animate-spin':''}`} />
           </button>
-          <Link href="/merchant-categories/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href="/merchant-categories/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Plus className="w-4 h-4" /> New Category
           </Link>
         </div>
@@ -162,7 +162,7 @@ function MerchantCategoriesPageContent(){
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Categories" value={String(stats.total)} sub={`${stats.filteredCount} filtered`} icon={<Layers className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Categories" value={String(stats.total)} sub={`${stats.filteredCount} filtered`} icon={<Layers className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Active" value={String(stats.activeCount)} sub={`${stats.inactiveCount} inactive`} icon={<CheckCircle className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Featured" value={String(stats.featuredCount)} sub={`${stats.total - stats.featuredCount} standard`} icon={<Star className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
           <KpiCard title="Display Order" value={docs.length?String(Math.min(...docs.map(d=>d.displayOrder))):'—'} sub="lowest first" icon={<Hash className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
@@ -177,7 +177,7 @@ function MerchantCategoriesPageContent(){
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search name, slug, description…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search name, slug, description…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -191,8 +191,8 @@ function MerchantCategoriesPageContent(){
               </select>
             </div>
             <span className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-600 dark:text-[#a1a1aa]">10 / page</span>
-            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
+            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
             </button>
             {activeFilterCount>0 && <button onClick={()=>{setQ('');setDebouncedQ('');setIsActiveFilter(null);setIsFeaturedFilter(null)}} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
           </div>
@@ -210,7 +210,7 @@ function MerchantCategoriesPageContent(){
                     return <button key={key} onClick={()=>{
                       if(key==='active') setIsActiveFilter(isActiveFilter===true?null:true)
                       else setIsActiveFilter(isActiveFilter===false?null:false)
-                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
+                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
                   })}
                 </div>
               </div>
@@ -224,12 +224,12 @@ function MerchantCategoriesPageContent(){
                     return <button key={key} onClick={()=>{
                       if(key==='featured') setIsFeaturedFilter(isFeaturedFilter===true?null:true)
                       else setIsFeaturedFilter(isFeaturedFilter===false?null:false)
-                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
+                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
                   })}
                 </div>
               </div>
             </div>
-            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
       </div>
@@ -239,17 +239,17 @@ function MerchantCategoriesPageContent(){
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load categories</h3><p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
+            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
           </div>
         )}
         {isInitialLoading ? (
           <div className="p-4 space-y-3 animate-pulse">{Array.from({length:6}).map((_,i)=><div key={i} className="h-16 bg-gray-100 dark:bg-[#0a0a0a] rounded-lg" />)}</div>
         ) : !error && docs.length===0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Tag className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Tag className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No categories found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Try adjusting search or filters, or create your first merchant category.</p>
-            <Link href="/merchant-categories/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> New Category</Link>
+            <Link href="/merchant-categories/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> New Category</Link>
           </div>
         ) : !error && (
           <>
@@ -270,7 +270,7 @@ function MerchantCategoriesPageContent(){
                     <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-[#262626] dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-[180px]">
-                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
                             {d.icon?.url ? <img src={d.icon.url} alt={d.name} className="h-9 w-9 object-cover" /> : initials(d.name)}
                           </div>
                           <div className="min-w-0">
@@ -280,7 +280,7 @@ function MerchantCategoriesPageContent(){
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell"><span className="font-mono text-xs text-gray-700 dark:text-[#a1a1aa] bg-gray-100 dark:bg-[#262626] border border-gray-200 dark:border-[#333] px-2 py-1 rounded-full">{d.slug}</span></td>
-                      <td className="px-4 py-3 hidden lg:table-cell"><span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white"><Building className="w-3 h-3 text-[#eba236]" /> {d.merchantCount}</span></td>
+                      <td className="px-4 py-3 hidden lg:table-cell"><span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white"><Building className="w-3 h-3 text-[#239459]" /> {d.merchantCount}</span></td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
                           <span className={`inline-flex w-fit px-2 py-0.5 rounded-full text-xs font-semibold border ${d.isActive?'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300':'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'}`}>{d.isActive?'Active':'Inactive'}</span>
@@ -307,7 +307,7 @@ function MerchantCategoriesPageContent(){
                   <button disabled={loading || !pagination.hasPrevPage} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                   {Array.from({length:Math.min(5,pagination.totalPages)}).map((_,i)=>{
                     const n=Math.max(1,Math.min(pagination.totalPages-4,page-2))+i; if(n>pagination.totalPages) return null
-                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={()=>setPage(p=>Math.min(pagination.totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

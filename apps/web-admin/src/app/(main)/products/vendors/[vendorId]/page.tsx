@@ -106,7 +106,7 @@ function VendorMerchantsPageContent(){
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
           {vendor?.logo?.url ? <img src={vendor.logo.url} alt={vendor.businessName} className="h-10 w-10 object-cover" /> : vendor ? initials(vendor.businessName) : 'V'}
         </div>
         <div>
@@ -118,7 +118,7 @@ function VendorMerchantsPageContent(){
       <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-3 shadow-sm">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search outlet, code…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search outlet, code…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
           {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
         </div>
       </div>
@@ -136,7 +136,7 @@ function VendorMerchantsPageContent(){
               {paged.map(m=>(
                 <Link key={m.id} href={`/products/vendors/${vendorId}/merchants/${m.id}`} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#262626] dark:hover:bg-[#0a0a0a] transition">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
                       {(m as any).media?.thumbnail?.url ? <img src={(m as any).media.thumbnail.url} alt={m.outletName} className="h-9 w-9 object-cover" /> : initials(m.outletName)}
                     </div>
                     <div className="min-w-0">
@@ -158,7 +158,7 @@ function VendorMerchantsPageContent(){
                   <button disabled={loading || page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                   {Array.from({length:Math.min(5,totalPages)}).map((_,i)=>{
                     const n=Math.max(1,Math.min(totalPages-4,page-2))+i; if(n>totalPages) return null
-                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

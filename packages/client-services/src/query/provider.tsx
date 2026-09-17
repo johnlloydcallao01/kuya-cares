@@ -9,7 +9,7 @@ interface AppQueryProviderProps {
 }
 
 /**
- * Shared TanStack provider for all Tap2Go Next.js / RN apps.
+ * Shared TanStack provider for all Kuya Cares Next.js / RN apps.
  * Uses useState singleton so back-nav within the SPA reuses the same cache
  * (3-min staleTime from makeQueryClient), while SSR gets a fresh client.
  */

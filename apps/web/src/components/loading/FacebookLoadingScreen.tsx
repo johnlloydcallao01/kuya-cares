@@ -17,7 +17,7 @@ interface FacebookLoadingScreenProps {
  * - Smooth progress indicator
  * - Only shows on full page reloads, not SPA navigation
  * - Integrates with authentication flow
- * - Uses brand colors: #ab3b43 (accent) and #201a7c (primary)
+ * - Uses brand colors: #239459 (accent) and #215035 (primary)
  */
 export function FacebookLoadingScreen({ isVisible, progress = 0 }: FacebookLoadingScreenProps): React.ReactNode {
   if (!isVisible) return null;
@@ -35,7 +35,7 @@ export function FacebookLoadingScreen({ isVisible, progress = 0 }: FacebookLoadi
               {/* @ts-ignore -- Next.js Image component type issue with React 19 */}
               <Image
                 src="/kuya-cares.png"
-                alt="Calsiter Inc Logo"
+                alt="Kuya Cares Logo"
                 width={64}
                 height={64}
                 className="facebook-logo-image"
@@ -51,7 +51,7 @@ export function FacebookLoadingScreen({ isVisible, progress = 0 }: FacebookLoadi
 
           {/* Loading Text */}
           <div className="facebook-loading-text">
-            <h2>Tap2go</h2>
+            <h2>Kuya Cares</h2>
             <p>Loading your experience...</p>
           </div>
 

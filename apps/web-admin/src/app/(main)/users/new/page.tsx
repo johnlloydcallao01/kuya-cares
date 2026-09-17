@@ -24,7 +24,7 @@ function NewUserContent() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center">
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center">
           <Users className="w-5 h-5" />
         </div>
         <div>

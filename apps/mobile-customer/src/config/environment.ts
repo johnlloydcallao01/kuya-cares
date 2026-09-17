@@ -17,7 +17,7 @@ export const isSupabaseRealtimeEnabled = (): boolean => {
 };
 
 export const apiConfig = {
-  baseUrl: getPublicEnvVar('EXPO_PUBLIC_API_URL') || 'https://cms.tap2goph.com/api',
+  baseUrl: getPublicEnvVar('EXPO_PUBLIC_API_URL') || 'https://cms.kuyacares.com/api',
   payloadApiKey: getPublicEnvVar('EXPO_PUBLIC_PAYLOAD_API_KEY') || '1331d981-b6b7-4ff5-aab6-b9ddbb0c63ae',
   paymongoPublicKey:
     getPublicEnvVar('EXPO_PUBLIC_PAYMONGO_SANDBOX') === 'true'

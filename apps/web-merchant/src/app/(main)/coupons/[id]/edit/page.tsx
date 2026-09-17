@@ -68,7 +68,7 @@ function EditCouponContent() {
         <ArrowLeft className="w-4 h-4" /> Back to coupons
       </button>
       <div className="flex items-center gap-3">
-        <span className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Ticket className="w-5 h-5" /></span>
+        <span className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Ticket className="w-5 h-5" /></span>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
             Edit coupon {doc ? <span className="font-mono">#{doc.id} · {doc.code}</span> : `#${id}`}
@@ -89,7 +89,7 @@ function EditCouponContent() {
         <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] p-6 text-center">
           <p className="text-sm text-red-600">{error}</p>
           <div className="flex justify-center gap-2 mt-4">
-            <button onClick={() => void load()} className="px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Retry</button>
+            <button onClick={() => void load()} className="px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Retry</button>
             <Link href="/coupons" className="px-4 py-2 border border-gray-200 dark:border-[#262626] rounded-lg text-sm font-medium">Back</Link>
           </div>
         </div>

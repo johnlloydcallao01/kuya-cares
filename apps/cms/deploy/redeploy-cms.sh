@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_DIR="/home/opc/tap2go"
-REPO_URL="https://github.com/johnlloydcallao01/tap2go.git"
+APP_DIR="/home/opc/kuyacares"
+REPO_URL="https://github.com/johnlloydcallao01/kuyacares.git"
 BRANCH="main"
 ENV_FILE="/home/opc/original-cms.env"
-SYSTEMD_SERVICE="tap2go-cms"
+SYSTEMD_SERVICE="kuya-cares-cms"
 
 log() {
   echo "[redeploy-cms] $*"

@@ -66,7 +66,7 @@ function MerchantCategoryViewContent(){
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load category</h3><p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/merchant-categories" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Back</Link>
+          <Link href="/merchant-categories" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Back</Link>
         </div>
       </div>
     )
@@ -80,7 +80,7 @@ function MerchantCategoryViewContent(){
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
             {doc.icon?.url ? <img src={doc.icon.url} alt={doc.name} className="h-12 w-12 object-cover" /> : initials(doc.name)}
           </div>
           <div>
@@ -89,7 +89,7 @@ function MerchantCategoryViewContent(){
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/merchant-categories/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
+          <Link href={`/merchant-categories/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
           <Link href="/merchant-categories" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50">Close</Link>
         </div>
       </div>
@@ -97,7 +97,7 @@ function MerchantCategoryViewContent(){
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Status</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${doc.isActive?'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20':'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800'}`}>{doc.isActive?'Active':'Inactive'}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Featured</p><p className={`mt-2 font-semibold text-sm ${doc.isFeatured?'text-amber-600':'text-zinc-500'}`}>{doc.isFeatured?'Featured':'Standard'}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Merchants</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Building className="w-5 h-5 text-[#eba236]" /> {doc.merchantCount}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Merchants</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Building className="w-5 h-5 text-[#239459]" /> {doc.merchantCount}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Display Order</p><p className="mt-2 font-mono font-bold text-gray-900 dark:text-white">{doc.displayOrder}</p></div>
       </div>
 
@@ -127,7 +127,7 @@ function MerchantCategoryViewContent(){
             </Section>
           )}
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#eba236]" /> Timeline</h4>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-[#239459]" /> Timeline</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.createdAt)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Updated</span><span className="font-mono text-xs text-gray-900 dark:text-white">{fmtDate(doc.updatedAt)}</span></div>

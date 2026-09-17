@@ -31,7 +31,7 @@ export default function SearchField({ value, onChange, placeholder = "Search", c
         autoFocus={autoFocus}
         onKeyDown={onKeyDown}
         ref={inputRef}
-        className={("w-full h-10 pl-10 pr-4 rounded-full border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-[#eba236] focus:border-transparent " + inputClassName).trim()}
+        className={("w-full h-10 pl-10 pr-4 rounded-full border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-[#239459] focus:border-transparent " + inputClassName).trim()}
       />
       <i className="fas fa-search absolute left-3 text-gray-400" />
       {showClear && !readOnly && !disabled && value && (

@@ -638,8 +638,8 @@ function ProfileInner() {
 
   {/* Cover + Header Card */}
   <div className="space-y-0">
-  {/* banner - green accent blended into neutral */}
-  <div className="relative h-[156px] sm:h-[184px] rounded-t-2xl overflow-hidden bg-gradient-to-br from-[#e3f6ec] from-[0%] via-[#f6fcf9] via-[40%] to-[#ffffff] dark:from-[#16301f] dark:from-[0%] dark:via-[#1c231e] dark:via-[40%] dark:to-[#171717] border border-slate-200 dark:border-[#262626]">
+  {/* banner - dark normal with green accent like apps/web-merchant */}
+  <div className="relative h-[156px] sm:h-[184px] rounded-t-2xl overflow-hidden bg-gradient-to-br from-black via-[#1a1a1a] to-[#239459] border border-slate-200 dark:border-[#262626]">
   {/* subtle grid */}
   <div className="absolute inset-0 opacity-[0.08]" style={{
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='g' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E")`

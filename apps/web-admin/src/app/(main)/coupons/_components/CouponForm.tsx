@@ -89,7 +89,7 @@ function MultiPick({ label, hint, options, value, onChange, placeholder }: {
   const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
   return (
     <div>
-      <label className={labelCls}>{label} {value.length > 0 && <span className="text-[#eba236] font-semibold">({value.length} selected)</span>}</label>
+      <label className={labelCls}>{label} {value.length > 0 && <span className="text-[#239459] font-semibold">({value.length} selected)</span>}</label>
       {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
       <div className="mt-1 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] overflow-hidden">
         <div className="px-3 py-2 border-b border-gray-100 dark:border-[#262626]">
@@ -99,7 +99,7 @@ function MultiPick({ label, hint, options, value, onChange, placeholder }: {
           {filtered.length === 0 && <p className="text-xs text-gray-400 px-2 py-3 text-center">No matches — try another search.</p>}
           {filtered.slice(0, 100).map((o) => (
             <label key={o.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#262626] cursor-pointer">
-              <input type="checkbox" checked={value.includes(o.id)} onChange={() => toggle(o.id)} className="h-4 w-4 rounded border-gray-300 text-[#eba236] shrink-0" />
+              <input type="checkbox" checked={value.includes(o.id)} onChange={() => toggle(o.id)} className="h-4 w-4 rounded border-gray-300 text-[#239459] shrink-0" />
               <span className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{o.label}</span>{o.sub && <span className="block text-xs text-gray-400 truncate">{o.sub}</span>}</span>
             </label>
           ))}
@@ -321,7 +321,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
 
         {/* 1. Coupon Basics */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Ticket className="w-4 h-4 text-[#eba236]" /> Coupon Basics</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Ticket className="w-4 h-4 text-[#239459]" /> Coupon Basics</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Coupon code * <span className="text-gray-400 font-normal">(uppercase, 3–32 chars)</span></label><input value={form.code} onChange={(e) => set('code', e.target.value.toUpperCase())} placeholder="JOLLIBEE10" disabled={isEdit} className={`${inputCls} font-mono ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`} /></div>
             <div><label className={labelCls}>Status *</label><select value={form.status} onChange={(e) => set('status', e.target.value)} className={inputCls}>{STATUS_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
@@ -337,7 +337,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
             <div><label className={labelCls}>Amount * <span className="text-gray-400 font-normal">({form.discount_type === 'percent' ? '0–100%' : 'pesos'})</span></label><input type="number" min={0} value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder={form.discount_type === 'percent' ? '10' : '50'} className={inputCls} /></div>
             {form.discount_type === 'percent' && <div><label className={labelCls}>Max discount cap <span className="text-gray-400 font-normal">(pesos, e.g. 20% up to ₱100)</span></label><input type="number" min={0} value={form.max_discount_amount} onChange={(e) => set('max_discount_amount', e.target.value)} placeholder="100" className={inputCls} /></div>}
             <div><label className={labelCls}>Applies to *</label><select value={form.applies_to} onChange={(e) => set('applies_to', e.target.value)} className={inputCls}>{APPLIES_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.free_delivery} onChange={(e) => set('free_delivery', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Free delivery</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.free_delivery} onChange={(e) => set('free_delivery', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Free delivery</span></label></div>
             {form.free_delivery && <div><label className={labelCls}>Delivery discount cap <span className="text-gray-400 font-normal">(pesos, empty = full fee)</span></label><input type="number" min={0} value={form.delivery_discount_cap} onChange={(e) => set('delivery_discount_cap', e.target.value)} placeholder="80" className={inputCls} /></div>}
           </div>
         </div>
@@ -363,7 +363,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
             <MultiPick label="Only these categories" options={categoryOpts} value={form.menu_categories} onChange={(v) => set('menu_categories', v)} placeholder="Search categories…" />
             <MultiPick label="Exclude these categories" options={categoryOpts} value={form.excluded_menu_categories} onChange={(v) => set('excluded_menu_categories', v)} placeholder="Search categories…" />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer mt-3"><input type="checkbox" checked={form.exclude_promo_items} onChange={(e) => set('exclude_promo_items', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Skip items already on promo</span></label>
+          <label className="flex items-center gap-2 cursor-pointer mt-3"><input type="checkbox" checked={form.exclude_promo_items} onChange={(e) => set('exclude_promo_items', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Skip items already on promo</span></label>
         </div>
 
         {/* 5. Basket rules */}
@@ -373,15 +373,15 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
             <div><label className={labelCls}>Minimum basket (₱)</label><input type="number" min={0} value={form.minimum_basket} onChange={(e) => set('minimum_basket', e.target.value)} placeholder="299" className={inputCls} /></div>
             <div><label className={labelCls}>Maximum basket (₱)</label><input type="number" min={0} value={form.maximum_basket} onChange={(e) => set('maximum_basket', e.target.value)} placeholder="No max" className={inputCls} /></div>
             <div><label className={labelCls}>Per-item unit limit</label><input type="number" min={1} value={form.limit_per_order_items} onChange={(e) => set('limit_per_order_items', e.target.value)} placeholder="Needs menu scope" className={inputCls} /></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.individual_use} onChange={(e) => set('individual_use', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">One coupon per order</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.individual_use} onChange={(e) => set('individual_use', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">One coupon per order</span></label></div>
             <div><label className={labelCls}>Max coupons per order</label><input type="number" min={1} value={form.max_coupons_per_order} onChange={(e) => set('max_coupons_per_order', e.target.value)} className={inputCls} /></div>
-            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.first_order_only} onChange={(e) => set('first_order_only', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">First orders only</span></label></div>
+            <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.first_order_only} onChange={(e) => set('first_order_only', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">First orders only</span></label></div>
           </div>
         </div>
 
         {/* 6. Schedule */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#eba236]" /> Schedule</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#239459]" /> Schedule</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Starts at</label><input type="datetime-local" value={form.starts_at} onChange={(e) => set('starts_at', e.target.value)} className={inputCls} /></div>
             <div><label className={labelCls}>Expires at</label><input type="datetime-local" value={form.expires_at} onChange={(e) => set('expires_at', e.target.value)} className={inputCls} /></div>
@@ -394,7 +394,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
                 <div key={i} className="px-4 py-2.5 flex flex-col gap-2">
                   <div className="flex flex-wrap gap-1.5">
                     {DAY_OPTS.map((d) => (
-                      <button key={d.value} type="button" onClick={() => toggleDay(i, d.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${w.days.includes(d.value) ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{d.label}</button>
+                      <button key={d.value} type="button" onClick={() => toggleDay(i, d.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${w.days.includes(d.value) ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{d.label}</button>
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
@@ -424,7 +424,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
             <label className={labelCls}>Payment methods <span className="text-gray-400 font-normal">(empty = all)</span></label>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {PAYMENT_OPTS.map((o) => (
-                <button key={o.value} type="button" onClick={() => toggleMethod(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${form.allowed_payment_methods.includes(o.value) ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
+                <button key={o.value} type="button" onClick={() => toggleMethod(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${form.allowed_payment_methods.includes(o.value) ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
               ))}
             </div>
           </div>
@@ -432,7 +432,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
 
         {/* 8. Funding */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Truck className="w-4 h-4 text-[#eba236]" /> Who Pays <span className="text-xs font-normal text-gray-400">(settlement)</span></h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Truck className="w-4 h-4 text-[#239459]" /> Who Pays <span className="text-xs font-normal text-gray-400">(settlement)</span></h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Funded by *</label><select value={form.funded_by} onChange={(e) => set('funded_by', e.target.value)} className={inputCls}>{FUNDED_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             {form.funded_by === 'split' && <div><label className={labelCls}>Vendor share % (1–99)</label><input type="number" min={1} max={99} value={form.vendor_share_pct} onChange={(e) => set('vendor_share_pct', e.target.value)} className={inputCls} /></div>}
@@ -442,7 +442,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create coupon'}
         </button>
       </div>

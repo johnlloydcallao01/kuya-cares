@@ -15,7 +15,7 @@ const mockUser = {
   name: 'Alex Customer',
   email: 'alex.customer@example.com',
   rank: 'Premium Member',
-  company: 'Tap2Go Customer',
+  company: 'Kuya Cares Customer',
   avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
   memberSince: '2023',
   ordersCompleted: 8,

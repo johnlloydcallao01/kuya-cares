@@ -67,7 +67,7 @@ function ProductCategoryDetailContent() {
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load product category</h3><p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/product-categories" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">Back</Link>
+          <Link href="/product-categories" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">Back</Link>
         </div>
       </div>
     )
@@ -79,7 +79,7 @@ function ProductCategoryDetailContent() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center"><Tag className="w-5 h-5" /></div>
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center"><Tag className="w-5 h-5" /></div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{doc.name}</h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">/{doc.slug} • Level {doc.categoryLevel ?? 1} • {doc.isActive ? 'Active' : 'Inactive'} {doc.isFeatured ? '• Featured' : ''}</p>
@@ -103,9 +103,9 @@ function ProductCategoryDetailContent() {
           </Section>
 
           <Section title="Visual">
-            <Row label="Icon" value={doc.media?.icon?.url ? <a href={doc.media.icon.url} target="_blank" rel="noopener noreferrer" className="text-[#eba236] hover:text-[#c88a20]">View</a> : '—'} icon={<Layers className="w-3 h-3" />} />
-            <Row label="Banner" value={doc.media?.bannerImage?.url ? <a href={doc.media.bannerImage.url} target="_blank" rel="noopener noreferrer" className="text-[#eba236] hover:text-[#c88a20]">View</a> : '—'} />
-            <Row label="Thumbnail" value={doc.media?.thumbnailImage?.url ? <a href={doc.media.thumbnailImage.url} target="_blank" rel="noopener noreferrer" className="text-[#eba236] hover:text-[#c88a20]">View</a> : '—'} />
+            <Row label="Icon" value={doc.media?.icon?.url ? <a href={doc.media.icon.url} target="_blank" rel="noopener noreferrer" className="text-[#239459] hover:text-[#215035]">View</a> : '—'} icon={<Layers className="w-3 h-3" />} />
+            <Row label="Banner" value={doc.media?.bannerImage?.url ? <a href={doc.media.bannerImage.url} target="_blank" rel="noopener noreferrer" className="text-[#239459] hover:text-[#215035]">View</a> : '—'} />
+            <Row label="Thumbnail" value={doc.media?.thumbnailImage?.url ? <a href={doc.media.thumbnailImage.url} target="_blank" rel="noopener noreferrer" className="text-[#239459] hover:text-[#215035]">View</a> : '—'} />
           </Section>
 
           <Section title="Attributes">
@@ -119,7 +119,7 @@ function ProductCategoryDetailContent() {
             <Row label="Meta title" value={doc.seo?.metaTitle || '—'} icon={<Globe className="w-3 h-3" />} />
             <Row label="Meta description" value={doc.seo?.metaDescription || '—'} />
             <Row label="Keywords" value={Array.isArray(doc.seo?.keywords) ? doc.seo.keywords.join(', ') : String(doc.seo?.keywords || '—')} />
-            <Row label="Canonical URL" value={doc.seo?.canonicalUrl ? <a href={doc.seo.canonicalUrl} target="_blank" rel="noopener noreferrer" className="text-[#eba236] hover:text-[#c88a20] break-all">{doc.seo.canonicalUrl}</a> : '—'} icon={<Globe className="w-3 h-3" />} />
+            <Row label="Canonical URL" value={doc.seo?.canonicalUrl ? <a href={doc.seo.canonicalUrl} target="_blank" rel="noopener noreferrer" className="text-[#239459] hover:text-[#215035] break-all">{doc.seo.canonicalUrl}</a> : '—'} icon={<Globe className="w-3 h-3" />} />
           </Section>
 
           <Section title="Status">
@@ -130,7 +130,7 @@ function ProductCategoryDetailContent() {
           </Section>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
-          <Link href={`/product-categories/${doc.id}/edit`} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white">Edit product category</Link>
+          <Link href={`/product-categories/${doc.id}/edit`} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white">Edit product category</Link>
         </div>
       </div>
     </div>

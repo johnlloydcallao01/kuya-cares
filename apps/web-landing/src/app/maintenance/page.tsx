@@ -11,7 +11,7 @@ export default function MaintenancePage() {
             {/* Using explicit width/height instead of fill to ensure reliability */}
             <Image
               src="/logo.webp"
-              alt="Tap2Go Logo"
+              alt="Kuya Cares Logo"
               width={128}
               height={128}
               className="h-full w-full object-cover"
@@ -33,7 +33,7 @@ export default function MaintenancePage() {
 
           <p className="mt-6 text-lg leading-8 text-gray-600">
             We're currently updating our platform to serve you better. 
-            Tap2Go will be back online shortly with improved features and performance.
+            Kuya Cares will be back online shortly with improved features and performance.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-4 text-sm text-gray-500">
@@ -50,7 +50,7 @@ export default function MaintenancePage() {
         
         {/* Footer */}
         <p className="text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} Tap2Go. All rights reserved.
+          &copy; {new Date().getFullYear()} Kuya Cares. All rights reserved.
         </p>
       </div>
     </div>

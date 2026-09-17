@@ -14,7 +14,7 @@ module.exports = {
     android: {
       sourceDir: './android',
       appName: 'app',
-      packageName: 'com.tap2go.mobile',
+      packageName: 'com.kuyacares.mobile',
     },
   },
   dependencies: {

@@ -281,11 +281,11 @@ export function MediaUploader({
         >
           {isUploading ? (
             <div className="space-y-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#eba236] mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#239459] mx-auto"></div>
               <p className="text-sm text-gray-600 dark:text-[#a1a1aa]">Uploading... {uploadProgress}%</p>
               <div className="w-full bg-gray-200 dark:bg-[#262626] rounded-full h-2">
                 <div
-                  className="bg-[#eba236] h-2 rounded-full transition-all duration-300"
+                  className="bg-[#239459] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
@@ -297,7 +297,7 @@ export function MediaUploader({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-[#eba236] hover:text-[#c88a20] font-medium"
+                  className="text-[#239459] hover:text-[#215035] font-medium"
                 >
                   Click to upload
                 </button>
@@ -333,7 +333,7 @@ export function MediaUploader({
         onClick={() => {
           // TODO: Implement media library functionality
         }}
-        className="w-full text-sm text-[#eba236] hover:text-[#c88a20] font-medium py-2"
+        className="w-full text-sm text-[#239459] hover:text-[#215035] font-medium py-2"
       >
         Choose from Media Library
       </button>

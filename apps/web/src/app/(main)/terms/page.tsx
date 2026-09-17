@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 /**
- * Terms and Conditions Page - Legal terms for Tap2Go food delivery service
+ * Terms and Conditions Page - Legal terms for Kuya Cares food delivery service
  * Features comprehensive terms with minimal design
  */
 export default function TermsPage() {
@@ -51,7 +51,7 @@ export default function TermsPage() {
                     onClick={() => setActiveSection(section.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
                       activeSection === section.id
-                        ? 'bg-[#eba236] text-white'
+                        ? 'bg-[#239459] text-white'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -71,15 +71,15 @@ export default function TermsPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Overview</h2>
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-600 mb-4">
-                      Welcome to Tap2Go, your premier food delivery platform in the Philippines. These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, mobile application, and services.
+                      Welcome to Kuya Cares, your premier food delivery platform in the Philippines. These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, mobile application, and services.
                     </p>
                     <p className="text-gray-600 mb-4">
-                      By accessing or using Tap2Go, you agree to be bound by these Terms. If you do not agree with any part of these terms, you may not use our services.
+                      By accessing or using Kuya Cares, you agree to be bound by these Terms. If you do not agree with any part of these terms, you may not use our services.
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                       <h4 className="font-semibold text-yellow-800 mb-2">Important Notice</h4>
                       <p className="text-yellow-700 text-sm">
-                        Please read these terms carefully before using our services. Your continued use of Tap2Go constitutes acceptance of these terms.
+                        Please read these terms carefully before using our services. Your continued use of Kuya Cares constitutes acceptance of these terms.
                       </p>
                     </div>
                   </div>
@@ -109,7 +109,7 @@ export default function TermsPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Our Services</h2>
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-600 mb-4">
-                      Tap2Go provides an online platform that connects customers with local restaurants and food establishments for food ordering and delivery services.
+                      Kuya Cares provides an online platform that connects customers with local restaurants and food establishments for food ordering and delivery services.
                     </p>
                     <h4 className="font-semibold text-gray-900 mb-2">Service Description</h4>
                     <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
@@ -292,7 +292,7 @@ export default function TermsPage() {
                         If you have questions about these Terms, please contact us:
                       </p>
                       <ul className="text-gray-600 space-y-1">
-                        <li>Email: legal@tap2go.com</li>
+                        <li>Email: legal@kuyacares.com</li>
                         <li>Phone: +63 2 8123 4567</li>
                         <li>Address: Makati City, Metro Manila, Philippines</li>
                       </ul>
@@ -304,13 +304,13 @@ export default function TermsPage() {
 
             {/* Quick Actions */}
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Download PDF
               </button>
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Print Terms
               </button>
-              <button className="bg-white text-[#eba236] border border-[#eba236] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#eba236] hover:text-white transition-colors">
+              <button className="bg-white text-[#239459] border border-[#239459] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#239459] hover:text-white transition-colors">
                 Contact Legal Team
               </button>
             </div>

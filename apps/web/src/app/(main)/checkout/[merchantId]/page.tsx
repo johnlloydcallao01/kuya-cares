@@ -503,7 +503,7 @@ export default function CheckoutPage() {
                     onClick={() => setPaymentMethod(key)}
                     className="w-full rounded-lg border bg-white hover:bg-gray-50 transition-colors text-left"
                     style={{
-                      borderColor: selected ? '#eba236' : '#e5e7eb',
+                      borderColor: selected ? '#239459' : '#e5e7eb',
                       boxShadow: selected ? '0 0 0 2px rgba(235,162,54,0.15)' : undefined,
                     }}
                   >
@@ -586,7 +586,7 @@ export default function CheckoutPage() {
             onClick={handlePayNow}
             disabled={isPaying || total <= 0 || !isFormValid}
             className="w-full text-white rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#eba236' }}
+            style={{ backgroundColor: '#239459' }}
           >
             {isPaying ? 'Processing payment...' : 'Pay now'}
           </button>

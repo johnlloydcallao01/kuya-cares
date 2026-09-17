@@ -65,7 +65,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
       <div className="flex flex-wrap gap-1.5">
         {options.map(o=>{
           const active=value.includes(o.value)
-          return <button key={o.value} onClick={()=>onToggle(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${active?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
+          return <button key={o.value} onClick={()=>onToggle(o.value)} className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${active?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{o.label}</button>
         })}
       </div>
     </div>
@@ -190,7 +190,7 @@ const [sort,setSort]=useState('-createdAt')
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Store className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Store className="w-4 h-4" /></span>
             Merchants <span className="text-sm font-normal text-gray-500 dark:text-[#a1a1aa] hidden sm:inline">(Outlets)</span>
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Manage outlets per vendor — status, location, categories, and delivery readiness.</p>
@@ -199,7 +199,7 @@ const [sort,setSort]=useState('-createdAt')
           <button onClick={handleHardRefresh} disabled={loading} aria-label="Refresh merchants" className="h-9 w-9 inline-flex items-center justify-center bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-[#a1a1aa] ${loading?'animate-spin':''}`} />
           </button>
-          <Link href="/merchants/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href="/merchants/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Plus className="w-4 h-4" /> New Outlet
           </Link>
         </div>
@@ -207,7 +207,7 @@ const [sort,setSort]=useState('-createdAt')
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Outlets" value={String(stats.totalMerchants)} sub={`${stats.filteredCount} filtered`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Outlets" value={String(stats.totalMerchants)} sub={`${stats.filteredCount} filtered`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Active Outlets" value={String(stats.activeMerchants)} sub={`${stats.acceptingOrders} accepting orders`} icon={<CheckCircle className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Open Now" value={String(stats.operationalBreakdown.open||0)} sub={`${stats.operationalBreakdown.busy||0} busy • ${stats.operationalBreakdown.closed||0} closed`} icon={<Clock className="w-5 h-5 text-white" />} iconBg="bg-blue-500" />
           <KpiCard title="Vendors" value={String(stats.totalVendors)} sub={`${stats.activeVendors} active`} icon={<Building className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
@@ -222,7 +222,7 @@ const [sort,setSort]=useState('-createdAt')
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e)=>{setQ(e.target.value); setPage(1)}} placeholder="Search outlet, code, vendor, manager, email…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e)=>{setQ(e.target.value); setPage(1)}} placeholder="Search outlet, code, vendor, manager, email…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -235,8 +235,8 @@ const [sort,setSort]=useState('-createdAt')
               </select>
             </div>
             <span className="px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] text-gray-600 dark:text-[#a1a1aa]">10 / page</span>
-            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
+            <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
             </button>
             {activeFilterCount>0 && <button onClick={()=>{ setQ(''); setDebouncedQ(''); setOperationalFilter([]); setVerificationFilter([]); setIsActiveFilter(null); setIsAcceptingFilter(null)}} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
           </div>
@@ -259,13 +259,13 @@ const [sort,setSort]=useState('-createdAt')
                       setPage(1)
                       if(isActiveKey) setIsActiveFilter(active?null:true)
                       else setIsAcceptingFilter(active?null:true)
-                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
+                    }} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${active?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>{label}</button>
                   })}
-                  <button onClick={()=>{setPage(1); setIsActiveFilter(v=> v===false?null:false)}} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${isActiveFilter===false?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>Inactive only</button>
+                  <button onClick={()=>{setPage(1); setIsActiveFilter(v=> v===false?null:false)}} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${isActiveFilter===false?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>Inactive only</button>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={()=>setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
       </div>
@@ -275,17 +275,17 @@ const [sort,setSort]=useState('-createdAt')
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load merchants</h3><p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
+            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
           </div>
         )}
         {isInitialLoading ? (
           <div className="p-4 space-y-3 animate-pulse">{Array.from({length:6}).map((_,i)=><div key={i} className="h-16 bg-gray-100 dark:bg-[#0a0a0a] rounded-lg" />)}</div>
         ) : !error && docs.length===0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Store className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Store className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No outlets found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Try adjusting search or filters, or create your first outlet. Each outlet belongs to a vendor and has its own hours and delivery settings.</p>
-            <Link href="/merchants/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> New Outlet</Link>
+            <Link href="/merchants/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-semibold"><Plus className="w-4 h-4" /> New Outlet</Link>
           </div>
         ) : !error && (
           <>
@@ -307,7 +307,7 @@ const [sort,setSort]=useState('-createdAt')
                     <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-[#262626] dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">{m.vendor?.logo?.url ? <img src={m.vendor.logo.url} alt={m.vendor.businessName || m.outletName} className="h-9 w-9 rounded-xl object-cover" /> : initials(m.vendor?.businessName || m.outletName)}</div>
+                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">{m.vendor?.logo?.url ? <img src={m.vendor.logo.url} alt={m.vendor.businessName || m.outletName} className="h-9 w-9 rounded-xl object-cover" /> : initials(m.vendor?.businessName || m.outletName)}</div>
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">{m.outletName}</div>
                             <div className="text-xs text-gray-500 dark:text-[#a1a1aa] font-mono truncate max-w-[180px]">{m.outletCode} • {fmtDate(m.createdAt)}</div>
@@ -355,7 +355,7 @@ const [sort,setSort]=useState('-createdAt')
                   <button disabled={loading || !pagination.hasPrevPage} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                   {Array.from({length:Math.min(5,pagination.totalPages)}).map((_,i)=>{
                     const n=Math.max(1,Math.min(pagination.totalPages-4,page-2))+i; if(n>pagination.totalPages) return null
-                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={()=>setPage(p=>Math.min(pagination.totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

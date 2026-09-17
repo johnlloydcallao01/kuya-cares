@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import type { User } from '@/types/auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
-const AUTH_COOKIE = 'tap2go-merchant-token';
+const AUTH_COOKIE = 'kuyacares-merchant-token';
 
 async function getAuthToken(): Promise<string | null> {
   const store = await cookies();

@@ -177,7 +177,7 @@ function ValuesContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><LinkIcon className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><LinkIcon className="w-4 h-4" /></span>
             Variation Values
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Attribute & term links that describe each of your variations — read-only.</p>
@@ -194,7 +194,7 @@ function ValuesContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Total Values" value={String(stats.filteredTotal)} sub={`${stats.total} matching filters`} icon={<Hash className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Values" value={String(stats.filteredTotal)} sub={`${stats.total} matching filters`} icon={<Hash className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Per Attribute" value={perAttrTop[0] ? `${perAttrTop[0].count} values` : '—'} sub={perAttrTop[0]?.label || perAttrTop.map((p) => `${p.label}:${p.count}`).join(' • ') || 'no breakdown'} icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
           <KpiCard title="Per Variation" value={perVariationTop[0] ? `${perVariationTop[0].count} vals` : '—'} sub={perVariationTop[0]?.label || perVariationTop.map((p) => `${p.label}:${p.count}`).join(' • ') || 'no breakdown'} icon={<Building className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Per Term" value={String(Object.keys(stats.perTerm || {}).length)} sub={`${Object.values(stats.perTerm || {}).reduce((a, b) => a + (b as number), 0)} links`} icon={<Palette className="w-5 h-5 text-white" />} iconBg="bg-zinc-500" />
@@ -209,15 +209,15 @@ function ValuesContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search term name, slug, value…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search term name, slug, value…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-700 dark:text-white">
               {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -239,13 +239,13 @@ function ValuesContent() {
                 {attributes.map((a) => <option key={a.id} value={String(a.id)}>{a.name} ({a.slug})</option>)}
               </select>
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {variationFilter && (() => { const v = variations.find((x) => String(x.id) === variationFilter); return <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">var: {v ? variationLabel(v) : variationFilter} <button onClick={() => setVariationFilter('')}><X className="w-3 h-3" /></button></span> })()}
             {attributeFilter && (() => { const a = attributes.find((x) => String(x.id) === attributeFilter); return <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">attr: {a ? a.name : attributeFilter} <button onClick={() => setAttributeFilter('')}><X className="w-3 h-3" /></button></span> })()}
           </div>
@@ -258,7 +258,7 @@ function ValuesContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load variation values</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -266,7 +266,7 @@ function ValuesContent() {
           </div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-14 w-14 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-full flex items-center justify-center mb-4"><Layers className="w-7 h-7 text-[#eba236]" /></div>
+            <div className="h-14 w-14 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-full flex items-center justify-center mb-4"><Layers className="w-7 h-7 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No variation values found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Your variations have no attribute-term links yet.</p>
           </div>
@@ -293,7 +293,7 @@ function ValuesContent() {
                         <td className="px-4 py-3">
                           <div className="min-w-[150px]">
                             <div className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-white truncate max-w-[180px]">
-                              <Layers className="w-3 h-3 text-[#eba236] shrink-0" /> {variationLabel(v.variation)}
+                              <Layers className="w-3 h-3 text-[#239459] shrink-0" /> {variationLabel(v.variation)}
                             </div>
                             <div className="text-[11px] text-gray-500 font-mono">{v.variation?.sku || `#${v.variation_id ?? '—'}`}</div>
                           </div>
@@ -350,7 +350,7 @@ function ValuesContent() {
                   {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
                     if (n > totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>
@@ -361,7 +361,7 @@ function ValuesContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Values link <Link href="/catalog/variations" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Variations</Link> to shared <Link href="/catalog/attributes" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Attributes</Link> and <Link href="/catalog/attribute-terms" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Attribute Terms</Link>.
+        Values link <Link href="/catalog/variations" className="font-semibold text-[#239459] hover:text-[#215035]">Variations</Link> to shared <Link href="/catalog/attributes" className="font-semibold text-[#239459] hover:text-[#215035]">Attributes</Link> and <Link href="/catalog/attribute-terms" className="font-semibold text-[#239459] hover:text-[#215035]">Attribute Terms</Link>.
       </div>
     </div>
   )

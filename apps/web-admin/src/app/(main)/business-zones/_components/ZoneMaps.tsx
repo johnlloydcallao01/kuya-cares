@@ -471,7 +471,7 @@ export function BusinessZoneDrawingMap({
       <div className="flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-[#0a0a0a] rounded-xl border border-gray-200 dark:border-[#262626]">
         <span className="text-xs font-semibold text-gray-500 self-center mr-1">Draw:</span>
         {[
-          { id: 'polygon', label: 'Polygon', color: '#eba236' },
+          { id: 'polygon', label: 'Polygon', color: '#239459' },
           { id: 'rectangle', label: 'Rectangle', color: '#3b82f6' },
           { id: 'circle', label: 'Circle', color: '#10b981' },
         ].map((b) => (

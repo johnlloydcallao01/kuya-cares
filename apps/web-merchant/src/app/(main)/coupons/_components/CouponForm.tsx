@@ -42,7 +42,7 @@ export type CouponDoc = {
 
 type Option = { id: number; label: string; sub?: string }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
 const PAYMENT_OPTS = ['card', 'gcash', 'grab_pay', 'paymaya', 'billease', 'dob', 'brankas', 'qrph']
@@ -72,7 +72,7 @@ function MultiPick({ label, hint, options, value, onChange, loading }: { label: 
   }, [options, q])
   return (
     <div>
-      <p className={labelCls}>{label} <span className="text-[#eba236] font-semibold">({value.length} selected)</span></p>
+      <p className={labelCls}>{label} <span className="text-[#239459] font-semibold">({value.length} selected)</span></p>
       {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
       <div className="mt-1 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] overflow-hidden">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="w-full px-3 py-2 text-sm bg-transparent border-b border-gray-100 dark:border-[#262626] focus:outline-none text-gray-900 dark:text-white placeholder:text-gray-400" />
@@ -87,7 +87,7 @@ function MultiPick({ label, hint, options, value, onChange, loading }: { label: 
                   type="checkbox"
                   checked={checked}
                   onChange={() => onChange(checked ? value.filter((v) => v !== o.id) : [...value, o.id])}
-                  className="h-4 w-4 rounded border-gray-300 text-[#eba236]"
+                  className="h-4 w-4 rounded border-gray-300 text-[#239459]"
                 />
                 <span className="text-sm text-gray-700 dark:text-white truncate">{o.label}</span>
                 {o.sub && <span className="text-[11px] text-gray-400 truncate ml-auto">{o.sub}</span>}
@@ -270,7 +270,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
         {error && <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">{error}</p>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Ticket className="w-4 h-4 text-[#eba236]" /> Basics {brandName && <span className="text-xs font-normal text-gray-400">· {brandName}</span>}</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Ticket className="w-4 h-4 text-[#239459]" /> Basics {brandName && <span className="text-xs font-normal text-gray-400">· {brandName}</span>}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Code</label>
@@ -322,7 +322,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
               </select>
             </div>
             <label className="flex items-center gap-2 cursor-pointer sm:col-span-2">
-              <input type="checkbox" checked={form.free_delivery} onChange={(e) => set('free_delivery', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.free_delivery} onChange={(e) => set('free_delivery', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">Free delivery</span>
             </label>
             {form.free_delivery && (
@@ -335,14 +335,14 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Store className="w-4 h-4 text-[#eba236]" /> Branches</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Store className="w-4 h-4 text-[#239459]" /> Branches</h4>
           <div className="flex gap-2 mb-3">
             {[{ v: 'all_vendor_branches', l: 'All my branches' }, { v: 'selected_branches', l: 'Selected branches' }].map((o) => (
               <button
                 key={o.v}
                 type="button"
                 onClick={() => set('merchant_scope', o.v)}
-                className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${form.merchant_scope === o.v ? 'border-[#eba236] bg-[#eba236]/10 text-[#eba236]' : 'border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa]'}`}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${form.merchant_scope === o.v ? 'border-[#239459] bg-[#239459]/10 text-[#239459]' : 'border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa]'}`}
               >
                 {o.l}
               </button>
@@ -369,7 +369,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
             <MultiPick label="Exclude these categories" options={categories} value={form.excluded_menu_categories} onChange={(v) => set('excluded_menu_categories', v)} loading={categoriesLoading} />
           </div>
           <label className="flex items-center gap-2 cursor-pointer mt-3">
-            <input type="checkbox" checked={form.exclude_promo_items} onChange={(e) => set('exclude_promo_items', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+            <input type="checkbox" checked={form.exclude_promo_items} onChange={(e) => set('exclude_promo_items', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
             <span className="text-sm font-medium text-gray-700 dark:text-white">Skip items already on promo</span>
           </label>
         </div>
@@ -392,18 +392,18 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
           </div>
           <div className="flex flex-wrap gap-4 mt-3">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.individual_use} onChange={(e) => set('individual_use', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.individual_use} onChange={(e) => set('individual_use', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">One coupon per order</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.first_order_only} onChange={(e) => set('first_order_only', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" />
+              <input type="checkbox" checked={form.first_order_only} onChange={(e) => set('first_order_only', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" />
               <span className="text-sm font-medium text-gray-700 dark:text-white">First orders only</span>
             </label>
           </div>
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#eba236]" /> Schedule & limits</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#239459]" /> Schedule & limits</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Starts at</label>
@@ -425,7 +425,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
           <div className="mt-3">
             <div className="flex items-center justify-between mb-2">
               <p className={labelCls}>Promo hours (optional)</p>
-              <button type="button" onClick={() => setWindows((w) => [...w, { days: [], start_time: '11:00', end_time: '14:00' }])} className="text-xs font-semibold text-[#eba236]">+ Add window</button>
+              <button type="button" onClick={() => setWindows((w) => [...w, { days: [], start_time: '11:00', end_time: '14:00' }])} className="text-xs font-semibold text-[#239459]">+ Add window</button>
             </div>
             {windows.map((w, i) => (
               <div key={i} className="flex flex-wrap items-center gap-2 mb-2 rounded-lg border border-gray-200 dark:border-[#262626] p-2">
@@ -435,7 +435,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
                       key={d}
                       type="button"
                       onClick={() => setWindows((prev) => prev.map((x, xi) => (xi === i ? { ...x, days: x.days.includes(d) ? x.days.filter((y) => y !== d) : [...x.days, d] } : x)))}
-                      className={`px-2 py-1 rounded-full text-[11px] font-semibold border capitalize ${w.days.includes(d) ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-500 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
+                      className={`px-2 py-1 rounded-full text-[11px] font-semibold border capitalize ${w.days.includes(d) ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-500 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
                     >
                       {d.slice(0, 3)}
                     </button>
@@ -469,7 +469,7 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
                 key={p}
                 type="button"
                 onClick={() => togglePayment(p)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${form.allowed_payment_methods.includes(p) ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${form.allowed_payment_methods.includes(p) ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
               >
                 {p.replace('_', ' ')}
               </button>
@@ -478,14 +478,14 @@ export function CouponForm({ initial, onSuccess, onCancel }: { initial?: CouponD
         </div>
 
         <div className="rounded-lg border border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] p-3 flex items-start gap-2">
-          <Info className="w-4 h-4 text-[#eba236] shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 text-[#239459] shrink-0 mt-0.5" />
           <p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Merchant coupons are always platform-funded — discounts never reduce your payouts. Settlement splits are managed by the platform.</p>
         </div>
       </div>
 
       <div className="flex justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button onClick={onCancel} disabled={saving} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] text-sm font-medium bg-white dark:bg-[#171717] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button onClick={() => void submit()} disabled={saving} className="px-6 py-2.5 rounded-xl bg-[#eba236] hover:bg-[#c88a20] text-white text-sm font-semibold disabled:opacity-50">
+        <button onClick={() => void submit()} disabled={saving} className="px-6 py-2.5 rounded-xl bg-[#239459] hover:bg-[#215035] text-white text-sm font-semibold disabled:opacity-50">
           {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create coupon'}
         </button>
       </div>

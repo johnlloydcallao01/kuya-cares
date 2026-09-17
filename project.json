@@ -1,5 +1,5 @@
 {
-  "name": "tap2go-monorepo",
+  "name": "kuya-cares-monorepo",
   "version": "0.1.0",
   "framework": "nextjs",
   "buildCommand": "cd apps/web && pnpm run build",

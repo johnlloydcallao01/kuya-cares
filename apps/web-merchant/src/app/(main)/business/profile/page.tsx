@@ -155,7 +155,7 @@ function BusinessProfileContent() {
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load business profile</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4" /> Retry</button>
+          <button onClick={() => window.location.reload()} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4" /> Retry</button>
         </div>
       </div>
     );
@@ -167,7 +167,7 @@ function BusinessProfileContent() {
     <div className="space-y-6 py-5 px-2.5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-[#eba236] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+          <div className="h-12 w-12 rounded-xl bg-[#239459] text-white flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
             {vendor.logo?.url ? <img src={vendor.logo.url} alt={vendor.businessName} className="h-12 w-12 rounded-xl object-cover" /> : <Building2 className="w-6 h-6" />}
           </div>
           <div>
@@ -177,15 +177,15 @@ function BusinessProfileContent() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/business/verification" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50"><ShieldCheck className="w-4 h-4" /> Verification</Link>
-          <Link href="/outlets" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Store className="w-4 h-4" /> Outlets</Link>
+          <Link href="/outlets" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Store className="w-4 h-4" /> Outlets</Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Verification</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${verificationBadge(vendor.verificationStatus)}`}>{vendor.verificationStatus}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Status</p><p className={`mt-2 font-semibold text-sm ${vendor.isActive ? 'text-emerald-600' : 'text-zinc-500'}`}>{vendor.isActive ? 'Active' : 'Inactive'}</p><p className="text-xs text-gray-500 mt-1 capitalize">{vendor.businessType || '—'}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Outlets</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Store className="w-5 h-5 text-[#eba236]" /> {outletsCount ?? vendor.totalMerchants ?? outlets.length}</p><p className="text-xs text-gray-500">{vendor.totalOrders} orders lifetime</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Rating</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Star className="w-5 h-5 text-[#eba236]" /> {Number(vendor.averageRating || 0).toFixed(1)}</p><p className="text-xs text-gray-500">{vendor.totalReviews} reviews</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Outlets</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Store className="w-5 h-5 text-[#239459]" /> {outletsCount ?? vendor.totalMerchants ?? outlets.length}</p><p className="text-xs text-gray-500">{vendor.totalOrders} orders lifetime</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Rating</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Star className="w-5 h-5 text-[#239459]" /> {Number(vendor.averageRating || 0).toFixed(1)}</p><p className="text-xs text-gray-500">{vendor.totalReviews} reviews</p></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

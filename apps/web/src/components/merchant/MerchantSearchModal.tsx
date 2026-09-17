@@ -161,7 +161,7 @@ export default function MerchantSearchModal({ isOpen, onClose, products = [], ca
                         aria-label="Add to cart"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(p); }}
                         className="absolute bottom-2 right-2 w-7 h-7 rounded-full shadow-lg text-white flex items-center justify-center"
-                        style={{ backgroundColor: '#eba236' }}
+                        style={{ backgroundColor: '#239459' }}
                       >
                         <i className="fas fa-plus text-[11px]" />
                       </button>

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# EAS Build Post-Install Hook for Tap2Go Mobile Customer
+# EAS Build Post-Install Hook for Kuya Cares Mobile Customer
 # This script runs after pnpm install in EAS Build environment
 
-echo "🚀 EAS Build Post-Install Hook - Tap2Go Mobile Customer"
+echo "🚀 EAS Build Post-Install Hook - Kuya Cares Mobile Customer"
 
 # Check if we're in EAS Build environment
 if [ "$EAS_BUILD" = "true" ] || [ "$CI" = "true" ]; then

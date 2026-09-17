@@ -147,7 +147,7 @@ function FilterPills({ label, options, value, onToggle }: { label: string; optio
             <button
               key={opt.value}
               onClick={() => onToggle(opt.value)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition capitalize ${active ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}
             >
               {opt.label}
             </button>
@@ -262,7 +262,7 @@ function OrdersContent() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><ShoppingBag className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><ShoppingBag className="w-4 h-4" /></span>
             All Orders
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Orders placed across your outlets, with live status and verified revenue (read-only).</p>
@@ -279,11 +279,11 @@ function OrdersContent() {
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <KpiCard title="Total Orders" value={String(stats.filteredTotal)} sub={`${stats.totalAll} overall`} icon={<ShoppingBag className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Total Orders" value={String(stats.filteredTotal)} sub={`${stats.totalAll} overall`} icon={<ShoppingBag className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Pending" value={pendingVal} sub="awaiting acceptance" icon={<Clock className="w-5 h-5 text-white" />} iconBg="bg-amber-500" />
           <KpiCard title="In Progress" value={inProgressVal} sub="preparing + delivery" icon={<Package className="w-5 h-5 text-white" />} iconBg="bg-blue-600" />
           <KpiCard title="Delivered" value={deliveredVal} sub={`${Math.round(((stats.statusBreakdown?.delivered || 0) / Math.max(1, stats.totalAll)) * 100)}% completed`} icon={<CheckCircle className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
-          <KpiCard title="Revenue" value={revenueVal} sub={avgVal || 'total revenue'} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-[#c88a20]" />
+          <KpiCard title="Revenue" value={revenueVal} sub={avgVal || 'total revenue'} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-[#215035]" />
         </div>
       ) : loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 animate-pulse">
@@ -295,7 +295,7 @@ function OrdersContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order #, coupon, Lalamove ID, notes…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order #, coupon, Lalamove ID, notes…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -305,8 +305,8 @@ function OrdersContent() {
               <option value="-total">Total: high→low</option>
               <option value="total">Total: low→high</option>
             </select>
-            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#eba236] hover:bg-[#c88a20] text-white border-[#eba236]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
-              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#eba236]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
+            <button onClick={() => setShowFilters((v) => !v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition shrink-0 ${activeFilterCount ? 'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]' : 'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626]'}`}>
+              <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount > 0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             {activeFilterCount > 0 && <button onClick={clearAll} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900">Clear all</button>}
           </div>
@@ -322,13 +322,13 @@ function OrdersContent() {
               <FilterPills label="Delivery Status" options={DELIVERY_OPTS} value={deliveryFilter} onToggle={toggleDelivery} />
               <FilterPills label="Discount" options={[{ value: 'true', label: 'Has discount' }, { value: 'false', label: 'No discount' }]} value={discountFilter} onToggle={toggleDiscount} />
             </div>
-            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#eba236]">Done</button></div>
+            <div className="flex justify-end"><button onClick={() => setShowFilters(false)} className="text-xs font-semibold text-[#239459]">Done</button></div>
           </div>
         )}
 
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eba236]/10 dark:bg-[#eba236]/15 text-[#8a5f17] dark:text-[#eba236] rounded-full text-xs font-medium border border-[#eba236]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
             {statusFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium capitalize">{v.replace('_', ' ')} <button onClick={() => toggleStatus(v)}><X className="w-3 h-3" /></button></span>)}
             {fulfillFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium capitalize">fulfillment: {v} <button onClick={() => toggleFulfill(v)}><X className="w-3 h-3" /></button></span>)}
             {deliveryFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium capitalize">delivery: {v.replace('_', ' ')} <button onClick={() => toggleDelivery(v)}><X className="w-3 h-3" /></button></span>)}
@@ -343,7 +343,7 @@ function OrdersContent() {
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load orders</h3>
             <p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
+            <button onClick={() => void load({ hard: true })} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="h-4 w-4 mr-2" />Retry</button>
           </div>
         ) : loading && docs.length === 0 ? (
           <div className="p-4 space-y-3 animate-pulse">
@@ -351,7 +351,7 @@ function OrdersContent() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-14 w-14 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-full flex items-center justify-center mb-4"><ShoppingBag className="w-7 h-7 text-[#eba236]" /></div>
+            <div className="h-14 w-14 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-full flex items-center justify-center mb-4"><ShoppingBag className="w-7 h-7 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No orders found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">Orders appear here once customers place them at your outlets. Try adjusting search or filters.</p>
           </div>
@@ -379,7 +379,7 @@ function OrdersContent() {
                     return (
                       <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                         <td className="px-4 py-3">
-                          <span className="font-semibold text-[#eba236]">{o.orderNumber}</span>
+                          <span className="font-semibold text-[#239459]">{o.orderNumber}</span>
                           {o.coupon_code && <div className="text-[11px] text-gray-400 mt-0.5">coupon: {o.coupon_code}</div>}
                           {o.notes && <div className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[140px]">“{o.notes}”</div>}
                         </td>
@@ -391,7 +391,7 @@ function OrdersContent() {
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-xs font-medium text-gray-700 dark:text-white">
-                            <OutletIcon className="w-3 h-3 text-[#eba236]" /> {o.merchant?.outletName || '—'}
+                            <OutletIcon className="w-3 h-3 text-[#239459]" /> {o.merchant?.outletName || '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
@@ -424,7 +424,7 @@ function OrdersContent() {
                   {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                     const n = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
                     if (n > totalPages) return null
-                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#eba236] text-white border-[#eba236]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={() => setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n === page ? 'bg-[#239459] text-white border-[#239459]' : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || page >= totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>
@@ -435,7 +435,7 @@ function OrdersContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Revenue reflects <span className="font-semibold text-gray-700 dark:text-white">verified paid transactions</span> only, matching your dashboard analytics — never raw order totals. Fulfillment and delivery statuses update automatically as riders and outlets progress the order. Details and per-order item lines live under <Link href="/order-items" className="font-semibold text-[#eba236] hover:text-[#c88a20]">Order Items</Link>.
+        Revenue reflects <span className="font-semibold text-gray-700 dark:text-white">verified paid transactions</span> only, matching your dashboard analytics — never raw order totals. Fulfillment and delivery statuses update automatically as riders and outlets progress the order. Details and per-order item lines live under <Link href="/order-items" className="font-semibold text-[#239459] hover:text-[#215035]">Order Items</Link>.
       </div>
     </div>
   )

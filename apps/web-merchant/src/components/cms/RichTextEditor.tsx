@@ -45,7 +45,7 @@ interface RichTextEditorProps {
 
 // Editor configuration - moved outside component to prevent recreation
 const createEditorConfig = () => ({
-  namespace: 'tap2goMerchantEditor',
+  namespace: 'kuyaCaresMerchantEditor',
   nodes: [
     HeadingNode,
     ListNode,

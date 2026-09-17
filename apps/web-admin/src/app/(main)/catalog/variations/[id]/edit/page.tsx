@@ -74,7 +74,7 @@ function EditVariationContent() {
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load variation</h3>
           <p className="text-sm text-gray-500 mt-1">{error}</p>
-          <Link href="/catalog/variations" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium">
+          <Link href="/catalog/variations" className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium">
             Back
           </Link>
         </div>
@@ -101,7 +101,7 @@ function EditVariationContent() {
       )}
 
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-[#eba236] text-white flex items-center justify-center">
+        <div className="h-10 w-10 rounded-xl bg-[#239459] text-white flex items-center justify-center">
           <Building className="w-5 h-5" />
         </div>
         <div>

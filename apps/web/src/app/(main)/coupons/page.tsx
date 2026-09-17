@@ -190,7 +190,7 @@ export default function CouponsPage() {
             </div>
             <button
               onClick={() => console.log('Browse coupons')}
-              className="px-4 py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="px-4 py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               Discover More
             </button>
@@ -204,7 +204,7 @@ export default function CouponsPage() {
                 placeholder="Search coupons..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#eba236] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#239459] focus:border-transparent"
               />
               <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             </div>
@@ -217,7 +217,7 @@ export default function CouponsPage() {
                   onClick={() => setSelectedCategory(category.value)}
                   className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === category.value
-                      ? 'bg-[#eba236] text-white'
+                      ? 'bg-[#239459] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -269,28 +269,28 @@ export default function CouponsPage() {
             {filteredCoupons.map((coupon) => (
               <div key={coupon.id} className="bg-white rounded-lg p-6 relative overflow-hidden">
                 {/* Coupon Design Elements */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#eba236] to-orange-400 opacity-10 rounded-bl-full"></div>
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#239459] to-orange-400 opacity-10 rounded-bl-full"></div>
                 <div className="absolute -right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full"></div>
                 <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full"></div>
                 
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-12 h-12 bg-[#eba236] bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-[#239459] bg-opacity-10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-lg">{getCategoryIcon(coupon.category)}</span>
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">{coupon.title}</h3>
                       <p className="text-gray-600 text-sm mb-2">{coupon.description}</p>
                       {coupon.restaurant && (
-                        <p className="text-[#eba236] text-sm font-medium mb-2">📍 {coupon.restaurant}</p>
+                        <p className="text-[#239459] text-sm font-medium mb-2">📍 {coupon.restaurant}</p>
                       )}
                       
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-2">
-                          <div className="text-[#eba236]">
+                          <div className="text-[#239459]">
                             {getDiscountIcon(coupon.discountType)}
                           </div>
-                          <span className="text-[#eba236] font-bold text-lg">{coupon.discount}</span>
+                          <span className="text-[#239459] font-bold text-lg">{coupon.discount}</span>
                         </div>
                         {coupon.minOrder && (
                           <span className="text-xs text-gray-500">Min. order ₱{coupon.minOrder}</span>
@@ -311,7 +311,7 @@ export default function CouponsPage() {
                     </div>
                     <button
                       onClick={() => handleCopyCode(coupon.code)}
-                      className="px-3 py-1 bg-white text-[#eba236] border border-[#eba236] rounded text-xs font-medium hover:bg-[#eba236] hover:text-white transition-colors duration-200"
+                      className="px-3 py-1 bg-white text-[#239459] border border-[#239459] rounded text-xs font-medium hover:bg-[#239459] hover:text-white transition-colors duration-200"
                     >
                       Copy
                     </button>
@@ -360,7 +360,7 @@ export default function CouponsPage() {
                 {!coupon.isUsed && !coupon.isExpired && coupon.usageCount < coupon.usageLimit && (
                   <button
                     onClick={() => handleUseCoupon(coupon.id)}
-                    className="w-full py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 font-medium"
+                    className="w-full py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 font-medium"
                   >
                     Use Coupon
                   </button>
@@ -384,7 +384,7 @@ export default function CouponsPage() {
             {activeTab === 'available' && (
               <button
                 onClick={() => console.log('Browse coupons')}
-                className="px-6 py-2 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 font-medium"
+                className="px-6 py-2 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 font-medium"
               >
                 Discover Coupons
               </button>
@@ -398,14 +398,14 @@ export default function CouponsPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => console.log('Redeem coupon code')}
-              className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               <i className="fas fa-cut w-4 h-4" />
               Redeem Code
             </button>
             <button
               onClick={() => console.log('Browse restaurants')}
-              className="flex items-center justify-center gap-2 py-3 bg-white text-[#eba236] border border-[#eba236] rounded-lg hover:bg-[#eba236] hover:text-white transition-colors duration-200 text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-3 bg-white text-[#239459] border border-[#239459] rounded-lg hover:bg-[#239459] hover:text-white transition-colors duration-200 text-sm font-medium"
             >
               <i className="fas fa-star w-4 h-4" />
               Browse Restaurants

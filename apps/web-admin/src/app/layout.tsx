@@ -23,8 +23,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Kuya Cares Admin Team" }],
   robots: "noindex, nofollow",
   icons: {
-    icon: [{ url: "/favicon.ico" }, { url: "/kuya-cares.png", type: "image/png" }],
-    apple: [{ url: "/kuya-cares.png" }],
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/favicon.png" }],
   },
   openGraph: {
     title: "Kuya Cares Admin Dashboard",

@@ -49,12 +49,12 @@ interface PostEditorProps {
 // Label:            text-xs font-medium text-gray-700 dark:text-[#a1a1aa]
 // Input:            mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626]
 //                   bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white
-//                   placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]
+//                   placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]
 // Error banner:     bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl
-// Primary btn:      bg-[#eba236] hover:bg-[#c88a20] text-white rounded-lg text-sm font-semibold
+// Primary btn:      bg-[#239459] hover:bg-[#215035] text-white rounded-lg text-sm font-semibold
 // Secondary btn:    bg-white dark:bg-[#171717] border-gray-300 dark:border-[#262626] text-gray-700 dark:text-[#a1a1aa]
 const inputCls =
-  'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]';
+  'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]';
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]';
 const cardCls =
   'bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626] shadow-sm overflow-hidden';
@@ -63,7 +63,7 @@ const sectionTitleCls =
 const secondaryBtnCls =
   'inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50 disabled:cursor-not-allowed transition';
 const primaryBtnCls =
-  'inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition';
+  'inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition';
 
 function statusBadge(status: string) {
   const s = status?.toLowerCase() || 'draft';
@@ -364,7 +364,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
     return (
       <div className={cardCls}>
         <div className="flex flex-col items-center justify-center py-16 px-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#eba236] mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#239459] mx-auto mb-4" />
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">Loading post…</p>
         </div>
       </div>
@@ -427,7 +427,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <p className="text-xs font-mono text-gray-500 dark:text-[#a1a1aa]">/{watchedSlug}</p>
             )}
             {watchedExcerpt && (
-              <p className="text-sm text-gray-600 dark:text-[#a1a1aa] border-l-2 border-[#eba236] pl-3">
+              <p className="text-sm text-gray-600 dark:text-[#a1a1aa] border-l-2 border-[#239459] pl-3">
                 {watchedExcerpt}
               </p>
             )}
@@ -447,7 +447,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                   {/* Post details */}
                   <div>
                     <h4 className={sectionTitleCls}>
-                      <FileText className="w-4 h-4 text-[#eba236]" /> Post Details
+                      <FileText className="w-4 h-4 text-[#239459]" /> Post Details
                     </h4>
                     <div className="grid grid-cols-1 gap-3">
                       <div>
@@ -462,7 +462,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                             <input
                               {...field}
                               type="text"
-                              className={`${inputCls} caret-[#eba236]`}
+                              className={`${inputCls} caret-[#239459]`}
                               placeholder="Enter post title…"
                             />
                           )}
@@ -486,7 +486,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                             <input
                               {...field}
                               type="text"
-                              className={`${inputCls} font-mono caret-[#eba236]`}
+                              className={`${inputCls} font-mono caret-[#239459]`}
                               placeholder="url-friendly-slug"
                             />
                           )}
@@ -503,7 +503,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                   {/* Content */}
                   <div>
                     <h4 className={sectionTitleCls}>
-                      <FileText className="w-4 h-4 text-[#eba236]" /> Content *
+                      <FileText className="w-4 h-4 text-[#239459]" /> Content *
                     </h4>
                     <RichTextEditor
                       value={contentRef.current}
@@ -530,7 +530,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                         <textarea
                           {...field}
                           rows={3}
-                          className={`${inputCls} caret-[#eba236]`}
+                          className={`${inputCls} caret-[#239459]`}
                           placeholder="Brief description for previews and SEO…"
                         />
                       )}
@@ -549,7 +549,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <div className={cardCls}>
                 <div className="p-5 space-y-3">
                   <h4 className={sectionTitleCls}>
-                    <CheckCircle className="w-4 h-4 text-[#eba236]" /> Publish
+                    <CheckCircle className="w-4 h-4 text-[#239459]" /> Publish
                   </h4>
                   <div>
                     <label className={labelCls}>Status</label>
@@ -635,7 +635,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <div className={cardCls}>
                 <div className="p-5">
                   <h4 className={sectionTitleCls}>
-                    <ImageIcon className="w-4 h-4 text-[#eba236]" /> Featured Image
+                    <ImageIcon className="w-4 h-4 text-[#239459]" /> Featured Image
                   </h4>
                   <Controller
                     name="featuredImage"
@@ -651,7 +651,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <div className={cardCls}>
                 <div className="p-5">
                   <h4 className={sectionTitleCls}>
-                    <TagIcon className="w-4 h-4 text-[#eba236]" /> Tags
+                    <TagIcon className="w-4 h-4 text-[#239459]" /> Tags
                   </h4>
                   <Controller
                     name="tags"
@@ -667,7 +667,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
               <div className={cardCls}>
                 <div className="p-5 space-y-3">
                   <h4 className={sectionTitleCls}>
-                    <Globe className="w-4 h-4 text-[#eba236]" /> SEO
+                    <Globe className="w-4 h-4 text-[#239459]" /> SEO
                   </h4>
                   <div>
                     <label className={labelCls}>SEO title</label>
@@ -678,7 +678,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                         <input
                           {...field}
                           type="text"
-                          className={`${inputCls} caret-[#eba236]`}
+                          className={`${inputCls} caret-[#239459]`}
                           placeholder="Leave empty to use post title"
                         />
                       )}
@@ -693,7 +693,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                         <textarea
                           {...field}
                           rows={2}
-                          className={`${inputCls} caret-[#eba236]`}
+                          className={`${inputCls} caret-[#239459]`}
                           placeholder="Leave empty to use excerpt"
                         />
                       )}
@@ -708,7 +708,7 @@ export function PostEditor({ postId, onSave, onCancel }: PostEditorProps) {
                         <input
                           {...field}
                           type="text"
-                          className={`${inputCls} caret-[#eba236]`}
+                          className={`${inputCls} caret-[#239459]`}
                           placeholder="Primary keyword for ranking"
                         />
                       )}

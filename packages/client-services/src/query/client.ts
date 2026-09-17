@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 
 /**
- * Shared QueryClient defaults for all Tap2Go apps.
+ * Shared QueryClient defaults for all Kuya Cares apps.
  * 3-min instant-back philosophy: cached data renders instantly on back-nav,
  * background refetch only when stale.
  */

@@ -22,7 +22,7 @@ type CustomerDoc = {
   user: any
 }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]'
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]'
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]'
 
 export function CustomerForm({ initial, onSuccess, onCancel }: { initial?: CustomerDoc | null; onSuccess: () => void; onCancel: () => void }) {
@@ -118,7 +118,7 @@ export function CustomerForm({ initial, onSuccess, onCancel }: { initial?: Custo
 
         {/* 1. Customer Profile */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><GraduationCap className="w-4 h-4 text-[#eba236]" /> Customer Profile</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><GraduationCap className="w-4 h-4 text-[#239459]" /> Customer Profile</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>SRN <span className="text-gray-400 font-normal">(unique, optional)</span></label><input value={form.srn} onChange={(e)=>set('srn', e.target.value)} placeholder="SRN-2026-001" className={`${inputCls} font-mono`} /></div>
             <div><label className={labelCls}>Coupon Code</label><div className="relative"><Ticket className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input value={form.couponCode} onChange={(e)=>set('couponCode', e.target.value)} placeholder="WELCOME10" className={`${inputCls} pl-9`} /></div></div>
@@ -130,8 +130,8 @@ export function CustomerForm({ initial, onSuccess, onCancel }: { initial?: Custo
 
         {/* 2. Owner Account (create only) */}
         {!isEdit && (
-          <div className="rounded-xl border border-dashed border-[#eba236]/30 dark:border-[#eba236]/30 bg-[#eba236]/10 dark:bg-[#eba236]/10 p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Users className="w-4 h-4 text-[#eba236]" /> Owner Account <span className="text-xs font-normal text-gray-500">(maps to required <span className="font-mono">user</span> field)</span></h4>
+          <div className="rounded-xl border border-dashed border-[#239459]/30 dark:border-[#239459]/30 bg-[#239459]/10 dark:bg-[#239459]/10 p-4">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Users className="w-4 h-4 text-[#239459]" /> Owner Account <span className="text-xs font-normal text-gray-500">(maps to required <span className="font-mono">user</span> field)</span></h4>
             <p className="text-xs text-gray-600 dark:text-[#a1a1aa] mt-1">If this email already exists as a customer user, it will be linked. Otherwise a new customer login is created. Password auto-generates if blank.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
               <div><label className={labelCls}>Owner first name *</label><input value={form.ownerFirstName} onChange={(e)=>set('ownerFirstName', e.target.value)} placeholder="Juan" className={inputCls} /></div>
@@ -153,7 +153,7 @@ export function CustomerForm({ initial, onSuccess, onCancel }: { initial?: Custo
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create customer'}
         </button>
       </div>

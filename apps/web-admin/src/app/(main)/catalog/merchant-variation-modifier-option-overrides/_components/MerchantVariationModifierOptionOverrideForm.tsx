@@ -329,7 +329,7 @@ export function MerchantVariationModifierOptionOverrideForm({ initial, onSuccess
         {error && <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}</div>}
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#eba236]" /> Merchant Product & Variation</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#239459]" /> Merchant Product & Variation</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Merchant Product *</label>
@@ -353,11 +353,11 @@ export function MerchantVariationModifierOptionOverrideForm({ initial, onSuccess
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Layers className="w-4 h-4 text-[#eba236]" /> Target Option Source</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Layers className="w-4 h-4 text-[#239459]" /> Target Option Source</h4>
           <div className="flex gap-2">
             {TARGET_SOURCES.map((opt) => (
-              <label key={opt.value} className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg border cursor-pointer ${form.target_option_source === opt.value ? 'border-[#eba236] bg-[#eba236]/10' : 'border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a]'}`}>
-                <input type="radio" name="target_option_source" value={opt.value} checked={form.target_option_source === opt.value} onChange={() => handleTargetToggle(opt.value)} className="h-4 w-4 text-[#eba236]" />
+              <label key={opt.value} className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg border cursor-pointer ${form.target_option_source === opt.value ? 'border-[#239459] bg-[#239459]/10' : 'border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a]'}`}>
+                <input type="radio" name="target_option_source" value={opt.value} checked={form.target_option_source === opt.value} onChange={() => handleTargetToggle(opt.value)} className="h-4 w-4 text-[#239459]" />
                 <span className="text-sm font-medium">{opt.label}</span>
               </label>
             ))}
@@ -365,7 +365,7 @@ export function MerchantVariationModifierOptionOverrideForm({ initial, onSuccess
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-[#eba236]" /> {form.target_option_source === 'product_base' ? 'Base Product Modifier Option' : 'Variation Modifier Option'}</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-[#239459]" /> {form.target_option_source === 'product_base' ? 'Base Product Modifier Option' : 'Variation Modifier Option'}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {form.target_option_source === 'product_base' ? (
               <div className="sm:col-span-2">
@@ -397,13 +397,13 @@ export function MerchantVariationModifierOptionOverrideForm({ initial, onSuccess
               </select>
             </div>
             <div className="flex items-center gap-3 pt-6">
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Is Active</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.is_active} onChange={(e) => set('is_active', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Is Active</span></label>
             </div>
           </div>
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#eba236]" /> Override Details</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building className="w-4 h-4 text-[#239459]" /> Override Details</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2"><label className={labelCls}>Name Override</label><input value={form.name_override} onChange={(e) => set('name_override', e.target.value)} placeholder="Override name" className={inputCls} /></div>
             <div><label className={labelCls}>Price Adjustment Override (step 0.01)</label><input type="number" step="0.01" value={form.price_adjustment_override as any} onChange={(e) => set('price_adjustment_override', e.target.value)} className={inputCls} placeholder="0.00" /></div>
@@ -415,7 +415,7 @@ export function MerchantVariationModifierOptionOverrideForm({ initial, onSuccess
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create override'}
         </button>
       </div>

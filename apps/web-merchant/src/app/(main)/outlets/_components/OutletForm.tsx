@@ -99,9 +99,9 @@ function getInitialActiveAddressId(doc: OutletDoc | null | undefined): string {
   return String(raw);
 }
 
-const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]';
+const inputCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]';
 const labelCls = 'text-xs font-medium text-gray-700 dark:text-[#a1a1aa]';
-const textareaCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236]';
+const textareaCls = 'mt-1 w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-gray-900 dark:text-white font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459]';
 
 // Facebook-style dropdown: the field itself is always visible; skeleton rows render
 // INSIDE the opened options panel while vendor-owned addresses load — never in place of the field.
@@ -156,7 +156,7 @@ function ActiveAddressDropdown({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-left text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] flex items-center justify-between gap-2"
+        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] text-sm text-left text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] flex items-center justify-between gap-2"
       >
         <span className={`truncate font-mono ${!trimmed ? 'text-gray-400' : ''}`}>{buttonLabel}</span>
         <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -189,7 +189,7 @@ function ActiveAddressDropdown({
                       role="option"
                       aria-selected={active}
                       onClick={() => pick(String(a.id))}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-mono hover:bg-gray-50 dark:hover:bg-[#262626] ${active ? 'text-gray-900 dark:text-white font-semibold bg-[#eba236]/10' : 'text-gray-700 dark:text-[#a1a1aa]'}`}
+                      className={`w-full text-left px-3 py-2.5 text-sm font-mono hover:bg-gray-50 dark:hover:bg-[#262626] ${active ? 'text-gray-900 dark:text-white font-semibold bg-[#239459]/10' : 'text-gray-700 dark:text-[#a1a1aa]'}`}
                     >
                       #{a.id} — {(a.formatted_address || `${a.street}, ${a.locality}`).slice(0, 80)}
                     </button>
@@ -676,7 +676,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className={labelCls}>{title}</span>
-        <button type="button" onClick={()=> setIds([...ids, ''])} className="text-xs font-medium text-[#eba236] hover:text-[#c88a20]">+ Add image</button>
+        <button type="button" onClick={()=> setIds([...ids, ''])} className="text-xs font-medium text-[#239459] hover:text-[#215035]">+ Add image</button>
       </div>
       {ids.length===0 && <p className="text-xs text-gray-400">No images yet. Click Add image.</p>}
       {ids.map((id, idx)=> (
@@ -701,7 +701,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 1. General */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building2 className="w-4 h-4 text-[#eba236]" /> Outlet identity</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Building2 className="w-4 h-4 text-[#239459]" /> Outlet identity</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2"><label className={labelCls}>Outlet name *</label><input value={form.outletName} onChange={(e) => set('outletName', e.target.value)} placeholder="GMK CAFE — Bonifacio High Street" className={inputCls} /></div>
             <div><label className={labelCls}>Outlet code</label><input value={form.outletCode} onChange={(e) => set('outletCode', e.target.value)} placeholder="GMK-BGC-001 (auto if empty)" className={`${inputCls} font-mono`} /></div>
@@ -732,8 +732,8 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
               </div>
             )}
             <div className="flex items-center gap-6 pt-2 sm:col-span-2 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active branch</span></label>
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isAcceptingOrders} onChange={(e) => set('isAcceptingOrders', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Accepting orders</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active branch</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isAcceptingOrders} onChange={(e) => set('isAcceptingOrders', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Accepting orders</span></label>
               <label className="flex items-center gap-2 cursor-pointer" title="Quick pause — when off, outlet shows as not delivering even if status is open"><input type="checkbox" checked={!!form.isCurrentlyDelivering} onChange={(e) => set('isCurrentlyDelivering', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-emerald-600" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Currently delivering</span></label>
             </div>
             <div className="sm:col-span-2"><label className={labelCls}><Timer className="w-3 h-3 inline mr-1" /> Next available slot</label><input type="datetime-local" value={form.nextAvailableSlot} onChange={(e) => set('nextAvailableSlot', e.target.value)} className={inputCls} /><p className="text-xs text-gray-400 mt-1">Maps to next_available_slot (ISO). Leave blank for null.</p></div>
@@ -742,7 +742,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 2. Media & Branding */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#eba236]" /> Media & Branding</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4 text-[#239459]" /> Media & Branding</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Outlet Thumbnail</label>
@@ -762,7 +762,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 3. Active Address — simple dropdown of vendor-owned addresses. No manual inputs. */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-[#eba236]" /> Active Address *</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-[#239459]" /> Active Address *</h4>
           <div>
             <label className={labelCls}>Active Address</label>
             <ActiveAddressDropdown
@@ -780,7 +780,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 4. Contact */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Phone className="w-4 h-4 text-[#eba236]" /> Contact & manager</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Phone className="w-4 h-4 text-[#239459]" /> Contact & manager</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Outlet email</label><input value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="bgc@gmkcafe.ph" type="email" className={inputCls} /></div>
             <div><label className={labelCls}>Outlet phone</label><input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+63 917 123 4567" className={inputCls} /></div>
@@ -791,7 +791,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 5. Delivery */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Truck className="w-4 h-4 text-[#eba236]" /> Delivery & fulfillment</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Truck className="w-4 h-4 text-[#239459]" /> Delivery & fulfillment</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Minimum order (₱)</label><input type="number" min={0} value={form.minimumOrderAmount} onChange={(e) => set('minimumOrderAmount', e.target.value)} className={inputCls} /></div>
             <div><label className={labelCls}>Base delivery fee (₱)</label><input type="number" min={0} value={form.deliveryFee} onChange={(e) => set('deliveryFee', e.target.value)} className={inputCls} /></div>
@@ -808,7 +808,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
 
         {/* 6. Hours */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#eba236]" /> Weekly operating hours</h4>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-[#239459]" /> Weekly operating hours</h4>
           <div className="rounded-xl border border-gray-200 dark:border-[#262626] divide-y divide-gray-100 dark:divide-[#262626] overflow-hidden">
             {DAYS.map((day) => {
               const h = form.hours[day] || { open: '09:00', close: '21:00', closed: false };
@@ -816,7 +816,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
                 <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-4 py-2.5">
                   <span className="text-sm font-medium text-gray-900 dark:text-white w-24 shrink-0">{day}</span>
                   <label className="flex items-center gap-2 text-sm text-gray-500 dark:text-[#a1a1aa] cursor-pointer shrink-0">
-                    <input type="checkbox" checked={!!h.closed} onChange={(e) => setDay(day, 'closed', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#eba236]" /> Closed
+                    <input type="checkbox" checked={!!h.closed} onChange={(e) => setDay(day, 'closed', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> Closed
                   </label>
                   <div className={`flex flex-col gap-2 ${h.closed ? 'opacity-40 pointer-events-none' : ''}`}>
                     {(h.periods || [{ open: h.open || '09:00', close: h.close || '21:00' }]).map((period, periodIndex) => (
@@ -865,7 +865,7 @@ export function OutletForm({ initial, onSuccess, onCancel }: { initial?: OutletD
       </div>
       <div className="flex items-center justify-end gap-2 border-t border-gray-200 dark:border-[#262626] bg-gray-50 dark:bg-[#0a0a0a] px-6 py-4 rounded-b-xl">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-lg border border-gray-300 dark:border-[#262626] bg-white dark:bg-[#171717] px-4 py-2 text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#eba236] hover:bg-[#c88a20] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button type="button" onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] hover:bg-[#215035] px-6 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {saving && <RefreshCw className="h-4 w-4 animate-spin" />} {isEdit ? 'Save changes' : 'Create outlet'}
         </button>
       </div>

@@ -87,7 +87,7 @@ function ProductsPageContent(){
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="h-8 w-8 rounded-lg bg-[#eba236] text-white flex items-center justify-center"><Package className="w-4 h-4" /></span>
+            <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><Package className="w-4 h-4" /></span>
             Products
           </h1>
           <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Vendors → Outlets → Merchant Products. Select a vendor to view its outlets.</p>
@@ -96,7 +96,7 @@ function ProductsPageContent(){
           <button onClick={handleHardRefresh} disabled={loading} aria-label="Refresh" className="h-9 w-9 inline-flex items-center justify-center bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl hover:bg-gray-50 dark:hover:bg-[#262626] disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-[#a1a1aa] ${loading?'animate-spin':''}`} />
           </button>
-          <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#eba236] hover:bg-[#c88a20] text-white rounded-xl text-sm font-semibold shadow-sm transition">
+          <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition">
             <Plus className="w-4 h-4" /> New Merchant Product
           </Link>
         </div>
@@ -104,7 +104,7 @@ function ProductsPageContent(){
 
       {stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard title="Vendors" value={String(stats.totalVendors)} sub={`${stats.filteredVendors} filtered`} icon={<Building className="w-5 h-5 text-white" />} iconBg="bg-[#eba236]" />
+          <KpiCard title="Vendors" value={String(stats.totalVendors)} sub={`${stats.filteredVendors} filtered`} icon={<Building className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Outlets" value={String(stats.totalMerchants)} sub={`${stats.activeMerchants} active`} icon={<Store className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Merchant Products" value={String(stats.totalMerchantProducts)} sub={`${vendors.reduce((s,v)=>s+v.totalProductsFiltered,0)} filtered`} icon={<Layers className="w-5 h-5 text-white" />} iconBg="bg-blue-500" />
           <KpiCard title="Avg per Vendor" value={String(stats.totalVendors? Math.round(stats.totalMerchantProducts / stats.totalVendors):0)} sub="products / vendor" icon={<Tag className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
@@ -119,7 +119,7 @@ function ProductsPageContent(){
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e)=>{setQ(e.target.value); setPage(1)}} placeholder="Search vendor, legal name…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eba236]/20 focus:border-[#eba236] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e)=>{setQ(e.target.value); setPage(1)}} placeholder="Search vendor, legal name…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={()=>setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2">
@@ -133,7 +133,7 @@ function ProductsPageContent(){
           <div className="flex flex-col items-center justify-center py-16 px-6">
             <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load vendors</h3><p className="text-sm text-gray-500 mt-1 mb-4">{error}</p>
-            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#eba236] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
+            <button onClick={handleHardRefresh} className="inline-flex items-center px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium"><RefreshCw className="w-4 h-4 mr-2" />Retry</button>
           </div>
         )}
         {isInitialLoading ? (
@@ -142,7 +142,7 @@ function ProductsPageContent(){
           </div>
         ) : !error && vendors.length===0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="h-16 w-16 bg-[#eba236]/10 dark:bg-[#eba236]/15 rounded-2xl flex items-center justify-center mb-4"><Building className="w-8 h-8 text-[#eba236]" /></div>
+            <div className="h-16 w-16 bg-[#239459]/10 dark:bg-[#239459]/15 rounded-2xl flex items-center justify-center mb-4"><Building className="w-8 h-8 text-[#239459]" /></div>
             <h3 className="font-semibold text-gray-900 dark:text-white">No vendors found</h3>
             <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1 max-w-md">No vendors match your search. Try adjusting filters.</p>
           </div>
@@ -152,7 +152,7 @@ function ProductsPageContent(){
               {vendors.map(v=>(
                 <Link key={v.vendor.id} href={`/products/vendors/${v.vendor.id}`} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#262626] dark:hover:bg-[#0a0a0a] transition">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#eba236] to-[#c88a20] text-white flex items-center justify-center font-bold shrink-0 overflow-hidden">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center font-bold shrink-0 overflow-hidden">
                       {v.vendor.logo?.url ? <img src={v.vendor.logo.url} alt={v.vendor.businessName} className="h-10 w-10 object-cover" /> : initials(v.vendor.businessName)}
                     </div>
                     <div className="min-w-0">
@@ -163,7 +163,7 @@ function ProductsPageContent(){
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] border border-gray-200 dark:border-[#333]"><Store className="w-3 h-3" />{v.totalMerchants}</span>
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#eba236]/10 text-[#8a5f17] dark:text-[#eba236] border border-[#eba236]/20">{v.totalProducts} products</span>
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#239459]/10 text-[#8a5f17] dark:text-[#239459] border border-[#239459]/20">{v.totalProducts} products</span>
                     <Eye className="w-4 h-4 text-gray-400" />
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
@@ -177,7 +177,7 @@ function ProductsPageContent(){
                   <button disabled={loading || !pagination.hasPrevPage} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Prev</button>
                   {Array.from({length:Math.min(5,pagination.totalPages)}).map((_,i)=>{
                     const n=Math.max(1,Math.min(pagination.totalPages-4,page-2))+i; if(n>pagination.totalPages) return null
-                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#eba236] text-white border-[#eba236]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
+                    return <button key={n} onClick={()=>setPage(n)} className={`h-8 w-8 rounded-lg text-sm font-medium border ${n===page?'bg-[#239459] text-white border-[#239459]':'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[#262626] text-gray-700 dark:text-white'}`}>{n}</button>
                   })}
                   <button disabled={loading || !pagination.hasNextPage} onClick={()=>setPage(p=>Math.min(pagination.totalPages,p+1))} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#0a0a0a] disabled:opacity-50 text-sm">Next</button>
                 </div>

@@ -3,7 +3,7 @@ module.exports = {
     android: {
       sourceDir: './apps/mobile-customer/android',
       appName: 'app',
-      packageName: 'com.tap2go.mobile',
+      packageName: 'com.kuyacares.mobile',
     },
   },
 };

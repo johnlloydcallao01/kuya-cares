@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -761,7 +761,7 @@ export function Header({
               {totalQuantity > 0 && (
                 <span
                   className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[11px] font-semibold flex items-center justify-center leading-none"
-                  style={{ backgroundColor: '#eba236' }}
+                  style={{ backgroundColor: '#239459' }}
                 >
                   {totalQuantity}
                 </span>

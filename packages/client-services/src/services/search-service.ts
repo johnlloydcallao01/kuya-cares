@@ -3,7 +3,7 @@
 import { dataCache, CACHE_KEYS } from '../cache/data-cache';
 
 export class SearchService {
-  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL || 'https://cms.tap2goph.com/api';
+  private static readonly API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
   private static readonly PAYLOAD_API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || process.env.EXPO_PUBLIC_PAYLOAD_API_KEY || '';
 
   private static getHeaders(): Record<string, string> {
