@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const CMS_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '')
-const AUTH_COOKIE = 'tap2go-admin-token'
+const AUTH_COOKIE = 'kuyacares-admin-token'
 
 async function forward(request: NextRequest, method: 'GET' | 'POST' | 'DELETE') {
   const token = request.cookies.get(AUTH_COOKIE)?.value

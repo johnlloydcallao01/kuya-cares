@@ -5,7 +5,7 @@ import type { AuthResponse, LoginCredentials, User } from '@/types/auth';
 import { sanitizeUser } from '@/lib/sanitizeUser';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
-const AUTH_COOKIE = 'tap2go-admin-token';
+const AUTH_COOKIE = 'kuyacares-admin-token';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 async function readResponse(response: Response): Promise<Record<string, unknown>> {

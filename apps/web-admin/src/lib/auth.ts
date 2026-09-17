@@ -22,7 +22,7 @@ import type {
 import { serverLogin, serverLogout, getServerUser, serverRefresh } from '@/app/actions/auth';
 
 // ========================================
-// CONFIGURATION (grandline logic, tap2go endpoints)
+// CONFIGURATION (grandline logic, kuyacares endpoints)
 // ========================================
 
 function normalizeApiBaseUrl(raw?: string): string {
@@ -47,12 +47,12 @@ export const API_BASE_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL)
 
 export const COLLECTION_SLUG = 'users';
 
-// Storage keys (tap2go equivalents of grandline_auth_*_admin)
-const TOKEN_KEY = 'tap2go_auth_token_admin';
-const EXPIRES_KEY = 'tap2go_auth_expires_admin';
-const USER_KEY = 'tap2go_auth_user_admin';
+// Storage keys (kuyacares equivalents of grandline_auth_*_admin)
+const TOKEN_KEY = 'kuyacares_auth_token_admin';
+const EXPIRES_KEY = 'kuyacares_auth_expires_admin';
+const USER_KEY = 'kuyacares_auth_user_admin';
 
-// Legacy keys from the previous tap2go implementation — cleared on logout,
+// Legacy keys from the previous kuyacares implementation — cleared on logout,
 // read as fallback during migration so existing sessions are not orphaned.
 const LEGACY_TOKEN_KEY = 'admin_auth_token';
 const LEGACY_EXPIRES_KEY = 'admin_auth_expires';

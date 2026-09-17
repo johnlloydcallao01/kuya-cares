@@ -203,8 +203,8 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
       // transient client-side revalidation failure.
       if (initialUser && initialToken) {
         try {
-          localStorage.setItem('tap2go_auth_user_admin', JSON.stringify(initialUser));
-          localStorage.setItem('tap2go_auth_token_admin', initialToken);
+          localStorage.setItem('kuyacares_auth_user_admin', JSON.stringify(initialUser));
+          localStorage.setItem('kuyacares_auth_token_admin', initialToken);
         } catch {
           void 0;
         }
@@ -217,8 +217,8 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
       let cachedToken: string | null = null;
 
       try {
-        const cached = localStorage.getItem('tap2go_auth_user_admin');
-        cachedToken = localStorage.getItem('tap2go_auth_token_admin');
+        const cached = localStorage.getItem('kuyacares_auth_user_admin');
+        cachedToken = localStorage.getItem('kuyacares_auth_token_admin');
         if (cached) {
           cachedUser = JSON.parse(cached);
           dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user: cachedUser, token: cachedToken } });
@@ -233,9 +233,9 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
 
       // Update local storage token just in case legacy code needs it
       if (token) {
-        localStorage.setItem('tap2go_auth_token_admin', token);
+        localStorage.setItem('kuyacares_auth_token_admin', token);
       } else {
-        localStorage.removeItem('tap2go_auth_token_admin');
+        localStorage.removeItem('kuyacares_auth_token_admin');
       }
 
       dispatch({ type: 'AUTH_INIT_SUCCESS', payload: { user, token } });
@@ -310,7 +310,7 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
     dispatch({ type: 'USER_UPDATED', payload: { user } });
 
     try {
-      localStorage.setItem('tap2go_auth_user_admin', JSON.stringify(user));
+      localStorage.setItem('kuyacares_auth_user_admin', JSON.stringify(user));
     } catch {
       // Keep the in-memory session usable when storage is unavailable.
     }

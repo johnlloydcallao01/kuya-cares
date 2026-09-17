@@ -439,7 +439,7 @@ function ConfigurationPageContent(){
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Smartphone className="w-4 h-4 text-emerald-600" /> Native Delivery</h4>
                         <div>
                           <label className={labelCls}>Rider App URL</label>
-                          <input value={nativeRiderAppUrl} onChange={(e) => setNativeRiderAppUrl(e.target.value)} placeholder="https://rider.tap2go.com" className={inputCls} />
+                          <input value={nativeRiderAppUrl} onChange={(e) => setNativeRiderAppUrl(e.target.value)} placeholder="https://rider.kuyacares.com" className={inputCls} />
                           <p className="text-xs text-gray-400 mt-1">Base URL for native rider application.</p>
                         </div>
                       </div>

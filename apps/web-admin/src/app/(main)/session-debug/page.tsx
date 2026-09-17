@@ -23,9 +23,9 @@ export default function AdminSessionDebugPage() {
       timestamp: new Date().toISOString(),
       cookies: typeof document !== 'undefined' ? document.cookie : 'N/A',
       localStorage: typeof localStorage !== 'undefined' ? {
-        tap2go_auth_token_admin: localStorage.getItem('tap2go_auth_token_admin') ? 'present' : null,
-        tap2go_auth_expires_admin: localStorage.getItem('tap2go_auth_expires_admin') || null,
-        tap2go_auth_user_admin: localStorage.getItem('tap2go_auth_user_admin') ? 'present' : null,
+        kuyacares_auth_token_admin: localStorage.getItem('kuyacares_auth_token_admin') ? 'present' : null,
+        kuyacares_auth_expires_admin: localStorage.getItem('kuyacares_auth_expires_admin') || null,
+        kuyacares_auth_user_admin: localStorage.getItem('kuyacares_auth_user_admin') ? 'present' : null,
         legacy_admin_auth_token: localStorage.getItem('admin_auth_token') ? 'present (legacy)' : null,
       } : 'N/A',
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
@@ -66,7 +66,7 @@ export default function AdminSessionDebugPage() {
     try {
       results.push('🔄 Testing logout...');
       results.push(`✅ Authenticated: ${isAuthenticated}`);
-      results.push(`✅ Session data: ${localStorage.getItem('tap2go_auth_token_admin') ? 'present' : 'none'}`);
+      results.push(`✅ Session data: ${localStorage.getItem('kuyacares_auth_token_admin') ? 'present' : 'none'}`);
 
       updateDebugInfo();
     } catch (error) {
@@ -79,9 +79,9 @@ export default function AdminSessionDebugPage() {
   // Clear stored auth data
   const clearAuthData = () => {
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('tap2go_auth_token_admin');
-      localStorage.removeItem('tap2go_auth_expires_admin');
-      localStorage.removeItem('tap2go_auth_user_admin');
+      localStorage.removeItem('kuyacares_auth_token_admin');
+      localStorage.removeItem('kuyacares_auth_expires_admin');
+      localStorage.removeItem('kuyacares_auth_user_admin');
       localStorage.removeItem('admin_auth_token');
       localStorage.removeItem('admin_auth_expires');
       localStorage.removeItem('admin_auth_user');

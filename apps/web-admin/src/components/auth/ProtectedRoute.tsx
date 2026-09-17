@@ -77,7 +77,7 @@ export function withAuth<P extends object>(
   return WrappedComponent;
 }
 
-/** Backwards-compatible alias (previous tap2go name). */
+/** Backwards-compatible alias (previous kuyacares name). */
 export const withProtectedRoute = withAuth;
 
 export default ProtectedRoute;

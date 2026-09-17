@@ -37,7 +37,7 @@ export async function cmsApiFetch(path: string, options: RequestInit = {}): Prom
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     token =
-      localStorage.getItem('tap2go_auth_token_admin') ?? localStorage.getItem('admin_auth_token');
+      localStorage.getItem('kuyacares_auth_token_admin') ?? localStorage.getItem('admin_auth_token');
   }
 
   const headers = new Headers(options.headers);

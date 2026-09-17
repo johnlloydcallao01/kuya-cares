@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SearchCategory } from '@/lib/search-types';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
-const AUTH_COOKIE = 'tap2go-admin-token';
+const AUTH_COOKIE = 'kuyacares-admin-token';
 
 interface PayloadDoc {
   id: string | number;

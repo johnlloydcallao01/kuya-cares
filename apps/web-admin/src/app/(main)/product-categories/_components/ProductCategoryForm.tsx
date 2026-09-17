@@ -233,7 +233,7 @@ export function ProductCategoryForm({ initial, onSuccess, onCancel }: { initial?
         <div>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Globe className="w-4 h-4 text-sky-600" /> SEO</h4>
           <div className="grid grid-cols-1 gap-3">
-            <div><label className={labelCls}>Meta title</label><input value={form.metaTitle} onChange={(e) => set('metaTitle', e.target.value)} placeholder="Best Main Dishes — Tap2Go" className={inputCls} /></div>
+            <div><label className={labelCls}>Meta title</label><input value={form.metaTitle} onChange={(e) => set('metaTitle', e.target.value)} placeholder="Best Main Dishes — Kuya Cares" className={inputCls} /></div>
             <div><label className={labelCls}>Meta description</label><textarea value={form.metaDescription} onChange={(e) => set('metaDescription', e.target.value)} rows={2} placeholder="Discover our main dishes…" className={inputCls} /></div>
             <div><label className={labelCls}>Keywords <span className="text-gray-400 font-normal">(comma-separated)</span></label><input value={form.keywords} onChange={(e) => set('keywords', e.target.value)} placeholder="food, delivery, manila" className={inputCls} /></div>
             <div><label className={labelCls}><FileText className="w-3 h-3 inline mr-1" />Canonical URL</label><input value={form.canonicalUrl} onChange={(e) => set('canonicalUrl', e.target.value)} placeholder="https://example.com/category/main-dishes" className={inputCls} /></div>
