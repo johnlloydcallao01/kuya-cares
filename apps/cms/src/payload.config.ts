@@ -1312,10 +1312,9 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
       collections: {
         media: {
           adapter: cloudinaryAdapter({
-            cloudName:
-              process.env.CLOUDINARY_CLOUD_NAME ||
-              process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
-              '',
+            // Server-only: read at runtime, NOT NEXT_PUBLIC_* (which Next.js
+            // inlines at build time and goes stale on Cloud Run — see Dockerfile).
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
             apiKey: process.env.CLOUDINARY_API_KEY!,
             apiSecret: process.env.CLOUDINARY_API_SECRET!,
             folder: 'main-uploads',

@@ -19,10 +19,14 @@ FROM dependencies AS builder
 #   Keep dummy defaults here; pass real public values via --build-arg in a
 #   Cloud Build trigger (see docs/cloud-run-cms-deployment.md) or update the
 #   defaults when rotating public endpoints. Never bake real secrets here.
+# - CLOUDINARY_CLOUD_NAME is NOT NEXT_PUBLIC_ and is read at runtime (see
+#   apps/cms/src/payload.config.ts -> storage/cloudinary-adapter.ts), so a
+#   Cloud Run runtime var overrides it WITHOUT a rebuild. It is a public
+#   identifier (visible in every res.cloudinary.com URL), so a real default is
+#   safe to bake here; the runner stage re-declares it below.
 ARG DATABASE_URI=postgresql://build:build@localhost:5432/build
 ARG PAYLOAD_SECRET=build-placeholder-secret-min-32-chars-long-0000
-ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=build-placeholder
-ARG CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ARG CLOUDINARY_CLOUD_NAME=dbmi93vyt
 ARG NEXT_PUBLIC_SUPABASE_URL=https://build-placeholder.supabase.co
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=build-placeholder-anon-key
 ARG CLOUDINARY_API_KEY=build-placeholder
@@ -33,7 +37,6 @@ ARG CMS_PROD_URL=https://cms.kuyacaresph.com
 ARG COOKIE_DOMAIN=.kuyacaresph.com
 ENV DATABASE_URI=$DATABASE_URI \
   PAYLOAD_SECRET=$PAYLOAD_SECRET \
-  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME \
   CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME \
   NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
   NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
@@ -56,6 +59,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=8080
+# Public Cloudinary identifier; read at runtime by the Cloudinary storage
+# adapter (apps/cms/src/payload.config.ts -> cloudinary-adapter.ts). Unlike
+# NEXT_PUBLIC_* this is not inlined at build time, so a Cloud Run runtime
+# var overrides it without a rebuild. Declared here so the runner image has
+# a sane default even before Cloud Run vars are set.
+ENV CLOUDINARY_CLOUD_NAME=dbmi93vyt
 ENV NEXT_TELEMETRY_DISABLED=1
 # Keep the V8 heap inside the Cloud Run memory limit (see
 # cloudrun-service.yaml.example: 2Gi). Without this Node sizes the heap from

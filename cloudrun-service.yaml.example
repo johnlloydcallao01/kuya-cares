@@ -84,8 +84,12 @@ spec:
               value: REPLACE_WITH_NEXT_PUBLIC_SUPABASE_URL
             - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
               value: REPLACE_WITH_NEXT_PUBLIC_SUPABASE_ANON_KEY
-            - name: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-              value: REPLACE_WITH_NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+            # Server-only Cloudinary identifier, read at RUNTIME by the CMS
+            # storage adapter (NOT NEXT_PUBLIC_ — that variant is inlined at
+            # build time and goes stale; see Dockerfile). No rebuild needed
+            # when this changes. Public identifier, so a plain var (not a secret).
+            - name: CLOUDINARY_CLOUD_NAME
+              value: REPLACE_WITH_CLOUDINARY_CLOUD_NAME
             - name: ADMIN_LOCAL_URL
               value: http://localhost:3002
             - name: WEB_LOCAL_URL

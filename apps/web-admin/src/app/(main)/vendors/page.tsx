@@ -355,9 +355,13 @@ function VendorsPageContent() {
                     <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 min-w-[220px]">
-                          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#239459] to-[#215035] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                            {v.logo?.url ? <img src={v.logo.url} alt={v.businessName} className="h-9 w-9 rounded-xl object-cover" /> : initials(v.businessName)}
-                          </div>
+                            {v.logo?.url ? (
+                              <img src={v.logo.url} alt={v.businessName} className="h-9 w-9 rounded-xl object-cover shrink-0" />
+                            ) : (
+                              <div className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] flex items-center justify-center text-xs font-bold shrink-0">
+                                {initials(v.businessName)}
+                              </div>
+                            )}
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[180px]">{v.businessName}</div>
                             <div className="text-xs text-gray-500 dark:text-[#a1a1aa] truncate max-w-[180px]">{v.legalName}</div>

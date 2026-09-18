@@ -16,17 +16,52 @@ export const cloudinaryAdapter = ({
   folder = 'uploads',
 }: CloudinaryAdapterArgs): Adapter => {
   return ({ collection: _collection, prefix }) => {
+    // Resolve at request time, not just at module init: the adapter args are
+    // captured when payload.config is evaluated, but the Cloud Run runtime var
+    // is the source of truth. Never fall back to a NEXT_PUBLIC_* value (it is
+    // inlined at `next build` time and can be a stale `build-placeholder`).
+    const resolveCloudName = () =>
+      process.env.CLOUDINARY_CLOUD_NAME || cloudName || ''
+    const resolveApiKey = () => process.env.CLOUDINARY_API_KEY || apiKey || ''
+    const resolveApiSecret = () =>
+      process.env.CLOUDINARY_API_SECRET || apiSecret || ''
+
+    const assertConfigured = () => {
+      const name = resolveCloudName()
+      if (!name || name === 'build-placeholder') {
+        throw new Error(
+          'Cloudinary is not configured: set the CLOUDINARY_CLOUD_NAME ' +
+            'runtime env var on Cloud Run (server-only; no rebuild needed). ' +
+            `Got ${JSON.stringify(name)}. ` +
+            'Do NOT use NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME — it is inlined at build time.',
+        )
+      }
+      if (!resolveApiKey() || !resolveApiSecret()) {
+        throw new Error(
+          'Cloudinary is not configured: missing CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.',
+        )
+      }
+      return name
+    }
+
     // Configure Cloudinary
     cloudinary.config({
-      cloud_name: cloudName,
-      api_key: apiKey,
-      api_secret: apiSecret,
+      cloud_name: resolveCloudName() || cloudName,
+      api_key: resolveApiKey() || apiKey,
+      api_secret: resolveApiSecret() || apiSecret,
     })
 
     const adapter: GeneratedAdapter = {
       name: 'cloudinary',
     // Handle file upload to Cloudinary
     handleUpload: async ({ file, data }) => {
+      const effectiveCloudName = assertConfigured()
+      // Re-apply live runtime credentials (module-init values may predate them).
+      cloudinary.config({
+        cloud_name: effectiveCloudName,
+        api_key: resolveApiKey(),
+        api_secret: resolveApiSecret(),
+      })
       console.log('=== CLOUDINARY UPLOAD START ===')
       console.log('Environment:', process.env.NODE_ENV)
       console.log('File info:', {
@@ -35,7 +70,7 @@ export const cloudinaryAdapter = ({
         mimeType: file.mimeType,
       })
       console.log('Cloudinary config:', {
-        cloudName: cloudName,
+        cloudName: effectiveCloudName,
         apiKeyPresent: !!apiKey,
         apiSecretPresent: !!apiSecret,
         folder: folder,

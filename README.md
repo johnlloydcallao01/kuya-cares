@@ -316,8 +316,8 @@ LALAMOVE_MARKET=PH
 NEXT_PUBLIC_MAPS_FRONTEND_KEY=your_frontend_key
 MAPS_BACKEND_KEY=your_backend_key
 
-# Cloudinary
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+# Cloudinary (CMS server-only; never NEXT_PUBLIC_ — see Dockerfile)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 

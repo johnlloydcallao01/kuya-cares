@@ -61,9 +61,10 @@ What it does (without ever printing values):
    with `--update-env-vars` (34 plain) + `--update-secrets` (17 refs, `:latest`).
    Non-destructive: existing vars not in `.env` are kept.
 
-After it prints `Done`, server-only vars are live immediately. If you changed
+After it prints `Done`, server-only vars (including `CLOUDINARY_CLOUD_NAME`,
+read at runtime by the storage adapter) are live immediately. If you changed
 any `NEXT_PUBLIC_*` (`NEXT_PUBLIC_SUPABASE_URL`,
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`), trigger
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`), trigger
 a rebuild (`git push` / Console redeploy) so the client bundle picks them up.
 
 ## Manual alternative (Console / gcloud / YAML)
