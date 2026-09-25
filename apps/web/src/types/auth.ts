@@ -77,6 +77,7 @@ export interface LoginCredentials {
 
 export interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
@@ -87,6 +88,7 @@ export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  updateUser: (user: User) => void;
   clearError: () => void;
   checkAuthStatus: () => Promise<boolean>;
 }

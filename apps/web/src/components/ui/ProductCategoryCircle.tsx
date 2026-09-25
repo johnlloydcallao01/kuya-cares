@@ -20,7 +20,11 @@ export function ProductCategoryCircle({
   active = false, 
   onClick 
 }: ProductCategoryCircleProps) {
-  
+  const isUncategorized =
+    (category.slug || '').toLowerCase() === 'uncategorized' ||
+    String((category as any).id || '').toLowerCase() === 'uncategorized' ||
+    (category.name || '').toLowerCase() === 'uncategorized';
+
   return (
     <div 
       className="flex flex-col items-center space-y-2 cursor-pointer group"
@@ -40,6 +44,13 @@ export function ProductCategoryCircle({
              alt={category.media.icon.alt || category.name}
              className="absolute inset-0 w-full h-full object-cover rounded-full"
            />
+        ) : isUncategorized ? (
+          <div
+            className="absolute inset-0 w-full h-full rounded-full flex items-center justify-center bg-gray-200"
+            aria-hidden="true"
+          >
+            <i className="fas fa-store text-gray-500 text-2xl min-[1500px]:text-3xl"></i>
+          </div>
         ) : (
           <div className="w-8 h-8 min-[1500px]:w-10 min-[1500px]:h-10 bg-gray-300 rounded-full flex items-center justify-center">
             <span className="text-gray-600 text-xs font-medium">

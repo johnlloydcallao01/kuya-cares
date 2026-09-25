@@ -35,6 +35,7 @@ type AddToCartPayload = {
   priceAtAdd: number;
   compareAtPrice?: number | null;
   selectedModifiers?: any[] | null;
+  selectedVariation?: { relationTo: string; value: string | number } | null;
 };
 
 type CartContextValue = {
@@ -168,6 +169,9 @@ type CartContextValue = {
         }
         if (payload.selectedModifiers && payload.selectedModifiers.length > 0) {
           body.selectedModifiers = payload.selectedModifiers;
+        }
+        if (payload.selectedVariation) {
+          body.selectedVariation = payload.selectedVariation;
         }
 
         const res = await fetch(`${API_BASE}/cart-items`, {

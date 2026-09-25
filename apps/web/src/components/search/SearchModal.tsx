@@ -442,7 +442,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
           </button>
           <div className="flex-1">
             <SearchField
-              placeholder="Search for restaurants and foods"
+              placeholder="Search merchants and products"
               value={query}
               onChange={setQuery}
               inputClassName="pl-10 pr-10 py-3 bg-gray-50 border-0 rounded-xl text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#777] focus:bg-white"

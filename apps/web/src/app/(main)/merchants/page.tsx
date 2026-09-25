@@ -16,7 +16,7 @@ import {
 import LocationMerchantCard from "@/components/cards/LocationMerchantCard";
 import { toast } from "react-hot-toast";
 
-export default function NearbyRestaurantsPage(): React.ReactNode {
+export default function MerchantsPage(): React.ReactNode {
   const router = useRouter();
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [merchants, setMerchants] = useState<LocationBasedMerchant[]>([]);
@@ -117,7 +117,7 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
         fetchAndSetActiveAddresses(data || []);
         setIsLoading(false);
       } catch (err) {
-        console.error("NearbyRestaurants: Failed to load merchants", err);
+        console.error("Merchants: Failed to load merchants", err);
         if (!mounted) return;
         setCustomerId(null);
         setError("Failed to load merchants");
@@ -142,7 +142,7 @@ export default function NearbyRestaurantsPage(): React.ReactNode {
           >
             <i className="fas fa-arrow-left leading-none text-[0.9rem]"></i>
           </button>
-          <h1 className="text-base font-normal text-gray-900">Restaurants</h1>
+          <h1 className="text-base font-normal text-gray-900">Merchants</h1>
         </div>
       </div>
 

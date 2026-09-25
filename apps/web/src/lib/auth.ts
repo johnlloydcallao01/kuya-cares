@@ -1,337 +1,385 @@
 /**
  * @file apps/web/src/lib/auth.ts
- * @description Simplified PayloadCMS Authentication Service
+ * @description PayloadCMS Authentication Service for the customer web app.
+ *
+ * Logic ported 1:1 from the proven apps/web-admin pattern (lib/auth.ts):
+ * - Trust the server-seeded session (httpOnly cookie), never clobber it with
+ *   a transient client revalidation failure.
+ * - `credentials: 'omit'` for cross-origin CMS calls — rely on the
+ *   `Authorization: JWT <token>` header instead of conflicting cookies.
+ * - `getServerUser()` returns null (never throws); only login/refresh throw.
+ * - `getSessionInfo()` treats non-401/403 as valid to prevent redirect loops.
+ * - No auto-refresh polling wired by default (see AuthContext).
+ *
+ * The 30-day session itself lives in the `kuyacares-token` httpOnly cookie set
+ * by the server actions. localStorage keeps a client mirror (both the new
+ * `kuyacares_auth_*` keys and the legacy `grandline_auth_*` keys that the
+ * shared client-services and existing components already read).
  */
 
 import type {
   User,
   AuthResponse,
   LoginCredentials,
-  PayloadAuthResponse,
   PayloadMeResponse,
   SessionInfo,
 } from '@/types/auth';
 
+import { serverLogin, serverLogout, getServerUser, serverRefresh } from '@/app/actions/auth';
+
 // ========================================
-// CONFIGURATION
+// CONFIGURATION (server-action pattern, kuyacares endpoints)
 // ========================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-const COLLECTION_SLUG = 'users';
+function normalizeApiBaseUrl(raw?: string): string {
+  const fallback = 'https://cms.kuyacares.com/api';
+  const trimmed = (raw || '').trim();
+  let base = trimmed || fallback;
 
-const REQUEST_CONFIG: RequestInit = {
-  credentials: 'include',
+  if (!/^https?:\/\//i.test(base)) {
+    base = `https://${base}`;
+  }
+
+  base = base.replace(/\/+$/, '');
+
+  if (!/\/api$/i.test(base)) {
+    base = `${base}/api`;
+  }
+
+  return base;
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+
+export const COLLECTION_SLUG = 'users';
+
+// Storage keys (new canonical + legacy mirrors for existing consumers)
+const TOKEN_KEY = 'kuyacares_auth_token';
+const EXPIRES_KEY = 'kuyacares_auth_expires';
+const USER_KEY = 'kuyacares_auth_user';
+
+// Legacy keys from the previous implementation — written alongside the new
+// keys so the shared client-services and existing components (Header,
+// SearchModal, wishlist-service etc.) that read `grandline_auth_*` keep working.
+const LEGACY_TOKEN_KEY = 'grandline_auth_token';
+const LEGACY_EXPIRES_KEY = 'grandline_auth_expires';
+const LEGACY_USER_KEY = 'grandline_auth_user';
+
+// Request Config — never send ambient cookies cross-origin to the CMS.
+export const REQUEST_CONFIG: RequestInit = {
+  credentials: 'omit',
   headers: {
     'Content-Type': 'application/json',
   },
 };
 
 // ========================================
-// API UTILITIES
+// API REQUEST UTILITIES
 // ========================================
 
-async function makeAuthRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function makeAuthRequest<T>(
+  endpoint: string,
+  options: RequestInit & { suppressErrorLog?: boolean } = {},
+): Promise<T> {
   const url = `${API_BASE_URL}/${COLLECTION_SLUG}${endpoint}`;
-  
-  const response = await fetch(url, {
-    ...REQUEST_CONFIG,
-    ...options,
-    headers: {
-      ...REQUEST_CONFIG.headers,
-      ...options.headers,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    // Only retry 5xx server errors, not auth errors (401, 403)
-    if (response.status >= 500) {
-      throw { ...data, status: response.status, retryable: true };
-    }
-    throw { ...data, status: response.status, retryable: false };
-  }
-
-  return data;
-}
-
-// Simple retry for server errors only
-async function retryServerErrors<T>(operation: () => Promise<T>): Promise<T> {
-  try {
-    return await operation();
-  } catch (error: any) {
-    // Only retry once for 5xx errors
-    if (error.retryable && error.status >= 500) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return await operation();
-    }
-    throw error;
-  }
-}
-
-// ========================================
-// PROFILE PICTURE ENRICHMENT
-// ========================================
-
-/**
- * Fetch a full user document with depth=2 so relationships (profilePicture -> media)
- * are resolved to full objects including cloudinaryURL.
- */
-async function fetchFullUser(userId: number): Promise<User | null> {
-  try {
-    const response = await makeAuthRequest<{ doc: User }>(`/${userId}?depth=2`);
-    return response?.doc ?? null;
-  } catch (error: any) {
-    if (error.status === 404) return null;
-    throw error;
-  }
-}
-
-/**
- * Strip credential-related fields that a full user document may contain so we
- * never persist them to localStorage.
- */
-function sanitizeUserForStorage(user: User): User {
-  const copy: Record<string, unknown> = { ...user } as unknown as Record<string, unknown>;
-  delete copy['hash'];
-  delete copy['salt'];
-  delete copy['resetPasswordToken'];
-  delete copy['resetPasswordExpiration'];
-  return copy as unknown as User;
-}
-
-/**
- * Normalize profilePicture to a usable object form. If the API returns a scalar
- * ID (depth 0) instead of the resolved media document, drop it so the UI falls
- * back to initials gracefully instead of crashing.
- */
-function normalizeProfilePicture(user: User): User {
-  const pp = (user as any).profilePicture;
-  if (pp && typeof pp === 'object' && !Array.isArray(pp) && pp.id != null) {
-    return sanitizeUserForStorage(user);
-  }
-  return sanitizeUserForStorage({ ...user, profilePicture: null });
-}
-
-/**
- * Enrich a user object with the resolved profilePicture (cloudinaryURL).
- * Used after login/me/refresh so the avatar always has a displayable URL.
- */
-async function enrichUserWithProfilePicture(user: User): Promise<User> {
-  try {
-    const fresh = await fetchFullUser(user.id);
-    return normalizeProfilePicture(fresh || user);
-  } catch (error) {
-    // If the enrichment fetch fails, keep the original user (with scalar/missing
-    // profilePicture handled) rather than breaking authentication.
-    return normalizeProfilePicture(user);
-  }
-}
-
-// ========================================
-// AUTHENTICATION FUNCTIONS
-// ========================================
-
-/**
- * Login user with email and password
- */
-export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  clearAuthState();
 
   try {
-    const response = await retryServerErrors(async () => {
-      return await makeAuthRequest<PayloadAuthResponse>('/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
+    const response = await fetch(url, {
+      ...REQUEST_CONFIG,
+      ...options,
+      headers: {
+        ...REQUEST_CONFIG.headers,
+        ...options.headers,
+      },
     });
 
-    // Check if user has customer role
-    if (response.user.role !== 'customer') {
-      throw new Error('Access denied. Only customers can access this application.');
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
     }
 
-    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
-    const enrichedUser = await enrichUserWithProfilePicture(response.user);
-
-    // Store token for persistent authentication
-    if (response.token) {
-      localStorage.setItem('grandline_auth_token', response.token);
-      const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
-      localStorage.setItem('grandline_auth_expires', expirationTime.toString());
-      localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
+    if (!response.ok) {
+      throw { ...(data as object), status: response.status };
     }
 
-    return {
-      message: response.message,
-      user: enrichedUser,
-      token: response.token,
-      exp: response.exp,
-    };
-  } catch (error: any) {
-    if (error.status === 401) {
-      throw new Error('Invalid email or password.');
-    }
-    if (error.status === 423) {
-      throw new Error('Account is temporarily locked. Please try again later.');
-    }
-    if (error.status >= 500) {
-      throw new Error('Server error. Please try again later.');
-    }
-    throw new Error(error.message || 'Login failed. Please try again.');
-  }
-}
-
-/**
- * Logout current user
- */
-export async function logout(): Promise<void> {
-  try {
-    await makeAuthRequest('/logout', { method: 'POST' });
+    return data as T;
   } catch (error) {
-    // Continue with logout even if API call fails
+    if (!options.suppressErrorLog) {
+      console.error(`Auth API Error [${endpoint}]:`, error);
+    }
+    throw error;
   }
-  
-  clearAuthState();
-  emitAuthEvent('logout');
+}
+
+// ========================================
+// STORED SESSION MIRROR
+// ========================================
+
+const SESSION_DAYS = 30;
+const SESSION_MILLIS = SESSION_DAYS * 24 * 60 * 60 * 1000;
+
+function persistSessionMirror(token: string, user: User): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const expiresAt = Date.now() + SESSION_MILLIS;
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(EXPIRES_KEY, expiresAt.toString());
+    // Legacy mirrors for existing consumers
+    localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
+    localStorage.setItem(LEGACY_TOKEN_KEY, token);
+    localStorage.setItem(LEGACY_EXPIRES_KEY, expiresAt.toString());
+  } catch {
+    void 0;
+  }
+}
+
+function persistUserMirror(user: User): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
+  } catch {
+    void 0;
+  }
 }
 
 /**
- * Get current authenticated user
+ * Get the mirrored client token for direct CMS fetches (addresses, media, etc).
+ * The httpOnly cookie remains the source of truth for server actions / BFF.
  */
-export async function getCurrentUser(): Promise<User | null> {
-  const token = localStorage.getItem('grandline_auth_token');
-  if (!token || isTokenExpired()) {
+export function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY);
+}
+
+export function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(USER_KEY) ?? localStorage.getItem(LEGACY_USER_KEY);
+    if (!raw) return null;
+    const user = JSON.parse(raw) as User;
+    return user && typeof user === 'object' ? user : null;
+  } catch {
     return null;
   }
+}
 
+// ========================================
+// CORE AUTHENTICATION FUNCTIONS
+// ========================================
+
+export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   try {
-    const response = await makeAuthRequest<PayloadMeResponse>('/me');
-    
-    if (response.user?.role !== 'customer') {
+    const response = await serverLogin(credentials);
+
+    if (response.token && response.user) {
+      persistSessionMirror(response.token, response.user);
+    }
+
+    return response;
+  } catch (error: unknown) {
+    // Pass through the human-readable messages raised by the server action.
+    throw error instanceof Error ? error : new Error('Login failed');
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await serverLogout();
+  } finally {
+    clearAuthState();
+  }
+}
+
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const user = await getServerUser();
+
+    if (!user) {
       clearAuthState();
       return null;
     }
 
-    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
-    const enrichedUser = await enrichUserWithProfilePicture(response.user);
+    persistUserMirror(user);
 
-    // Update cached user data
-    localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
-    return enrichedUser;
-  } catch (error: any) {
-    if (error.status === 401) {
-      clearAuthState();
-    }
+    return user;
+  } catch {
+    clearAuthState();
     return null;
   }
 }
 
-/**
- * Refresh session token
- */
 export async function refreshSession(): Promise<AuthResponse> {
-  const token = localStorage.getItem('grandline_auth_token');
-  if (!token) {
-    throw new Error('No active session to refresh');
-  }
-
   try {
-    const response = await makeAuthRequest<PayloadAuthResponse>('/refresh-token', {
-      method: 'POST',
-    });
+    const response = await serverRefresh();
 
-    if (response.user?.role !== 'customer') {
-      clearAuthState();
-      throw new Error('Access denied. Only customers can access this application.');
+    if (response.token && response.user) {
+      persistSessionMirror(response.token, response.user);
     }
 
-    // Resolve profilePicture (with cloudinaryURL) so the avatar can render it.
-    const enrichedUser = await enrichUserWithProfilePicture(response.user);
+    return response;
+  } catch (error: unknown) {
+    clearAuthState();
+    throw error instanceof Error ? error : new Error('Failed to refresh session');
+  }
+}
 
-    // Update stored token and user data
-    if (response.token) {
-      localStorage.setItem('grandline_auth_token', response.token);
-      const expirationTime = Date.now() + (30 * 24 * 60 * 60 * 1000);
-      localStorage.setItem('grandline_auth_expires', expirationTime.toString());
-      localStorage.setItem('grandline_auth_user', JSON.stringify(enrichedUser));
-    }
-
-    emitAuthEvent('session_refreshed', enrichedUser);
-
-    return {
-      message: response.message,
-      user: enrichedUser,
-      token: response.token,
-      exp: response.exp,
-    };
-  } catch (error: any) {
-    if (error.status === 401) {
-      clearAuthState();
-    }
-    throw error;
+export async function checkAuthStatus(): Promise<boolean> {
+  try {
+    const user = await getCurrentUser();
+    return user !== null;
+  } catch {
+    return false;
   }
 }
 
 /**
- * Check if user is authenticated
- */
-export async function checkAuthStatus(): Promise<boolean> {
-  const user = await getCurrentUser();
-  return user !== null;
-}
-
-/**
- * Check if stored token exists and is not expired
+ * Legacy helper kept for compatibility. The authoritative check is the server
+ * cookie via getServerUser(), not the mirrored localStorage expiry.
  */
 export function hasValidStoredToken(): boolean {
-  const token = localStorage.getItem('grandline_auth_token');
-  const expires = localStorage.getItem('grandline_auth_expires');
-  
-  if (!token || !expires) return false;
-  
-  return Date.now() < parseInt(expires);
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const storedToken = localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY);
+  const storedExpires = localStorage.getItem(EXPIRES_KEY) ?? localStorage.getItem(LEGACY_EXPIRES_KEY);
+
+  if (!storedToken || !storedExpires) {
+    return false;
+  }
+
+  return Date.now() < parseInt(storedExpires, 10);
 }
 
-/**
- * Get session information
- */
 export async function getSessionInfo(): Promise<SessionInfo> {
-  const user = await getCurrentUser();
-  const expires = localStorage.getItem('grandline_auth_expires');
-  
-  return {
-    isValid: user !== null,
-    user: user || undefined,
-    expiresAt: expires ? new Date(parseInt(expires)) : undefined,
-  };
-}
+  try {
+    let headers: Record<string, string> | undefined;
+    if (typeof window !== 'undefined') {
+      const token = getStoredToken();
+      if (token) headers = { Authorization: `JWT ${token}` };
+    }
+    const response = await makeAuthRequest<PayloadMeResponse>('/me', { headers });
 
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
+    return {
+      isValid: response.user !== null,
+      user: response.user || undefined,
+      expiresAt: response.exp ? new Date(response.exp * 1000) : undefined,
+    };
+  } catch (error: unknown) {
+    const isAuthStatus = !!(error && typeof error === 'object' && 'status' in error);
+    const status = isAuthStatus ? (error as { status: number }).status : undefined;
+
+    if (status === 401 || status === 403) {
+      return { isValid: false };
+    }
+
+    // Deliberate anti-logout-loop: transient/network errors keep the session.
+    return { isValid: true };
+  }
+}
 
 export function clearAuthState(): void {
-  localStorage.removeItem('grandline_auth_token');
-  localStorage.removeItem('grandline_auth_expires');
-  localStorage.removeItem('grandline_auth_user');
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(EXPIRES_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_EXPIRES_KEY);
+    localStorage.removeItem(LEGACY_USER_KEY);
+    sessionStorage.removeItem('auth:redirectAfterLogin');
+
+    window.dispatchEvent(new CustomEvent('auth:logout'));
+  }
 }
 
-function isTokenExpired(): boolean {
-  const expires = localStorage.getItem('grandline_auth_expires');
-  if (!expires) return true;
-  return Date.now() >= parseInt(expires);
+export function isSessionExpired(exp?: number): boolean {
+  if (!exp) return true;
+  return Date.now() >= exp * 1000;
+}
+
+export function getTimeUntilExpiry(exp?: number): number {
+  if (!exp) return 0;
+  return Math.max(0, exp * 1000 - Date.now());
 }
 
 export function getUserDisplayName(user: User): string {
   if (user.firstName && user.lastName) {
     return `${user.firstName} ${user.lastName}`;
   }
+  if (user.username) {
+    return user.username;
+  }
   return user.email;
 }
 
-export function emitAuthEvent(event: string, data?: any): void {
+export function emitAuthEvent(event: string, data?: unknown): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(`auth:${event}`, { detail: data }));
   }
+}
+
+// ========================================
+// SESSION MONITORING (defined, NOT auto-wired)
+// ========================================
+
+export function startSessionMonitoring(): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const REFRESH_INTERVAL = 25 * 60 * 1000;
+
+  const intervalId = setInterval(async () => {
+    try {
+      const isAuth = await checkAuthStatus();
+      if (isAuth) {
+        await refreshSession();
+        emitAuthEvent('session_refreshed_auto');
+      }
+    } catch (error) {
+      console.error('Auto session refresh failed:', error);
+      emitAuthEvent('session_refresh_failed', { error });
+    }
+  }, REFRESH_INTERVAL);
+
+  return () => {
+    clearInterval(intervalId);
+  };
+}
+
+export function monitorSessionExpiration(): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const CHECK_INTERVAL = 5 * 60 * 1000;
+
+  const intervalId = setInterval(async () => {
+    try {
+      const sessionInfo = await getSessionInfo();
+
+      if (!sessionInfo.isValid) {
+        console.warn('Session check failed, but keeping session active to prevent redirect loop.');
+      } else if (sessionInfo.expiresAt) {
+        const timeUntilExpiry = sessionInfo.expiresAt.getTime() - Date.now();
+
+        if (timeUntilExpiry < 10 * 60 * 1000 && timeUntilExpiry > 0) {
+          emitAuthEvent('session_expiring_soon', {
+            expiresAt: sessionInfo.expiresAt,
+            timeUntilExpiry,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Session monitoring error:', error);
+    }
+  }, CHECK_INTERVAL);
+
+  return () => {
+    clearInterval(intervalId);
+  };
 }

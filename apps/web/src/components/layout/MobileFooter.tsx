@@ -192,7 +192,6 @@ export function MobileFooter() {
               if (productDetailHasInvalidModifiers) {
                 return;
               }
-              setShowProductCartBar(true);
               const globalHandler =
                 typeof window !== 'undefined'
                   ? (window as any).__kuyaCaresProductDetailAddToCart
@@ -200,6 +199,7 @@ export function MobileFooter() {
               if (typeof globalHandler === 'function') {
                 try {
                   await globalHandler(quantity);
+                  setShowProductCartBar(true);
                   return;
                 } catch {}
               }
@@ -223,7 +223,7 @@ export function MobileFooter() {
                 const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
                 if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
 
-                const url = `${API_BASE}/merchant-products?where[merchant_id][equals]=${merchantId}&where[product_id][equals]=${productId}&limit=1`;
+                const url = `${API_BASE}/merchant-products?where[merchant_id][equals]=${merchantId}&where[product_id][equals]=${productId}&depth=2&limit=1`;
                 const res = await fetch(url, { headers, cache: 'no-store' });
                 if (!res.ok) return;
                 const data = await res.json();
@@ -233,14 +233,31 @@ export function MobileFooter() {
                   (doc && (typeof doc.id === 'number' ? doc.id : Number(doc.id))) || null;
                 if (!merchantProductId) return;
 
+                const merchantProduct = doc;
+                const resolvedPrice =
+                  typeof merchantProduct?.price_override === 'number'
+                    ? merchantProduct.price_override
+                    : typeof merchantProduct?.product_id === 'object' &&
+                        merchantProduct?.product_id !== null &&
+                        typeof (merchantProduct.product_id as any).basePrice === 'number'
+                      ? (merchantProduct.product_id as any).basePrice
+                      : 0;
+                const resolvedCompare =
+                  merchantProduct?.product_id &&
+                  typeof merchantProduct.product_id === 'object' &&
+                  typeof (merchantProduct.product_id as any).compareAtPrice === 'number'
+                    ? (merchantProduct.product_id as any).compareAtPrice
+                    : null;
+
                 await addToCart({
                   merchantId,
                   productId,
                   merchantProductId,
                   quantity,
-                  priceAtAdd: doc?.price ?? 0,
-                  compareAtPrice: doc?.compareAtPrice ?? null,
+                  priceAtAdd: resolvedPrice,
+                  compareAtPrice: resolvedCompare,
                 });
+                setShowProductCartBar(true);
               } catch {}
             }}
           >

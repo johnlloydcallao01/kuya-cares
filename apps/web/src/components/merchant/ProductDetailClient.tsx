@@ -5,7 +5,7 @@ import Image from '@/components/ui/ImageWrapper';
 import ProductStickyHeader from '@/components/merchant/ProductStickyHeader';
 import ProductModifiers from '@/components/merchant/ProductModifiers';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Product, ModifierGroup, ModifierOption } from '@/types/product';
+import { Product, ModifierGroup, ModifierOption, ProductVariation } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -27,7 +27,51 @@ function formatPrice(value: number | null): string | null {
 
 function getImageUrl(media: any): string | null {
   if (!media) return null;
-  return media.cloudinaryURL || media.url || media.thumbnailURL || null;
+  let url = media.cloudinaryURL || media.url || media.thumbnailURL || null;
+  if (url && !url.startsWith('http') && !url.startsWith('data:')) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
+    const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    url = `${baseUrl}${normalizedUrl}`;
+  }
+  return url;
+}
+
+const PAYMONGO_MINIMUM_AMOUNT_PHP = 1;
+
+function buildDefaultModifierSelection(groups: ModifierGroup[]): Record<string, string[]> {
+  return groups.reduce<Record<string, string[]>>((acc, group) => {
+    const defaultOptions = (group.options || []).filter((option) => option.is_default);
+    if (defaultOptions.length === 0) return acc;
+    if (group.selection_type === 'single') {
+      acc[group.id] = [defaultOptions[0].id];
+      return acc;
+    }
+    acc[group.id] = defaultOptions.map((option) => option.id);
+    return acc;
+  }, {});
+}
+
+function mapEffectiveGroups(rawGroups: any[]): ModifierGroup[] {
+  return (rawGroups || []).map((group: any) => ({
+    id: String(group.id),
+    name: group.name,
+    selection_type: group.selectionType === 'multiple' ? 'multiple' : 'single',
+    is_required: Boolean(group.isRequired),
+    min_selections: typeof group.minSelections === 'number' ? group.minSelections : 0,
+    max_selections: typeof group.maxSelections === 'number' ? group.maxSelections : undefined,
+    sort_order: typeof group.sortOrder === 'number' ? group.sortOrder : 0,
+    product_id: String(group.baseGroupId ?? group.id),
+    options: (group.options || []).map((option: any) => ({
+      id: String(option.id),
+      name: option.name,
+      price_adjustment: typeof option.priceAdjustment === 'number' ? option.priceAdjustment : 0,
+      is_default: Boolean(option.isDefault),
+      is_available: option.isAvailable !== false,
+      sort_order: typeof option.sortOrder === 'number' ? option.sortOrder : 0,
+      modifier_group_id: String(group.id),
+    })),
+  }));
 }
 
 export default function ProductDetailClient({ merchantSlugId, productId }: ProductDetailClientProps) {
@@ -39,13 +83,46 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   const [modifierSelection, setModifierSelection] = useState<Record<string, string[]>>({});
   const [modifierError, setModifierError] = useState<string | null>(null);
   const [merchantProductId, setMerchantProductId] = useState<number | null>(null);
+  const [isAvailable, setIsAvailable] = useState<boolean>(true);
+  const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [selectedVariationId, setSelectedVariationId] = useState<string | number | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const wishlistRequestInFlight = useRef(false);
   const queuedWishlistState = useRef<boolean | null>(null);
   const { addToCart, items } = useCart();
   const router = useRouter();
-  const basePrice = product?.basePrice ?? null;
-  const compareAtPrice = product?.compareAtPrice ?? null;
+  const isVariableProduct = product?.productType === 'variable';
+  const selectedVariation = React.useMemo(() => {
+    if (!product || !isVariableProduct || variations.length === 0) return null;
+    if (selectedVariationId != null) {
+      const matched = variations.find((v) => String(v.id) === String(selectedVariationId));
+      if (matched) return matched;
+    }
+    return variations[0] || null;
+  }, [isVariableProduct, product, selectedVariationId, variations]);
+  // Mobile parity (services/product.ts): merchant override wins, else selected
+  // variation price, else parent basePrice (null for variable parents).
+  const basePrice = priceOverride ?? selectedVariation?.base_price ?? product?.basePrice ?? null;
+  const compareAtPrice = selectedVariation?.compare_at_price ?? product?.compareAtPrice ?? null;
+  const effectiveDescription =
+    selectedVariation?.short_description || product?.shortDescription || '';
+  const isSelectedVariationOutOfStock =
+    !!isVariableProduct &&
+    !!selectedVariation &&
+    typeof selectedVariation.stock_quantity === 'number' &&
+    selectedVariation.stock_quantity <= 0;
+  const hasVariationChoices = !!isVariableProduct && variations.length > 0;
+  const cannotAddVariableProduct =
+    !!isVariableProduct &&
+    (!selectedVariation || variations.length === 0 || isSelectedVariationOutOfStock);
+  const selectedVariationSummary = selectedVariation
+    ? (selectedVariation.attributeItems || [])
+        .map((item) => `${item.attributeName}: ${item.termName}`)
+        .filter(Boolean)
+        .join(' • ')
+    : '';
   const merchantIdNum = merchantSlugId ? Number(merchantSlugId.split('-').pop() || '') : NaN;
   const productIdNum = Number(productId);
 
@@ -59,7 +136,9 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
       if (group.is_required && count === 0) {
         return true;
       }
-      if (group.min_selections > 0 && count < group.min_selections) {
+      // Optional groups do not block when nothing is selected (mobile parity:
+      // ProductScreen hasInvalidModifiers). Only enforce min once selecting.
+      if (group.min_selections > 0 && count > 0 && count < group.min_selections) {
         return true;
       }
       if (typeof group.max_selections === 'number' && count > group.max_selections) {
@@ -80,10 +159,35 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
     );
   }, [hasInvalidModifiers]);
 
+  const totalPrice = React.useMemo(() => {
+    if (!product) return 0;
+    let price = basePrice ?? 0;
+    for (const group of product.modifierGroups || []) {
+      const selectedIds = modifierSelection[group.id] || [];
+      for (const opt of group.options || []) {
+        if (selectedIds.includes(opt.id)) price += opt.price_adjustment || 0;
+      }
+    }
+    return price * quantity;
+  }, [product, modifierSelection, quantity, basePrice]);
+
+  const isBelowPayMongoMinimum = totalPrice < PAYMONGO_MINIMUM_AMOUNT_PHP;
+  const isUnavailable = isAvailable === false;
+
   const handleAddToCart = useCallback(
     (quantityOverride?: number) => {
+      if (isUnavailable) {
+        toast.error('This item is currently unavailable from this merchant.');
+        return;
+      }
       if (hasInvalidModifiers) {
         setModifierError('Please review your selections for required options.');
+        return;
+      }
+      if (isBelowPayMongoMinimum) {
+        setModifierError(
+          'This item configuration is below the PayMongo minimum of PHP 1.00.',
+        );
         return;
       }
 
@@ -118,44 +222,80 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
           ? quantityOverride
           : quantity;
 
-      setShowCartBar(true);
-
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
-      if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+      if (!Number.isFinite(effectiveQuantity) || effectiveQuantity < 1) return;
+      if (!product) {
+        toast.error('Product not loaded yet.');
+        return;
+      }
+      if (cannotAddVariableProduct) {
+        toast.error(
+          hasVariationChoices
+            ? 'Please choose an available variation before adding this item.'
+            : 'This variable product has no available variations yet.',
+        );
+        return;
+      }
 
       const run = async () => {
+        setIsAddingToCart(true);
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
+        if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
         try {
           const url = `${API_BASE}/merchant-products?where[merchant_id][equals]=${merchantId}&where[product_id][equals]=${numericProductId}&limit=1`;
           const res = await fetch(url, { headers, cache: 'no-store' });
-          if (!res.ok) return;
+          if (!res.ok) {
+            toast.error('Failed to resolve merchant product.');
+            return;
+          }
           const data = await res.json();
           const doc = Array.isArray(data?.docs) && data.docs.length > 0 ? data.docs[0] : null;
-          const merchantProductId =
+          const resolvedMerchantProductId =
             (doc && (typeof doc.id === 'number' ? doc.id : Number(doc.id))) || null;
-          if (!merchantProductId) return;
+          if (!resolvedMerchantProductId) {
+            toast.error('Merchant product details not found.');
+            return;
+          }
+          const override =
+            typeof doc.price_override === 'number' ? doc.price_override : null;
+          if (doc.is_available === false) {
+            setIsAvailable(false);
+            toast.error('This item is currently unavailable from this merchant.');
+            return;
+          }
 
           await addToCart({
             merchantId,
             productId: numericProductId,
-            merchantProductId,
+            merchantProductId: resolvedMerchantProductId,
             quantity: effectiveQuantity,
-            priceAtAdd: basePrice ?? 0,
-            compareAtPrice: compareAtPrice ?? null,
+            priceAtAdd: override ?? selectedVariation?.base_price ?? basePrice ?? 0,
+            compareAtPrice: selectedVariation?.compare_at_price ?? compareAtPrice ?? null,
             selectedModifiers:
               selectedModifierPayload.length > 0 ? selectedModifierPayload : null,
+            selectedVariation: selectedVariation
+              ? { relationTo: 'prod-variations', value: selectedVariation.id }
+              : null,
           });
-        } catch {}
+          setShowCartBar(true);
+          toast.success('Added to cart');
+        } catch {
+          toast.error('Failed to add to cart.');
+        } finally {
+          setIsAddingToCart(false);
+        }
       };
 
       run();
     },
-    [addToCart, basePrice, compareAtPrice, hasInvalidModifiers, merchantSlugId, product, productId, quantity, router],
+    [addToCart, basePrice, cannotAddVariableProduct, compareAtPrice, hasInvalidModifiers, hasVariationChoices, isBelowPayMongoMinimum, isUnavailable, merchantSlugId, product, productId, quantity, selectedVariation],
   );
 
   useEffect(() => {
     setShowCartBar(false);
+    setSelectedVariationId(null);
+    setVariations([]);
   }, [merchantSlugId, productId]);
 
   useEffect(() => {
@@ -334,59 +474,195 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
 
     const fetchProduct = async () => {
       try {
-        // 1. Fetch Product
-        const productRes = await fetch(`${API_BASE}/products/${productId}?depth=2`, {
-          headers,
-          signal: controller.signal,
-        });
+        const merchantId = merchantSlugId ? Number(merchantSlugId.split('-').pop() || '') : NaN;
 
-        if (!productRes.ok) throw new Error('Failed to load product');
-        const productData: Product = await productRes.json();
+        // 1. Merchant-context fetch (mobile parity: fetchProductWithMerchantContext).
+        // Resolves price_override + is_available + merchantProductId in one depth=2 call.
+        let productData: Product | null = null;
+        let override: number | null = null;
+        let available = true;
+        let resolvedMpId: number | null = null;
 
-        if (!active) return;
-
-        // 2. Fetch Modifier Groups
-        const groupsRes = await fetch(`${API_BASE}/modifier-groups?where[product_id][equals]=${productId}&limit=100&sort=sort_order`, {
-          headers,
-          signal: controller.signal,
-        });
-
-        let modifierGroups: ModifierGroup[] = [];
-        if (groupsRes.ok) {
-          const groupsData = await groupsRes.json();
-          modifierGroups = groupsData.docs || [];
+        if (merchantId && !Number.isNaN(merchantId)) {
+          const mpRes = await fetch(
+            `${API_BASE}/merchant-products?where[product_id][equals]=${productId}&where[merchant_id][equals]=${merchantId}&depth=2&limit=1`,
+            { headers, signal: controller.signal },
+          );
+          if (mpRes.ok) {
+            const mpData = await mpRes.json();
+            const mpDoc = Array.isArray(mpData?.docs) && mpData.docs.length > 0 ? mpData.docs[0] : null;
+            if (mpDoc && mpDoc.product_id && typeof mpDoc.product_id === 'object') {
+              productData = mpDoc.product_id as Product;
+              override = typeof mpDoc.price_override === 'number' ? mpDoc.price_override : null;
+              available = mpDoc.is_available ?? true;
+              resolvedMpId = typeof mpDoc.id === 'number' ? mpDoc.id : Number(mpDoc.id);
+            }
+          }
         }
 
-        // 3. Fetch Modifier Options
-        if (modifierGroups.length > 0) {
-          const groupIds = modifierGroups.map(g => g.id).join(',');
-          const optionsRes = await fetch(`${API_BASE}/modifier-options?where[modifier_group_id][in]=${groupIds}&limit=500&sort=sort_order`, {
+        // Fallback to direct product fetch (no merchant context).
+        if (!productData) {
+          const productRes = await fetch(`${API_BASE}/products/${productId}?depth=2`, {
+            headers,
+            signal: controller.signal,
+          });
+          if (!productRes.ok) throw new Error('Failed to load product');
+          productData = (await productRes.json()) as Product;
+        }
+
+        if (!active) return;
+        setPriceOverride(override);
+        setIsAvailable(available);
+        if (resolvedMpId) setMerchantProductId(resolvedMpId);
+
+        // 1b. Variations for variable parents (mobile parity:
+        // services/product.ts prod-variations + prod-variation-values).
+        let loadedVariations: ProductVariation[] = [];
+        let defaultVariationId: string | number | null = null;
+        if ((productData as Product).productType === 'variable') {
+          try {
+            const varRes = await fetch(
+              `${API_BASE}/prod-variations?where[product_id][equals]=${productId}&where[is_visible][equals]=true&limit=100&sort=sort_order&depth=1`,
+              { headers, signal: controller.signal },
+            );
+            if (varRes.ok) {
+              const varData = await varRes.json();
+              const rawVariations: any[] = varData.docs || [];
+              const variationIds = rawVariations.map((v: any) => v?.id).filter((id: any) => id !== undefined);
+              const valueMap = new Map<string, ProductVariation['attributeItems']>();
+              if (variationIds.length > 0) {
+                const valuesRes = await fetch(
+                  `${API_BASE}/prod-variation-values?where[variation_id][in]=${variationIds.join(',')}&limit=500&depth=2`,
+                  { headers, signal: controller.signal },
+                );
+                if (valuesRes.ok) {
+                  const valuesData = await valuesRes.json();
+                  for (const item of valuesData.docs || []) {
+                    const vKey = item?.variation_id
+                      ? String(typeof item.variation_id === 'object' ? item.variation_id.id : item.variation_id)
+                      : '';
+                    const attribute = item?.attribute_id;
+                    const term = item?.term_id;
+                    if (!vKey || !attribute || !term) continue;
+                    const getId = (v: any) => (typeof v === 'object' && v !== null ? v.id : v);
+                    const existing = valueMap.get(vKey) || [];
+                    existing.push({
+                      attributeId: getId(attribute),
+                      attributeName: attribute?.name || 'Option',
+                      attributeSlug: attribute?.slug,
+                      attributeType: attribute?.type,
+                      termId: getId(term),
+                      termName: term?.name || '',
+                      termSlug: term?.slug,
+                      termValue: term?.value,
+                    });
+                    valueMap.set(vKey, existing);
+                  }
+                }
+              }
+              loadedVariations = rawVariations.map((v: any) => {
+                const attributeItems = valueMap.get(String(v.id)) || [];
+                return {
+                  id: v.id,
+                  name:
+                    v.name ||
+                    attributeItems.map((i) => i.termName).filter(Boolean).join(' / ') ||
+                    (productData as Product).name,
+                  sku: v.sku,
+                  base_price: typeof v.base_price === 'number' ? v.base_price : 0,
+                  compare_at_price: v.compare_at_price ?? null,
+                  stock_quantity: v.stock_quantity,
+                  short_description: v.short_description || undefined,
+                  image: v.image
+                    ? {
+                        id: String(v.image.id ?? ''),
+                        url: v.image.url,
+                        cloudinaryURL: v.image.cloudinaryURL,
+                        thumbnailURL: v.image.thumbnailURL,
+                        alt: v.image.alt,
+                      }
+                    : null,
+                  attributeItems,
+                  attributes: attributeItems.reduce<Record<string, string>>((acc, item) => {
+                    if (item.attributeName && item.termName) acc[item.attributeName] = item.termName;
+                    return acc;
+                  }, {}),
+                } as ProductVariation;
+              });
+              const firstInStock = loadedVariations.find(
+                (v) => typeof v.stock_quantity === 'number' && v.stock_quantity > 0,
+              );
+              defaultVariationId = firstInStock?.id ?? loadedVariations[0]?.id ?? null;
+            }
+          } catch {}
+        }
+        if (!active) return;
+        setVariations(loadedVariations);
+        setSelectedVariationId(defaultVariationId);
+
+        // 2. Effective modifiers first (merchant-aware), fallback to legacy groups/options.
+        let modifierGroups: ModifierGroup[] = [];
+        const effQuery = new URLSearchParams({ productId: String(productId) });
+        if (defaultVariationId != null) effQuery.set('variationId', String(defaultVariationId));
+        if (merchantId && !Number.isNaN(merchantId)) effQuery.set('merchantId', String(merchantId));
+        try {
+          const effRes = await fetch(`${API_BASE}/effective-modifiers?${effQuery.toString()}`, {
+            headers,
+            signal: controller.signal,
+          });
+          if (effRes.ok) {
+            const effData = await effRes.json();
+            modifierGroups = mapEffectiveGroups(effData?.data?.groups || []);
+          }
+        } catch {}
+
+        // Legacy fallback when effective-modifiers is unavailable/empty.
+        if (modifierGroups.length === 0) {
+          const groupsRes = await fetch(`${API_BASE}/modifier-groups?where[product_id][equals]=${productId}&limit=100&sort=sort_order`, {
             headers,
             signal: controller.signal,
           });
 
-          let allOptions: ModifierOption[] = [];
-          if (optionsRes.ok) {
-            const optionsData = await optionsRes.json();
-            allOptions = optionsData.docs || [];
+          if (groupsRes.ok) {
+            const groupsData = await groupsRes.json();
+            modifierGroups = groupsData.docs || [];
           }
 
-          // 4. Associate Options with Groups
-          modifierGroups = modifierGroups.map(group => ({
-            ...group,
-            options: allOptions.filter(opt => {
-              const groupId = typeof opt.modifier_group_id === 'object' && opt.modifier_group_id !== null
-                ? (opt.modifier_group_id as any).id
-                : opt.modifier_group_id;
-              return groupId === group.id;
-            })
-          }));
+          if (modifierGroups.length > 0) {
+            const groupIds = modifierGroups.map(g => g.id).join(',');
+            const optionsRes = await fetch(`${API_BASE}/modifier-options?where[modifier_group_id][in]=${groupIds}&limit=500&sort=sort_order`, {
+              headers,
+              signal: controller.signal,
+            });
+
+            let allOptions: ModifierOption[] = [];
+            if (optionsRes.ok) {
+              const optionsData = await optionsRes.json();
+              allOptions = optionsData.docs || [];
+            }
+
+            modifierGroups = modifierGroups.map(group => ({
+              ...group,
+              options: allOptions.filter(opt => {
+                const groupId = typeof opt.modifier_group_id === 'object' && opt.modifier_group_id !== null
+                  ? (opt.modifier_group_id as any).id
+                  : opt.modifier_group_id;
+                return groupId === group.id;
+              })
+            }));
+          }
         }
 
         setProduct({
-          ...productData,
+          ...(productData as Product),
+          basePrice: override ?? (productData as Product).basePrice ?? 0,
+          isAvailable: available,
+          merchantProductId: resolvedMpId ?? undefined,
           modifierGroups,
+          variations: loadedVariations.length > 0 ? loadedVariations : undefined,
+          defaultVariationId: defaultVariationId ?? undefined,
         });
+        setModifierSelection(buildDefaultModifierSelection(modifierGroups));
       } catch (err: any) {
         if (active) {
           setError(err.message || 'An error occurred');
@@ -404,7 +680,43 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
       active = false;
       controller.abort();
     };
-  }, [productId]);
+  }, [productId, merchantSlugId]);
+
+  // Refetch merchant-aware effective modifiers when the selected variation
+  // changes (mobile parity: ProductScreen loadEffectiveModifiers).
+  useEffect(() => {
+    if (!product || product.productType !== 'variable' || !selectedVariationId) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
+    if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+    const merchantId = merchantSlugId ? Number(merchantSlugId.split('-').pop() || '') : NaN;
+    const run = async () => {
+      try {
+        const effQuery = new URLSearchParams({
+          productId: String(productId),
+          variationId: String(selectedVariationId),
+        });
+        if (merchantId && !Number.isNaN(merchantId)) effQuery.set('merchantId', String(merchantId));
+        const effRes = await fetch(`${API_BASE}/effective-modifiers?${effQuery.toString()}`, {
+          headers,
+          signal: controller.signal,
+        });
+        if (!effRes.ok || cancelled) return;
+        const effData = await effRes.json();
+        const groups = mapEffectiveGroups(effData?.data?.groups || []);
+        setProduct((prev) => (prev ? { ...prev, modifierGroups: groups } : prev));
+        setModifierSelection(buildDefaultModifierSelection(groups));
+      } catch {}
+    };
+    run();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [product?.id, product?.productType, selectedVariationId, merchantSlugId, productId]);
 
   if (loading) {
     return (
@@ -465,9 +777,11 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
     );
   }
 
-  const primaryImage = getImageUrl(product.media?.primaryImage);
+  const primaryImage = selectedVariation?.image
+    ? getImageUrl(selectedVariation.image)
+    : getImageUrl(product.media?.primaryImage);
   const name = product.name || '';
-  const shortDescription = product.shortDescription ?? null;
+  const shortDescription = effectiveDescription || null;
 
   const slugForCart = merchantSlugId || '';
   const merchantIdForCart = slugForCart ? Number(slugForCart.split('-').pop() || '') : NaN;
@@ -570,18 +884,26 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                   </div>
                   <button
                     type="button"
-                    disabled={hasInvalidModifiers}
+                    disabled={hasInvalidModifiers || isUnavailable || cannotAddVariableProduct || isBelowPayMongoMinimum || isAddingToCart}
                     className="h-11 px-6 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: '#239459' }}
                     onClick={() => {
-                      if (!hasInvalidModifiers) {
+                      if (!hasInvalidModifiers && !isUnavailable && !cannotAddVariableProduct && !isBelowPayMongoMinimum) {
                         handleAddToCart();
+                      } else if (isUnavailable || isSelectedVariationOutOfStock) {
+                        toast.error('This item is currently unavailable from this merchant.');
+                      } else if (cannotAddVariableProduct) {
+                        toast.error('Please choose an available variation before adding this item.');
                       } else {
                         setModifierError('Please review your selections for required options.');
                       }
                     }}
                   >
-                    Add to cart
+                    {isAddingToCart
+                      ? 'Adding…'
+                      : isUnavailable || isSelectedVariationOutOfStock
+                        ? 'Unavailable'
+                        : `Add to cart${formatPrice(totalPrice) ? ` • ${formatPrice(totalPrice)}` : ''}`}
                   </button>
                 </div>
               )}
@@ -589,7 +911,17 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
             {modifierError && (
               <p className="mt-2 text-sm text-red-600">{modifierError}</p>
             )}
+            {!modifierError && isBelowPayMongoMinimum && (
+              <p className="mt-2 text-sm text-red-600">
+                Below the PayMongo minimum of PHP 1.00.
+              </p>
+            )}
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{name}</h1>
+            {isUnavailable && (
+              <p className="mt-2 text-sm font-medium text-red-600">
+                Currently unavailable from this merchant.
+              </p>
+            )}
             <div className="mt-3 flex items-baseline gap-3">
               {formatPrice(basePrice) && (
                 <span className="text-2xl font-bold text-gray-900">{formatPrice(basePrice)}</span>
@@ -598,10 +930,80 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                 <span className="text-base text-gray-500 line-through">{formatPrice(compareAtPrice)}</span>
               )}
             </div>
+            {selectedVariationSummary ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#eba236] bg-[#FFF9F0] border border-[#eba236]/40 rounded-full px-3 py-1">
+                {selectedVariationSummary}
+              </p>
+            ) : null}
             {shortDescription && (
               <p className="mt-4 text-gray-600 leading-relaxed whitespace-pre-line">{shortDescription}</p>
             )}
           </div>
+
+          {isVariableProduct && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">Choose variation</h2>
+              {hasVariationChoices ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {variations.map((variation) => {
+                    const isSelected =
+                      !!selectedVariation && String(selectedVariation.id) === String(variation.id);
+                    const outOfStock =
+                      typeof variation.stock_quantity === 'number' && variation.stock_quantity <= 0;
+                    const summary = (variation.attributeItems || [])
+                      .map((item) => `${item.attributeName}: ${item.termName}`)
+                      .filter(Boolean)
+                      .join(' • ');
+                    return (
+                      <button
+                        key={String(variation.id)}
+                        type="button"
+                        disabled={outOfStock}
+                        onClick={() => {
+                          if (!outOfStock) setSelectedVariationId(variation.id);
+                        }}
+                        className={`text-left p-4 rounded-xl border transition-colors ${
+                          isSelected
+                            ? 'border-[#eba236] bg-[#FFF9F0] shadow-sm'
+                            : outOfStock
+                              ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-gray-900 line-clamp-1">{variation.name}</span>
+                          <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
+                              outOfStock ? 'text-gray-500 bg-gray-100' : 'text-green-700 bg-green-50'
+                            }`}
+                          >
+                            {outOfStock ? 'Out of stock' : 'Available'}
+                          </span>
+                        </div>
+                        {summary ? (
+                          <p className="mt-1 text-xs text-gray-500 line-clamp-2">{summary}</p>
+                        ) : null}
+                        <p className="mt-2 text-base font-bold text-gray-900">
+                          {formatPrice(variation.base_price ?? 0)}
+                          {variation.compare_at_price &&
+                          variation.compare_at_price > (variation.base_price ?? 0) &&
+                          formatPrice(variation.compare_at_price) ? (
+                            <span className="ml-2 text-sm font-normal text-gray-500 line-through">
+                              {formatPrice(variation.compare_at_price)}
+                            </span>
+                          ) : null}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Variations are not available for this product yet.
+                </p>
+              )}
+            </div>
+          )}
 
           {product.modifierGroups && product.modifierGroups.length > 0 && (
             <ProductModifiers

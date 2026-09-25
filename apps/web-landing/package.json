@@ -14,8 +14,8 @@
     "@encreasl/redux": "workspace:*",
     "@vercel/edge-config": "^1.4.3",
     "next": "16.0.7",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {

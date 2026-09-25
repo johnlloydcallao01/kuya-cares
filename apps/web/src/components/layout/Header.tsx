@@ -582,7 +582,7 @@ export function Header({
             <form onSubmit={handleSearch} className="flex w-full" ref={searchFormRef}>
               <div className="flex-1 relative" ref={dropdownRootRef}>
                 <SearchField
-                  placeholder="Search restaurants and foods"
+                  placeholder="Search merchants and products"
                   value={searchQuery}
                   onChange={(v) => { setSearchQuery(v); setIsDropdownOpen(true); }}
                   onClick={() => setIsDropdownOpen(true)}

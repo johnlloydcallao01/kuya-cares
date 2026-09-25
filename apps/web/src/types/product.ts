@@ -28,6 +28,30 @@ export interface ProductMedia {
   alt?: string;
 }
 
+export interface AttributeItem {
+  attributeId: string | number | undefined;
+  attributeName: string;
+  attributeSlug?: string;
+  attributeType?: string;
+  termId: string | number | undefined;
+  termName: string;
+  termSlug?: string;
+  termValue?: string;
+}
+
+export interface ProductVariation {
+  id: string | number;
+  name: string;
+  sku?: string;
+  base_price: number;
+  compare_at_price?: number | null;
+  stock_quantity?: number;
+  short_description?: string;
+  image?: ProductMedia | null;
+  attributeItems: AttributeItem[];
+  attributes: Record<string, string>;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -38,9 +62,13 @@ export interface Product {
   compareAtPrice?: number;
   productType: 'simple' | 'variable' | 'grouped';
   sku?: string;
+  merchantProductId?: number;
+  isAvailable?: boolean;
   media?: {
     primaryImage?: ProductMedia;
     images?: { image: ProductMedia }[];
   };
   modifierGroups?: ModifierGroup[]; // Enriched field
+  variations?: ProductVariation[];
+  defaultVariationId?: string | number;
 }

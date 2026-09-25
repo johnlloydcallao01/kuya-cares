@@ -300,7 +300,7 @@ export default function SearchResultsPage() {
             <div className="relative flex items-center">
               <input
                 type="text"
-                placeholder="Search restaurants and foods"
+                placeholder="Search merchants and products"
                 value={query}
                 readOnly
                 onClick={() => {

@@ -1,33 +1,29 @@
-'use client';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { getServerToken, getServerUser } from "@/app/actions/auth";
+import { Providers } from "@/app/providers";
+import "./globals.css";
 
-import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
-import { LoadingScreenWrapper } from '@/components/loading/LoadingScreenWrapper';
-import { ToasterProvider } from '@/components/toast/ToasterProvider';
-import { CartProvider } from '@/contexts/CartContext';
-import './globals.css';
+const inter = Inter({ subsets: ["latin"] });
 
-const inter = Inter({ subsets: ['latin'] });
+export const metadata: Metadata = {
+  title: "Kuya Cares",
+  description: "Food delivery from Laguna",
+};
 
-export default function RootLayout({
-  children,
-}: {
+type LayoutProps = {
   children: React.ReactNode;
-}) {
+};
+
+export default async function RootLayout({ children }: LayoutProps) {
+  const initialUser = await getServerUser();
+  const initialToken = await getServerToken();
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthErrorBoundary>
-          <AuthProvider>
-            <CartProvider>
-              <LoadingScreenWrapper>
-                {children}
-              </LoadingScreenWrapper>
-            </CartProvider>
-          </AuthProvider>
-          <ToasterProvider />
-        </AuthErrorBoundary>
+        <Providers initialUser={initialUser} initialToken={initialToken}>
+          {children}
+        </Providers>
       </body>
     </html>
   );

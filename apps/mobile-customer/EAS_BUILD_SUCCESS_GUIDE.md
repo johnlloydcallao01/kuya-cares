@@ -42,7 +42,7 @@ module.exports = {
     android: {
       sourceDir: './android',
       appName: 'app',
-      packageName: 'com.tap2go.mobile', // Your package name
+      packageName: 'com.wnapp.id1721090048598', // Your package name (must match app.json android.package)
     },
   },
   dependencies: {

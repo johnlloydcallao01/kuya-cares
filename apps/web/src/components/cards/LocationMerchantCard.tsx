@@ -141,7 +141,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                       }}
                       className="w-[28px] h-[28px] rounded-full bg-white flex items-center justify-center shadow-sm hover:shadow-md"
                     >
-                      <i className={`fas fa-heart text-[16px]`} style={{ color: isWishlisted ? "#f3a823" : "#ffffff", WebkitTextStroke: "2px #333" }}></i>
+                      <i className={`fas fa-heart text-[16px]`} style={{ color: isWishlisted ? "#239459" : "#ffffff", WebkitTextStroke: "2px #333" }}></i>
                     </button>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
@@ -191,7 +191,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                 className="absolute top-2 right-2 w-[28px] h-[28px] rounded-full bg-white flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
                 style={{ zIndex: 2 }}
               >
-                <i className={`fas fa-heart text-[16px]`} style={{ color: isWishlisted ? "#f3a823" : "#ffffff", WebkitTextStroke: "2px #333" }}></i>
+                <i className={`fas fa-heart text-[16px]`} style={{ color: isWishlisted ? "#239459" : "#ffffff", WebkitTextStroke: "2px #333" }}></i>
               </button>
               {vendorLogoUrl && (
                 <div className="absolute -bottom-4 left-0 w-12 h-12 bg-white rounded-full shadow-lg border-2 border-white">

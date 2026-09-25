@@ -12,12 +12,30 @@ interface ProductModifiersProps {
 export default function ProductModifiers({ modifierGroups, selected, onChange }: ProductModifiersProps) {
   if (!modifierGroups || modifierGroups.length === 0) return null;
 
+  const getSelectionHint = (group: ModifierGroup): string => {
+    if (group.selection_type === 'single') {
+      return group.is_required ? 'Select 1' : 'Optional';
+    }
+    if (group.is_required) {
+      const minText = group.min_selections > 0 ? `Select at least ${group.min_selections}` : 'Select options';
+      return group.max_selections ? `${minText} (Max ${group.max_selections})` : minText;
+    }
+    if (group.min_selections > 0) {
+      return group.max_selections
+        ? `Optional, but choose at least ${group.min_selections} if selecting (Max ${group.max_selections})`
+        : `Optional, but choose at least ${group.min_selections} if selecting`;
+    }
+    return group.max_selections ? `Optional (Max ${group.max_selections})` : 'Optional';
+  };
+
   const handleOptionToggle = (group: ModifierGroup, optionId: string, checked: boolean) => {
     const current = selected[group.id] || [];
+    const isChecked = current.includes(optionId);
     let nextGroup: string[] = current;
 
     if (group.selection_type === 'single') {
-      nextGroup = checked ? [optionId] : [];
+      // Radio toggle-to-clear (mobile parity) so optional single groups can be cleared.
+      nextGroup = isChecked ? [] : [optionId];
     } else {
       if (checked) {
         if (current.includes(optionId)) {
@@ -63,12 +81,11 @@ export default function ProductModifiers({ modifierGroups, selected, onChange }:
                   )}
                   {group.selection_type === 'multiple' && (
                     <span className="text-xs text-gray-500">
-                      {group.min_selections > 0 ? `Select at least ${group.min_selections}` : ''}
-                      {group.max_selections ? ` (Max ${group.max_selections})` : ''}
+                      {getSelectionHint(group)}
                     </span>
                   )}
                   {group.selection_type === 'single' && (
-                    <span className="text-xs text-gray-500">Select 1</span>
+                    <span className="text-xs text-gray-500">{getSelectionHint(group)}</span>
                   )}
                 </div>
               </div>
@@ -83,7 +100,9 @@ export default function ProductModifiers({ modifierGroups, selected, onChange }:
                     className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                       !option.is_available
                         ? 'bg-gray-50 border-gray-100 cursor-not-allowed'
-                        : 'border-gray-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30'
+                        : isChecked
+                          ? 'border-[#eba236] bg-[#FFF9F0] cursor-pointer'
+                          : 'border-gray-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30'
                     }`}
                   >
                     <div className="flex items-center gap-3">

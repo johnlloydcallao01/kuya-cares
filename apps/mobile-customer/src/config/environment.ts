@@ -18,7 +18,7 @@ export const isSupabaseRealtimeEnabled = (): boolean => {
 
 export const apiConfig = {
   baseUrl: getPublicEnvVar('EXPO_PUBLIC_API_URL') || 'https://cms.kuyacares.com/api',
-  payloadApiKey: getPublicEnvVar('EXPO_PUBLIC_PAYLOAD_API_KEY') || '1331d981-b6b7-4ff5-aab6-b9ddbb0c63ae',
+  payloadApiKey: getPublicEnvVar('EXPO_PUBLIC_PAYLOAD_API_KEY') || '19c165bf-0b0c-42bf-8244-c5ba1983c669',
   paymongoPublicKey:
     getPublicEnvVar('EXPO_PUBLIC_PAYMONGO_SANDBOX') === 'true'
       ? getPublicEnvVar('EXPO_PUBLIC_PAYMONGO_PUBLIC_KEY_SANDBOX') || ''

@@ -96,9 +96,9 @@ export default function Home() {
       </div>
 
       {/* Merchants Section */}
-      <div id="restaurants-section">
+      <div id="merchants-section">
         <LocationBasedMerchants 
-          limit={8}
+          limit={50}
           categoryId={selectedCategoryId}
         />
       </div>

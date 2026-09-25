@@ -33,20 +33,16 @@ export const PublicRoute = ({
   // Redirect authenticated users away from auth pages
   useEffect(() => {
     if (isAuthenticated && isInitialized && !isLoading) {
-      console.log('🔄 PUBLIC ROUTE: Redirecting authenticated user');
-
       // Small delay to ensure authentication state is fully settled
       const redirectTimer = setTimeout(() => {
         // Check if there's a stored redirect path
         const storedRedirect = sessionStorage.getItem('auth:redirectAfterLogin');
 
         if (storedRedirect) {
-          console.log('🔄 REDIRECTING TO STORED PATH:', storedRedirect);
           sessionStorage.removeItem('auth:redirectAfterLogin');
-          router.replace(storedRedirect as any);
+          router.replace(storedRedirect as never);
         } else {
-          console.log('🔄 REDIRECTING TO DEFAULT:', redirectTo);
-          router.replace(redirectTo as any);
+          router.replace(redirectTo as never);
         }
       }, 100); // Small delay to ensure state is settled
 
