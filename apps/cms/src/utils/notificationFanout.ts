@@ -45,6 +45,21 @@ const LALAMOVE_STATUS_LABELS: Record<string, string> = {
   expired: 'Expired',
 }
 
+export const WALLET_TYPE_LABELS: Record<string, string> = {
+  topup: 'Top-up',
+  payment: 'Wallet payment',
+  refund: 'Refund',
+  cashback: 'Cashback',
+  withdrawal: 'Withdrawal',
+  adjustment: 'Adjustment',
+  expiry: 'Expired',
+}
+
+export function getWalletTypeLabel(type?: string | null): string {
+  if (!type) return 'updated'
+  return WALLET_TYPE_LABELS[type] || type
+}
+
 export function getOrderStatusLabel(
   status?: string | null,
   deliveryStatus?: string | null,

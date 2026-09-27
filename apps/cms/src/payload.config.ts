@@ -23,6 +23,11 @@ import { deliveryTrackHandler } from './endpoints/deliveryTrack'
 import { lalamoveWebhookHandler } from './endpoints/lalamoveWebhook'
 import { couponsValidateHandler } from './endpoints/couponsValidate'
 import { couponsAttachHandler } from './endpoints/couponsAttach'
+import { walletBalanceHandler } from './endpoints/walletBalance'
+import { walletHistoryHandler } from './endpoints/walletHistory'
+import { walletTopupHandler } from './endpoints/walletTopup'
+import { walletPayHandler } from './endpoints/walletPay'
+import { walletWithdrawHandler } from './endpoints/walletWithdraw'
 import { CouponService, roundMoney } from './services/CouponService'
 import type { PayloadRequest } from 'payload'
 import type { User as PayloadUser } from './payload-types'
@@ -58,6 +63,9 @@ import { OrderTracking } from './collections/OrderTracking'
 import { DriverAssignments } from './collections/DriverAssignments'
 import { DeliveryBookings } from './collections/DeliveryBookings'
 import { OrderDiscounts } from './collections/OrderDiscounts'
+import { Wallets } from './collections/Wallets'
+import { WalletTransactions } from './collections/WalletTransactions'
+import { WalletTopups } from './collections/WalletTopups'
 import { Coupons } from './collections/Coupons'
 import { CouponRedemptions } from './collections/CouponRedemptions'
 import { Reviews } from './collections/Reviews'
@@ -136,6 +144,9 @@ export default buildConfig({
     DriverAssignments,
     DeliveryBookings,
     OrderDiscounts,
+    Wallets,
+    WalletTransactions,
+    WalletTopups,
     Coupons,
     CouponRedemptions,
     Reviews,
@@ -1302,6 +1313,32 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
       path: '/support/order-help',
       method: 'post',
       handler: sendOrderHelp,
+    },
+
+    {
+      path: '/wallet/balance',
+      method: 'get',
+      handler: walletBalanceHandler,
+    },
+    {
+      path: '/wallet/history',
+      method: 'get',
+      handler: walletHistoryHandler,
+    },
+    {
+      path: '/wallet/topup',
+      method: 'post',
+      handler: walletTopupHandler,
+    },
+    {
+      path: '/wallet/pay',
+      method: 'post',
+      handler: walletPayHandler,
+    },
+    {
+      path: '/wallet/withdraw',
+      method: 'post',
+      handler: walletWithdrawHandler,
     },
   ],
 

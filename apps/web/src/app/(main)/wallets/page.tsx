@@ -1,360 +1,491 @@
 'use client';
 
-import React, { useState } from 'react';
-import ImageWrapper from '@/components/ui/ImageWrapper';
-
 /**
- * Wallets Page - Manage payment methods and wallet balance
- * Features professional wallet management with minimal design
+ * Thin /wallets page (BFF pattern).
+ * All domain data comes from wallet server actions (CMS aggregation
+ * endpoint owns user resolution, ledger joins, stats). This component
+ * only manages UI state and renders.
  */
+
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import { useUser } from '@/hooks/useAuth';
+import { WalletsPageSkeleton } from '@/components/skeletons/WalletsSkeleton';
+import TopupModal from '@/components/wallets/TopupModal';
+import WithdrawModal from '@/components/wallets/WithdrawModal';
+import { formatPHP } from '@/types/order';
+import {
+  WALLET_ENTRY_TYPES,
+  formatSignedPHP,
+  getEntryMeta,
+  type WalletBalance,
+  type WalletTransactionUI,
+} from '@/types/wallet';
+import {
+  fetchWalletSummary,
+  requestWithdrawal,
+} from '@/lib/client-services/wallet-service';
+
+const BRAND = '#239459';
+const PAGE_SIZE = 20;
+
+type TypeFilter = 'all' | (typeof WALLET_ENTRY_TYPES)[number];
+
+const TYPE_TABS: { id: TypeFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'topup', label: 'Top-ups' },
+  { id: 'payment', label: 'Payments' },
+  { id: 'refund', label: 'Refunds' },
+  { id: 'cashback', label: 'Cashback' },
+  { id: 'withdrawal', label: 'Withdrawals' },
+  { id: 'adjustment', label: 'Adjustments' },
+  { id: 'expiry', label: 'Expired' },
+];
+
 export default function WalletsPage() {
-  const [activeTab, setActiveTab] = useState('balance');
+  return (
+    <Suspense fallback={<WalletsPageSkeleton />}>
+      <WalletsContent />
+    </Suspense>
+  );
+}
 
-  // Mock wallet data
-  const walletBalance = {
-    total: 245.50,
-    currency: 'USD',
-    lastUpdated: '2024-01-15T10:30:00Z'
-  };
+function WalletsContent() {
+  const searchParams = useSearchParams();
+  const { user } = useUser();
 
-  const paymentMethods = [
-    {
-      id: 1,
-      type: 'credit',
-      brand: 'Visa',
-      last4: '4242',
-      expiryMonth: 12,
-      expiryYear: 2027,
-      isDefault: true,
-      cardholderName: 'John Doe'
+  const [wallet, setWallet] = useState<WalletBalance | null>(null);
+  const [history, setHistory] = useState<WalletTransactionUI[]>([]);
+  const [stats, setStats] = useState({ toppedUp: 0, spent: 0, cashback: 0, refunded: 0, totalDocs: 0 });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showBalance, setShowBalance] = useState(true);
+
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [welcomedReturn, setWelcomedReturn] = useState(false);
+
+  const loadPage = useCallback(
+    async (nextPage: number, opts: { silent?: boolean; reset?: boolean; type?: TypeFilter; q?: string } = {}) => {
+      try {
+        if (!opts.silent) {
+          if (nextPage > 1) setLoadingMore(true);
+          else if (opts.reset) setRefreshing(true);
+          else setLoading(true);
+        }
+        setError(null);
+        const summary = await fetchWalletSummary({
+          type: opts.type ?? typeFilter,
+          page: nextPage,
+          limit: PAGE_SIZE,
+          q: opts.q ?? searchQuery,
+        });
+        setWallet(summary.wallet);
+        setStats(summary.stats);
+        setHistory((prev) => (nextPage === 1 ? summary.history.docs : [...prev, ...summary.history.docs]));
+        setPage(summary.history.page);
+        setTotalPages(summary.history.totalPages);
+      } catch (e: any) {
+        if (!opts.silent) setError(e?.message || 'Failed to load wallet');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
     },
-    {
-      id: 2,
-      type: 'credit',
-      brand: 'Mastercard',
-      last4: '8888',
-      expiryMonth: 8,
-      expiryYear: 2026,
-      isDefault: false,
-      cardholderName: 'John Doe'
-    },
-    {
-      id: 3,
-      type: 'debit',
-      brand: 'Visa',
-      last4: '1234',
-      expiryMonth: 3,
-      expiryYear: 2025,
-      isDefault: false,
-      cardholderName: 'John Doe'
+    [typeFilter, searchQuery],
+  );
+
+  const loadPageRef = useRef(loadPage);
+  loadPageRef.current = loadPage;
+  const filterFirstRun = useRef(true);
+
+  useEffect(() => {
+    loadPageRef.current(1);
+  }, []);
+
+  // Debounced server-side search input.
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput.trim().toLowerCase()), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Refetch from server when filter/search changes (server owns filtering).
+  // Skips the initial run — the mount effect already fetched.
+  useEffect(() => {
+    if (filterFirstRun.current) {
+      filterFirstRun.current = false;
+      return;
     }
-  ];
+    loadPageRef.current(1, { reset: true, type: typeFilter, q: searchQuery });
+  }, [typeFilter, searchQuery]);
 
-  const transactions = [
-    {
-      id: 1,
-      type: 'order',
-      description: 'Pizza Palace - Large Pepperoni',
-      amount: -24.99,
-      date: '2024-01-15T14:30:00Z',
-      status: 'completed'
-    },
-    {
-      id: 2,
-      type: 'refund',
-      description: 'Burger King - Order Cancelled',
-      amount: 18.50,
-      date: '2024-01-14T19:15:00Z',
-      status: 'completed'
-    },
-    {
-      id: 3,
-      type: 'topup',
-      description: 'Wallet Top-up',
-      amount: 100.00,
-      date: '2024-01-13T12:00:00Z',
-      status: 'completed'
-    },
-    {
-      id: 4,
-      type: 'order',
-      description: 'Sushi Express - Salmon Roll Set',
-      amount: -32.75,
-      date: '2024-01-12T20:45:00Z',
-      status: 'completed'
+  // Returning from PayMongo redirect → refresh once.
+  useEffect(() => {
+    if (searchParams?.get('topup') === 'return' && !welcomedReturn && !loading) {
+      setWelcomedReturn(true);
+      toast.success('Payment return detected — refreshing balance');
+      const t = setTimeout(() => loadPage(1, { reset: true }), 2500);
+      return () => clearTimeout(t);
     }
-  ];
+  }, [searchParams, loading, welcomedReturn, loadPage]);
 
-  const handleAddPaymentMethod = () => {
-    console.log('Adding new payment method');
-  };
+  const handleWithdraw = useCallback(
+    async (amount: number, destination: string) => {
+      setWithdrawing(true);
+      try {
+        await requestWithdrawal({ amount, destination });
+        toast.success('Withdrawal requested — under review');
+        setWithdrawOpen(false);
+        await loadPage(1, { reset: true });
+      } catch (e: any) {
+        toast.error(e?.message || 'Withdrawal failed');
+      } finally {
+        setWithdrawing(false);
+      }
+    },
+    [loadPage],
+  );
 
-  const handleTopUpWallet = () => {
-    console.log('Topping up wallet');
-  };
+  const displayName =
+    user && (user.firstName || user.lastName)
+      ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      : 'KuyaCares Customer';
 
-  const handleSetDefaultCard = (id: number) => {
-    console.log(`Setting card ${id} as default`);
-  };
+  const isFiltered = searchQuery !== '' || typeFilter !== 'all';
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const visible = useMemo(() => history, [history]);
+
+  if (loading) return <WalletsPageSkeleton />;
+
+  if (error && !wallet) {
+    const noSession = error.includes('WALLET_NO_SESSION');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+            <i className={`fas ${noSession ? 'fa-user-lock' : 'fa-exclamation-triangle'} text-red-500 text-xl`} />
+          </div>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Couldn&apos;t load wallet</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            {noSession ? 'Please sign in to view your wallet.' : error}
+          </p>
+          {noSession ? (
+            <Link
+              href="/signin"
+              className="block w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: BRAND }}
+            >
+              <i className="fas fa-sign-in-alt mr-2" />
+              Sign in
+            </Link>
+          ) : (
+            <button
+              onClick={() => loadPage(1, { reset: true })}
+              className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: BRAND }}
+            >
+              <i className="fas fa-redo mr-2" />
+              Try again
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const frozen = wallet?.status !== 'active';
+  const hasMore = page < totalPages;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white">
-        <div className="w-full px-2.5 py-3">
-          <div className="flex items-center justify-between">
+      <div className="bg-white shadow-sm sticky top-0 z-20">
+        <div className="w-full px-3 sm:px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Wallet</h1>
-              <p className="mt-1 text-sm text-gray-600">Manage payments and balance</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">My Wallet</h1>
+              <p className="text-gray-500 mt-0.5 text-sm">Top up, pay, earn cashback & track every peso</p>
             </div>
-            <button 
-              onClick={handleTopUpWallet}
-              className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
-              style={{
-                border: '1px solid #239459',
-                color: '#239459',
-                backgroundColor: 'white'
-              }}
+            <button
+              onClick={() => loadPage(1, { reset: true })}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-60"
             >
-              <i className="fas fa-plus mr-2"></i>
-              Top Up
+              <i className={`fas fa-sync-alt ${refreshing ? 'fa-spin' : ''}`} style={{ color: BRAND }} />
+              {refreshing ? 'Refreshing' : 'Refresh'}
             </button>
+          </div>
+
+          {/* Balance hero — ShopeePay / GCash style */}
+          <div
+            className="mt-4 rounded-2xl p-5 text-white shadow-md relative overflow-hidden"
+            style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #12522f 100%)` }}
+          >
+            <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
+            <div className="absolute -right-2 top-10 w-20 h-20 rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-white/70">
+                  <i className="fas fa-wallet mr-1.5" />
+                  KuyaCares Wallet
+                </span>
+                <div className="flex items-center gap-2">
+                  {frozen && (
+                    <span className="text-[10px] font-extrabold bg-red-500/90 px-2 py-0.5 rounded-full uppercase">
+                      {wallet?.status}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setShowBalance((s) => !s)}
+                    className="text-white/80 hover:text-white"
+                    aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+                  >
+                    <i className={`fas ${showBalance ? 'fa-eye' : 'fa-eye-slash'}`} />
+                  </button>
+                </div>
+              </div>
+              <p className="text-3xl sm:text-4xl font-extrabold mt-2 tracking-tight">
+                {showBalance ? formatPHP(wallet?.balance ?? 0) : '₱••••••'}
+              </p>
+              <p className="text-[11px] text-white/70 mt-1">
+                {wallet?.currency || 'PHP'} • {stats.totalDocs} transaction{stats.totalDocs === 1 ? '' : 's'}
+              </p>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setTopupOpen(true)}
+                  disabled={frozen}
+                  className="flex-1 py-2.5 bg-white rounded-xl font-extrabold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+                  style={{ color: BRAND }}
+                >
+                  <i className="fas fa-plus-circle mr-2" />
+                  Top Up
+                </button>
+                <button
+                  onClick={() => setWithdrawOpen(true)}
+                  disabled={frozen}
+                  className="flex-1 py-2.5 bg-white/15 border border-white/30 text-white rounded-xl font-extrabold text-sm hover:bg-white/25 active:scale-[0.98] transition-all disabled:opacity-60"
+                >
+                  <i className="fas fa-arrow-up mr-2" />
+                  Withdraw
+                </button>
+                <Link
+                  href="/orders"
+                  className="py-2.5 px-4 bg-white/15 border border-white/30 text-white rounded-xl font-extrabold text-sm hover:bg-white/25 active:scale-[0.98] transition-all"
+                  title="Pay orders with wallet"
+                >
+                  <i className="fas fa-receipt" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
+            {[
+              { label: 'Topped up', value: formatPHP(stats.toppedUp), icon: 'fa-arrow-down', bg: 'bg-green-50', fg: 'text-green-700' },
+              { label: 'Spent', value: formatPHP(stats.spent), icon: 'fa-receipt', bg: 'bg-blue-50', fg: 'text-blue-700' },
+              { label: 'Cashback', value: formatPHP(stats.cashback), icon: 'fa-coins', bg: 'bg-amber-50', fg: 'text-amber-700' },
+              { label: 'Refunded', value: formatPHP(stats.refunded), icon: 'fa-undo', bg: 'bg-emerald-50', fg: 'text-emerald-700' },
+            ].map((s) => (
+              <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
+                <i className={`fas ${s.icon} ${s.fg}`} />
+                <div className="min-w-0">
+                  <p className={`text-sm font-extrabold truncate ${s.fg}`}>{s.value}</p>
+                  <p className="text-[11px] text-gray-500 font-medium">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Type tabs */}
+        <div className="border-t border-gray-100">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide px-3 py-2.5">
+            {TYPE_TABS.map((t) => {
+              const active = typeFilter === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTypeFilter(t.id)}
+                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl font-bold text-[13px] transition-all border ${
+                    active
+                      ? 'text-white shadow-md border-transparent'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                  style={active ? { backgroundColor: BRAND } : {}}
+                >
+                  {t.label}
+                  {t.id === 'all' && (
+                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                      {stats.totalDocs}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Wallet Balance Card */}
-      <div className="w-full px-2.5 py-4">
-        <div className="bg-gradient-to-r from-gray-900 to-gray-700 rounded-lg p-6 text-white mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-300 text-sm mb-1">Available Balance</p>
-              <h2 className="text-3xl font-bold">${walletBalance.total.toFixed(2)}</h2>
-              <p className="text-gray-300 text-xs mt-2">
-                Last updated: {formatDate(walletBalance.lastUpdated)}
-              </p>
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <i className="fas fa-wallet text-2xl"></i>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg mb-4 overflow-hidden">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('balance')}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                activeTab === 'balance'
-                  ? 'bg-gray-50 text-gray-900 border-b-2'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              style={activeTab === 'balance' ? { borderBottomColor: '#239459' } : {}}
-            >
-              <i className="fas fa-history mr-2"></i>
-              Transactions
-            </button>
-            <button
-              onClick={() => setActiveTab('cards')}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                activeTab === 'cards'
-                  ? 'bg-gray-50 text-gray-900 border-b-2'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              style={activeTab === 'cards' ? { borderBottomColor: '#239459' } : {}}
-            >
-              <i className="fas fa-credit-card mr-2"></i>
-              Payment Methods
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'balance' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Recent Transactions</h3>
-              <button className="text-sm text-gray-600 hover:text-gray-900">
-                View All
+      <div className="w-full px-3 sm:px-4 py-4">
+        {/* Search */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3.5 mb-4">
+          <div className="relative">
+            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+            <input
+              type="text"
+              placeholder="Search by type, order #, gateway, amount…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:ring-2 focus:bg-white focus:border-transparent transition-all text-sm outline-none"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <i className="fas fa-times-circle" />
               </button>
-            </div>
-            
-            {transactions.map((transaction) => (
-              <div key={transaction.id} className="bg-white rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      transaction.type === 'order' ? 'bg-red-100' :
-                      transaction.type === 'refund' ? 'bg-green-100' : 'bg-blue-100'
-                    }`}>
-                      <i className={`fas ${
-                        transaction.type === 'order' ? 'fa-shopping-bag text-red-600' :
-                        transaction.type === 'refund' ? 'fa-undo text-green-600' : 'fa-plus text-blue-600'
-                      }`}></i>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{transaction.description}</p>
-                      <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${
-                      transaction.amount > 0 ? 'text-green-600' : 'text-gray-900'
-                    }`}>
-                      {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-500 capitalize">{transaction.status}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {transactions.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="fas fa-history text-2xl text-gray-400"></i>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
-                <p className="text-gray-600">Your transaction history will appear here</p>
-              </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeTab === 'cards' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Payment Methods</h3>
-              <button 
-                onClick={handleAddPaymentMethod}
-                className="px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
-                style={{
-                  border: '1px solid #239459',
-                  color: '#239459',
-                  backgroundColor: 'white'
-                }}
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Add Card
-              </button>
-            </div>
-
-            {paymentMethods.map((card) => (
-              <div key={card.id} className="bg-white rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
-                      <i className="fas fa-credit-card text-white text-sm"></i>
+        {/* History */}
+        {visible.length > 0 ? (
+          <>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {visible.map((tx, i) => {
+                const meta = getEntryMeta(tx.type);
+                return (
+                  <div
+                    key={tx.id}
+                    className={`flex items-center gap-3 p-4 ${i > 0 ? 'border-t border-gray-100' : ''} hover:bg-gray-50/60 transition-colors`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                      <i className={`${meta.icon} text-gray-500 text-sm`} />
                     </div>
-                    <div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <p className="font-medium text-gray-900">
-                          {card.brand} •••• {card.last4}
-                        </p>
-                        {card.isDefault && (
-                          <span className="text-xs font-medium text-white px-2 py-1 rounded" style={{backgroundColor: '#239459'}}>
-                            DEFAULT
-                          </span>
-                        )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-bold text-gray-900">{meta.label}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.pill}`}>
+                          {tx.status}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        {card.cardholderName} • Expires {card.expiryMonth.toString().padStart(2, '0')}/{card.expiryYear}
+                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                        {tx.createdAt}
+                        {tx.orderId ? ` • Order #${String(tx.orderId).padStart(5, '0')}` : ''}
+                        {tx.gateway ? ` • ${tx.gateway}` : ''}
                       </p>
                     </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-sm font-extrabold ${meta.amountClass}`}>{formatSignedPHP(tx.amount)}</p>
+                      <p className="text-[10px] text-gray-400">Bal {formatPHP(tx.balanceAfter)}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {!card.isDefault && (
-                      <button
-                        onClick={() => handleSetDefaultCard(card.id)}
-                        className="px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
-                        style={{
-                          border: '1px solid #239459',
-                          color: '#239459',
-                          backgroundColor: 'white'
-                        }}
-                      >
-                        Set Default
-                      </button>
-                    )}
-                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {paymentMethods.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <i className="fas fa-credit-card text-2xl text-gray-400"></i>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No payment methods</h3>
-                <p className="text-gray-600 mb-6">Add a card to start ordering</p>
-                <button 
-                  onClick={handleAddPaymentMethod}
-                  className="px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  style={{
-                    border: '1px solid #239459',
-                    color: '#239459',
-                    backgroundColor: 'white'
-                  }}
+                );
+              })}
+            </div>
+            {hasMore && (
+              <div className="text-center mt-5">
+                <button
+                  onClick={() => loadPage(page + 1)}
+                  disabled={loadingMore}
+                  className="px-8 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-sm disabled:opacity-60"
                 >
-                  <i className="fas fa-plus mr-2"></i>
-                  Add Your First Card
+                  {loadingMore ? <i className="fas fa-spinner fa-spin mr-2" /> : <i className="fas fa-chevron-down mr-2" />}
+                  Show more
                 </button>
               </div>
             )}
+          </>
+        ) : (
+          <div className="text-center py-10">
+            <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 rounded-full flex items-center justify-center">
+                <i className="fas fa-wallet text-2xl text-gray-300" />
+              </div>
+              <h3 className="text-lg font-extrabold text-gray-900 mb-2">
+                {isFiltered ? 'No matching transactions' : 'No transactions yet'}
+              </h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                {isFiltered
+                  ? 'Try a different keyword or type.'
+                  : 'Top up your wallet to pay faster and earn cashback.'}
+              </p>
+              {isFiltered ? (
+                <button
+                  onClick={() => {
+                    setSearchInput('');
+                    setTypeFilter('all');
+                  }}
+                  className="px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-md hover:opacity-90"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  Clear filters
+                </button>
+              ) : (
+                <button
+                  onClick={() => setTopupOpen(true)}
+                  className="px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-md hover:opacity-90"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  <i className="fas fa-plus-circle mr-2" />
+                  Top up now
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="mt-8 bg-white rounded-lg p-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button className="flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <i className="fas fa-download text-green-600 text-sm"></i>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Download Statement</p>
-                <p className="text-xs text-gray-500">Get transaction history</p>
-              </div>
-            </button>
-            <button className="flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <i className="fas fa-shield-alt text-blue-600 text-sm"></i>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Security Settings</p>
-                <p className="text-xs text-gray-500">Manage payment security</p>
-              </div>
-            </button>
-            <button className="flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                <i className="fas fa-gift text-purple-600 text-sm"></i>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Rewards & Offers</p>
-                <p className="text-xs text-gray-500">View available deals</p>
-              </div>
-            </button>
+        {/* How it works — Foodpanda/Shopee style explainer */}
+        <div className="mt-5 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <h3 className="text-sm font-extrabold text-gray-900 mb-3">How KuyaCares Wallet works</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px] text-gray-600">
+            <div className="flex gap-2.5">
+              <i className="fas fa-plus-circle mt-0.5" style={{ color: BRAND }} />
+              <p><span className="font-bold text-gray-800">Top up</span> via card, GCash, GrabPay, Maya or QR Ph. Balance credits after payment confirmation.</p>
+            </div>
+            <div className="flex gap-2.5">
+              <i className="fas fa-bolt mt-0.5" style={{ color: BRAND }} />
+              <p><span className="font-bold text-gray-800">Pay instantly</span> at checkout with your balance — no redirects, plus cashback on eligible orders.</p>
+            </div>
+            <div className="flex gap-2.5">
+              <i className="fas fa-undo mt-0.5" style={{ color: BRAND }} />
+              <p><span className="font-bold text-gray-800">Refunds & withdrawals</span> land back in your wallet; withdraw to GCash, Maya or bank anytime.</p>
+            </div>
           </div>
         </div>
       </div>
+
+      <TopupModal
+        isOpen={topupOpen}
+        customerName={displayName}
+        customerEmail={user?.email || ''}
+        onClose={(refresh) => {
+          setTopupOpen(false);
+          if (refresh) loadPage(1, { reset: true });
+        }}
+      />
+      <WithdrawModal
+        isOpen={withdrawOpen}
+        balance={wallet?.balance ?? 0}
+        submitting={withdrawing}
+        onClose={() => setWithdrawOpen(false)}
+        onSubmit={handleWithdraw}
+      />
     </div>
   );
 }

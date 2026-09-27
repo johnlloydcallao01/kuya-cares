@@ -35,7 +35,8 @@ export const Orders: CollectionConfig = {
           const platformFee = Number(d.platform_fee ?? 0) || 0
           const priorityFee = Number(d.priority_fee ?? 0) || 0
           const discountTotal = Number(d.discount_total ?? 0) || 0
-          const expected = subtotal + deliveryFee + platformFee + priorityFee - discountTotal
+          const walletAmountUsed = Number(d.wallet_amount_used ?? 0) || 0
+          const expected = subtotal + deliveryFee + platformFee + priorityFee - discountTotal - walletAmountUsed
           if (Math.abs(Number(d.total) - expected) > 0.01) {
             throw new Error(
               `Order total mismatch: expected ${expected.toFixed(2)} (subtotal + fees - discounts) but got ${Number(d.total).toFixed(2)}`,
@@ -297,6 +298,24 @@ export const Orders: CollectionConfig = {
       defaultValue: false,
       admin: {
         description: 'A free-delivery coupon zeroed the delivery leg',
+      },
+    },
+    {
+      name: 'wallet_amount_used',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Wallet amount applied to this order (reduces gateway charge)',
+      },
+    },
+    {
+      name: 'paid_with_wallet',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Order was fully or partially paid with wallet balance',
       },
     },
     {

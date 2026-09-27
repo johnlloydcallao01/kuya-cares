@@ -135,13 +135,6 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
           <div className="space-y-1">
             {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>}
             <SidebarItem
-              icon="help"
-              label="Help Center"
-              href="/help"
-              active={pathname === '/help'}
-              collapsed={!isOpen}
-            />
-            <SidebarItem
               icon="terms"
               label="Terms and Conditions"
               href="/terms"

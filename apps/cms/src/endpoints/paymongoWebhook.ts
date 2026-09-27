@@ -1,6 +1,7 @@
 import { PayloadRequest } from 'payload'
 import crypto from 'crypto'
 import { CouponService } from '../services/CouponService'
+import { WalletService } from '../services/WalletService'
 
 export const paymongoWebhook = async (req: PayloadRequest) => {
   try {
@@ -103,7 +104,40 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
               }
           }
       } else {
-          console.warn(`No transaction found for payment_intent_id: ${paymentIntentId}`);
+          // Gateway-agnostic wallet top-up credit: same webhook, no new provider code.
+          try {
+            const topups = await req.payload.find({
+              collection: 'wallet-topups',
+              where: { payment_intent_id: { equals: paymentIntentId } },
+              limit: 1,
+            });
+            const topup = (topups as any)?.docs?.[0];
+            if (topup && topup.status === 'pending') {
+              await req.payload.update({
+                collection: 'wallet-topups',
+                id: topup.id,
+                data: {
+                  status: 'paid',
+                  paid_at: new Date(resource.attributes.paid_at * 1000).toISOString(),
+                },
+              });
+              const customerId = typeof topup.customer === 'object' ? topup.customer.id : topup.customer;
+              await new WalletService(req.payload).postEntry({
+                customerId,
+                type: 'topup',
+                amount: Number(topup.amount),
+                paymentIntentId,
+                gateway: topup.gateway || 'paymongo',
+                idempotencyKey: `wallet-topup:${String(topup.id)}:${paymentIntentId}`,
+                meta: { topupId: topup.id },
+              });
+              console.log(`Wallet top-up ${topup.id} credited.`);
+            } else {
+              console.warn(`No transaction found for payment_intent_id: ${paymentIntentId}`);
+            }
+          } catch (walletErr) {
+            console.error('[paymongo/webhook] wallet top-up credit error:', walletErr);
+          }
       }
 
     } else if (type === 'payment.failed') {
@@ -151,10 +185,12 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                where: { payment_intent_id: { equals: refundIntentId } },
            });
            const refundOrder = (refundTx.docs[0] as any)?.order;
-           if (refundOrder) {
-             const refundOrderId = typeof refundOrder === 'object' ? refundOrder.id : refundOrder;
-             await new CouponService(req.payload).reverseForOrder(refundOrderId, 'refunded');
-           }
+            if (refundOrder) {
+              const refundOrderId = typeof refundOrder === 'object' ? refundOrder.id : refundOrder;
+              await new CouponService(req.payload).reverseForOrder(refundOrderId, 'refunded');
+              // Best-effort refund-to-wallet (idempotent ledger post).
+              await new WalletService(req.payload).refundToWallet(refundOrderId);
+            }
          }
        } catch (couponErr) {
          console.error('[paymongo/webhook] coupon refund-reverse error:', couponErr);

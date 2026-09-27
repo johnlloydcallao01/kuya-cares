@@ -47,7 +47,6 @@ const menuSections = [
   {
     title: 'Support',
     items: [
-      { icon: 'fa-question-circle', label: 'Help Center', path: '/help', badge: null },
       { icon: 'fa-comments', label: 'Contact Support', path: '/support', badge: null },
       { icon: 'fa-bug', label: 'Report Issue', path: '/report', badge: null },
       { icon: 'fa-star', label: 'Rate App', path: '/rate', badge: null }

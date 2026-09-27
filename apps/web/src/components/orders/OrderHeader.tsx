@@ -3,15 +3,6 @@
 import React from 'react';
 import Image from '@/components/ui/ImageWrapper';
 
-type OrderStatus =
-  | 'pending'
-  | 'accepted'
-  | 'preparing'
-  | 'ready_for_pickup'
-  | 'on_delivery'
-  | 'delivered'
-  | 'cancelled';
-
 interface OrderHeaderProps {
   onBack: () => void;
   merchantLogo?: string | null;
@@ -21,47 +12,9 @@ interface OrderHeaderProps {
   orderNumber: string;
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'delivered':
-      return 'bg-green-100 text-green-800';
-    case 'on_delivery':
-      return 'bg-blue-100 text-blue-800';
-    case 'ready_for_pickup':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'preparing':
-      return 'bg-orange-100 text-orange-800';
-    case 'accepted':
-      return 'bg-indigo-100 text-indigo-800';
-    case 'pending':
-      return 'bg-gray-100 text-gray-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+import { getStatusColor, getStatusIcon } from '@/types/order';
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'delivered':
-      return 'fas fa-check-circle';
-    case 'on_delivery':
-      return 'fas fa-motorcycle';
-    case 'ready_for_pickup':
-      return 'fas fa-shopping-bag';
-    case 'preparing':
-      return 'fas fa-utensils';
-    case 'accepted':
-      return 'fas fa-clipboard-check';
-    case 'pending':
-      return 'fas fa-clock';
-    case 'cancelled':
-      return 'fas fa-times-circle';
-    default:
-      return 'fas fa-question-circle';
-  }
-};
+export { getStatusColor, getStatusIcon };
 
 export default function OrderHeader({
   onBack,

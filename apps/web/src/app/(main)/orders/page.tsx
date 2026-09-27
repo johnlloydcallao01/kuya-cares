@@ -1,693 +1,589 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Image from '@/components/ui/ImageWrapper';
-import { getCurrentUserIdFromStorage } from '@/lib/client-services/wishlist-service';
-import { OrdersPageSkeleton } from '@/components/skeletons/OrdersSkeleton';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import { getCurrentUserIdFromStorage } from '@/lib/client-services/wishlist-service';
+import { OrdersPageSkeleton } from '@/components/skeletons/OrdersSkeleton';
+import OrderCard from '@/components/orders/OrderCard';
+import RateOrderModal from '@/components/orders/RateOrderModal';
+import OrderReceiptModal from '@/components/orders/OrderReceiptModal';
+import { useCart } from '@/contexts/CartContext';
+import {
+  cancelOrder,
+  copyText,
+  fetchCustomerOrders,
+  resolveCustomerId,
+  submitOrderReview,
+} from '@/lib/client-services/order-service';
+import {
+  formatPHP,
+  getStatusMeta,
+  ORDER_STATUSES,
+  type DateRangeFilter,
+  type FulfillmentFilter,
+  type OrderUI,
+  type SortKey,
+} from '@/types/order';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '00ffd535-f53d-44d0-b86d-945c90be2729';
+const PAGE_SIZE = 12;
+const POLL_MS = 30000;
+const BRAND = '#239459';
 
-interface OrderItem {
-  id: number;
-  name: string;
-  quantity: number;
-  price: string;
-  image: string;
-  merchantName?: string;
-  merchantLogo?: string | null;
-}
+type StatusFilter = 'all' | (typeof ORDER_STATUSES)[number];
 
-interface Order {
-  id: string;
-  orderId: string;
-  orderNumber: string;
-  date: string;
-  status: string;
-  total: string;
-  items: OrderItem[];
-  restaurant: string;
-  merchantLogo?: string | null;
-  deliveryTime: string;
-  rating: number;
-}
+const STATUS_TABS: { id: StatusFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'accepted', label: 'Accepted' },
+  { id: 'preparing', label: 'Preparing' },
+  { id: 'ready_for_pickup', label: 'Ready' },
+  { id: 'on_delivery', label: 'On the way' },
+  { id: 'delivered', label: 'Delivered' },
+  { id: 'cancelled', label: 'Cancelled' },
+];
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'delivered':
-      return 'bg-green-100 text-green-800';
-    case 'on_delivery':
-      return 'bg-blue-100 text-blue-800';
-    case 'ready_for_pickup':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'preparing':
-      return 'bg-orange-100 text-orange-800';
-    case 'accepted':
-      return 'bg-indigo-100 text-indigo-800';
-    case 'pending':
-      return 'bg-gray-100 text-gray-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'delivered':
-      return 'fas fa-check-circle';
-    case 'on_delivery':
-      return 'fas fa-motorcycle';
-    case 'ready_for_pickup':
-      return 'fas fa-shopping-bag';
-    case 'preparing':
-      return 'fas fa-utensils';
-    case 'accepted':
-      return 'fas fa-clipboard-check';
-    case 'pending':
-      return 'fas fa-clock';
-    case 'cancelled':
-      return 'fas fa-times-circle';
-    default:
-      return 'fas fa-question-circle';
-  }
-};
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'highest', label: 'Highest total' },
+  { id: 'lowest', label: 'Lowest total' },
+];
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { addToCart } = useCart();
+
+  const [orders, setOrders] = useState<OrderUI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDocs, setTotalDocs] = useState(0);
+
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>('all');
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sort, setSort] = useState<SortKey>('newest');
+  const [fulfillment, setFulfillment] = useState<FulfillmentFilter>('all');
+  const [dateRange, setDateRange] = useState<DateRangeFilter>('all');
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [hasDragged, setHasDragged] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [currentX, setCurrentX] = useState(0);
-  const [translateX, setTranslateX] = useState(0);
-  const [startTranslateX, setStartTranslateX] = useState(0);
-  const [lastTime, setLastTime] = useState(0);
-  const [velocityX, setVelocityX] = useState(0);
-  const [maxTranslate, setMaxTranslate] = useState(0);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<OrderUI | null>(null);
+  const [rateTarget, setRateTarget] = useState<OrderUI | null>(null);
+  const [rateSubmitting, setRateSubmitting] = useState(false);
+  const [receiptOrder, setReceiptOrder] = useState<OrderUI | null>(null);
 
-  const dragThreshold = 5;
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const userIdRef = useRef<string | number | null>(null);
 
-  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const tabsInnerRef = useRef<HTMLDivElement | null>(null);
-  const animationRef = useRef<number | null>(null);
+  const load = useCallback(async (opts: { silent?: boolean; reset?: boolean; pageNum?: number } = {}) => {
+    const userId = userIdRef.current ?? getCurrentUserIdFromStorage();
+    userIdRef.current = userId;
+    if (!userId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      if (!opts.silent) {
+        if ((opts.pageNum ?? 1) > 1) setLoadingMore(true);
+        else if (!opts.reset) setLoading(true);
+        else setRefreshing(true);
+      }
+      setError(null);
+      const res = await fetchCustomerOrders(userId, {
+        limit: 100,
+        page: 1,
+      });
+      setOrders(res.orders);
+      setTotalDocs(res.totalDocs || res.orders.length);
+      setTotalPages(res.totalPages || 1);
+      setPage(1);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load orders');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchOrders() {
+    load();
+  }, [load]);
+
+  // Auto-refresh active orders (Shopee/Foodpanda style live status)
+  useEffect(() => {
+    if (loading) return;
+    const t = setInterval(() => {
+      const hasActive = orders.some((o) => getStatusMeta(o.status).group === 'active');
+      if (hasActive) load({ silent: true });
+    }, POLL_MS);
+    return () => clearInterval(t);
+  }, [loading, orders, load]);
+
+  // Debounced search
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput.trim().toLowerCase()), 250);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: orders.length };
+    for (const s of ORDER_STATUSES) c[s] = 0;
+    for (const o of orders) c[o.status] = (c[o.status] ?? 0) + 1;
+    return c;
+  }, [orders]);
+
+  const stats = useMemo(() => {
+    const active = orders.filter((o) => getStatusMeta(o.status).group === 'active').length;
+    const delivered = counts['delivered'] ?? 0;
+    const spent = orders
+      .filter((o) => o.status !== 'cancelled')
+      .reduce((s, o) => s + (Number.isFinite(o.total) ? o.total : 0), 0);
+    return { total: orders.length, active, delivered, spent };
+  }, [orders, counts]);
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    let list = orders.filter((o) => {
+      if (activeFilter !== 'all' && o.status !== activeFilter) return false;
+      if (fulfillment !== 'all' && o.fulfillmentType !== fulfillment) return false;
+      if (dateRange !== 'all') {
+        const window = dateRange === 'today' ? day : dateRange === '7d' ? 7 * day : 30 * day;
+        if (!o.placedAtTs || now - o.placedAtTs > window) return false;
+      }
+      if (searchQuery) {
+        const hay = `${o.orderNumber} ${o.restaurant} ${o.items.map((i) => i.name).join(' ')}`.toLowerCase();
+        if (!hay.includes(searchQuery)) return false;
+      }
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      if (sort === 'newest') return b.placedAtTs - a.placedAtTs;
+      if (sort === 'oldest') return a.placedAtTs - b.placedAtTs;
+      if (sort === 'highest') return b.total - a.total;
+      return a.total - b.total;
+    });
+    return list;
+  }, [orders, activeFilter, fulfillment, dateRange, searchQuery, sort]);
+
+  const visible = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
+  const hasMore = visible.length < filtered.length;
+
+  const scrollTabs = (dir: 1 | -1) => {
+    tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  };
+
+  const handleTrack = useCallback(
+    (order: OrderUI) => router.push(`/orders/${order.orderId}/tracking`),
+    [router],
+  );
+
+  const handleCopy = useCallback(async (order: OrderUI) => {
+    try {
+      await copyText(order.orderNumber);
+      toast.success(`${order.orderNumber} copied`);
+    } catch {
+      toast.error('Copy failed');
+    }
+  }, []);
+
+  const handleReorder = useCallback(
+    async (order: OrderUI) => {
+      if (!order.items.length) {
+        toast.error('No items to reorder');
+        return;
+      }
+      setReorderingId(order.orderId);
       try {
-        const userId = getCurrentUserIdFromStorage();
-        if (!userId) {
-          setLoading(false);
-          return;
-        }
-
-        const headers = {
-          'Authorization': `users API-Key ${API_KEY}`,
-          'Content-Type': 'application/json',
-        };
-
-        // Fetch Orders
-        const ordersRes = await fetch(
-          `${API_URL}/orders?where[customer.user][equals]=${userId}&depth=3&sort=-placed_at`,
-          { headers }
-        );
-        const ordersData = await ordersRes.json();
-        
-        if (!ordersData.docs || ordersData.docs.length === 0) {
-          setOrders([]);
-          setLoading(false);
-          return;
-        }
-
-        const fetchedOrders = ordersData.docs;
-        const orderIds = fetchedOrders.map((o: any) => o.id);
-
-        // Fetch Order Items
-        const itemsRes = await fetch(
-          `${API_URL}/order-items?where[order][in]=${orderIds.join(',')}&depth=2&limit=300`,
-           { headers }
-        );
-        const itemsData = await itemsRes.json();
-        const allItems = itemsData.docs || [];
-
-        // Map to UI format
-        const mappedOrders = fetchedOrders.map((order: any) => {
-          const orderItems = allItems.filter((item: any) => 
-            (typeof item.order === 'object' ? item.order.id : item.order) === order.id
-          );
-
-          // Extract merchant name and vendor logo from order.merchant
-          let merchantLogo: string | null = null;
-          let merchantName = 'Unknown Restaurant';
-          const merchant = order.merchant;
-          
-          if (merchant && typeof merchant === 'object') {
-            // Try to get the name from various possible fields
-            if (merchant.outletName && merchant.outletName.trim() !== '') {
-                merchantName = merchant.outletName;
-            } else if (merchant.name && merchant.name.trim() !== '') {
-                merchantName = merchant.name;
-            } else if (merchant.vendor && typeof merchant.vendor === 'object') {
-                // Fallback to vendor business name if outlet name is missing
-                if (merchant.vendor.businessName && merchant.vendor.businessName.trim() !== '') {
-                    merchantName = merchant.vendor.businessName;
-                }
-            }
-
-            // Extract logo
-            if (merchant.vendor) {
-              const vendor = merchant.vendor;
-              if (typeof vendor === 'object' && vendor.logo) {
-                const logo = vendor.logo;
-                if (typeof logo === 'object') {
-                  merchantLogo = logo.cloudinaryURL || logo.url || null;
-                }
-              }
-            }
+        let added = 0;
+        for (const item of order.items) {
+          if (item.productId == null || item.merchantProductId == null || order.merchantId == null) continue;
+          try {
+            await addToCart({
+              merchantId: Number(order.merchantId),
+              productId: Number(item.productId),
+              merchantProductId: Number(item.merchantProductId),
+              quantity: item.quantity,
+              priceAtAdd: item.price,
+            });
+            added += 1;
+          } catch {
+            /* try next item */
           }
-
-          const mappedItems = orderItems.map((item: any) => {
-             const product = item.product;
-             // Try to find image URL from various possible locations in Payload response
-             let imageUrl: string | null = null;
-             
-             if (product && typeof product === 'object') {
-                // Check media.primaryImage first (correct structure)
-                const primaryImage = product.media?.primaryImage;
-                if (primaryImage && typeof primaryImage === 'object') {
-                    imageUrl = primaryImage.cloudinaryURL || primaryImage.url || primaryImage.thumbnailURL || null;
-                }
-                
-                // Fallback to direct image field (legacy or alternative)
-                if (!imageUrl && product.image) {
-                    if (typeof product.image === 'object') {
-                         imageUrl = product.image.cloudinaryURL || product.image.url || null;
-                    } else if (typeof product.image === 'string') {
-                         imageUrl = product.image;
-                    }
-                }
-             }
-
-             if (!imageUrl) {
-                 imageUrl = 'https://placehold.co/400';
-             }
-
-             // Handle relative URLs
-             const baseUrl = API_URL.replace('/api', '');
-             const finalImage = imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`;
-
-             // Get merchant name from merchant_product
-             let itemMerchantName = '';
-             if (item.merchant_product && typeof item.merchant_product === 'object') {
-                const merchantProduct = item.merchant_product;
-                if (merchantProduct.merchant_id && typeof merchantProduct.merchant_id === 'object') {
-                    itemMerchantName = merchantProduct.merchant_id.outletName || merchantProduct.merchant_id.name || '';
-                }
-             }
-
-             let productName = item.product_name_snapshot;
-             if (!productName && product && typeof product === 'object' && product.name) {
-                 productName = product.name;
-             }
-
-             return {
-               id: item.id,
-               name: productName || 'Item',
-               quantity: item.quantity,
-               price: `$${item.price_at_purchase.toFixed(2)}`,
-               image: finalImage,
-               merchantName: itemMerchantName || merchantName,
-               merchantLogo: merchantLogo
-             };
-          });
-
-          return {
-            id: `ORD-${order.id}`,
-            orderId: String(order.id),
-            orderNumber: `#${order.id.toString().padStart(5, '0')}`,
-            date: new Date(order.placed_at).toLocaleDateString(),
-            status: order.status,
-            total: `$${order.total.toFixed(2)}`,
-            items: mappedItems,
-            restaurant: merchantName,
-            merchantLogo: merchantLogo,
-            deliveryTime: '30 mins',
-            rating: 5.0
-          };
-        });
-
-        setOrders(mappedOrders);
-      } catch (error) {
-        console.error('Failed to fetch orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchOrders();
-  }, []);
-
-  const statusOptions = [
-    { id: 'all', label: 'All Orders', count: orders.length },
-    { id: 'pending', label: 'Pending', count: orders.filter(order => order.status === 'pending').length },
-    { id: 'accepted', label: 'Accepted', count: orders.filter(order => order.status === 'accepted').length },
-    { id: 'preparing', label: 'Preparing', count: orders.filter(order => order.status === 'preparing').length },
-    { id: 'ready_for_pickup', label: 'Ready for Pickup', count: orders.filter(order => order.status === 'ready_for_pickup').length },
-    { id: 'on_delivery', label: 'On Delivery', count: orders.filter(order => order.status === 'on_delivery').length },
-    { id: 'delivered', label: 'Delivered', count: orders.filter(order => order.status === 'delivered').length },
-    { id: 'cancelled', label: 'Cancelled', count: orders.filter(order => order.status === 'cancelled').length }
-  ];
-
-  const getMaxTranslate = useCallback(() => {
-    if (!tabsContainerRef.current || !tabsInnerRef.current) return 0;
-    const containerWidth = tabsContainerRef.current.getBoundingClientRect().width;
-    const contentWidth = tabsInnerRef.current.scrollWidth;
-    return Math.max(0, contentWidth - containerWidth);
-  }, []);
-
-  const animateToPosition = useCallback(
-    (targetX: number, duration = 300) => {
-      const start = translateX;
-      const distance = targetX - start;
-      const startTime = Date.now();
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        const current = start + distance * easeOut;
-
-        setTranslateX(current);
-
-        if (progress < 1) {
-          animationRef.current = requestAnimationFrame(animate);
         }
-      };
-
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+        if (added > 0) {
+          toast.success(`${added} item${added === 1 ? '' : 's'} added back to cart`);
+          router.push('/carts');
+        } else {
+          toast.error('Could not reorder — items may be unavailable');
+        }
+      } finally {
+        setReorderingId(null);
       }
-
-      animate();
     },
-    [translateX]
+    [addToCart, router],
   );
 
-  const handleStart = (clientX: number) => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
+  const confirmCancel = useCallback(async () => {
+    if (!cancelTarget) return;
+    setCancellingId(cancelTarget.orderId);
+    try {
+      await cancelOrder(cancelTarget.orderId);
+      toast.success('Order cancelled');
+      setCancelTarget(null);
+      await load({ silent: true });
+    } catch (e: any) {
+      toast.error(e?.message || 'Cancel failed');
+    } finally {
+      setCancellingId(null);
     }
-    setIsDragging(true);
-    setHasDragged(false);
-    setStartX(clientX);
-    setCurrentX(clientX);
-    setStartTranslateX(translateX);
-    setLastTime(Date.now());
-    setVelocityX(0);
-  };
+  }, [cancelTarget, load]);
 
-  const handleMove = useCallback(
-    (clientX: number) => {
-      if (!isDragging) return;
-
-      const now = Date.now();
-      const deltaTime = now - lastTime;
-      const deltaX = clientX - currentX;
-
-      const totalDragDistance = Math.abs(clientX - startX);
-      if (totalDragDistance > dragThreshold) {
-        setHasDragged(true);
+  const handleRateSubmit = useCallback(
+    async (rating: number, comment: string) => {
+      if (!rateTarget) return;
+      setRateSubmitting(true);
+      try {
+        const userId = userIdRef.current ?? getCurrentUserIdFromStorage();
+        if (!userId) throw new Error('Please sign in to rate');
+        const customerId = await resolveCustomerId(userId);
+        if (!customerId) throw new Error('Customer profile not found');
+        if (rateTarget.merchantId == null) throw new Error('Merchant not found');
+        await submitOrderReview({
+          orderId: rateTarget.orderId,
+          customerId,
+          merchantId: rateTarget.merchantId,
+          rating,
+          comment,
+        });
+        toast.success('Thanks for your rating!');
+        setRateTarget(null);
+      } catch (e: any) {
+        toast.error(e?.message || 'Rating failed');
+      } finally {
+        setRateSubmitting(false);
       }
-
-      if (deltaTime > 0) {
-        setVelocityX(deltaX / deltaTime);
-      }
-
-      setCurrentX(clientX);
-      setLastTime(now);
-
-      const dragDistance = clientX - startX;
-      const newTranslate = startTranslateX + dragDistance;
-
-      const max = maxTranslate;
-      let bounded = newTranslate;
-
-      if (newTranslate > 0) {
-        bounded = newTranslate * 0.3;
-      } else if (newTranslate < -max) {
-        const overflow = newTranslate + max;
-        bounded = -max + overflow * 0.3;
-      }
-
-      setTranslateX(bounded);
     },
-    [isDragging, startX, startTranslateX, currentX, lastTime, maxTranslate]
+    [rateTarget],
   );
 
-  const handleEnd = useCallback(() => {
-    if (!isDragging) return;
-
-    setIsDragging(false);
-
-    const momentum = velocityX * 200;
-    let finalPosition = translateX + momentum;
-    const max = maxTranslate;
-
-    finalPosition = Math.max(-max, Math.min(0, finalPosition));
-
-    animateToPosition(finalPosition, 400);
-
-    setTimeout(() => {
-      setHasDragged(false);
-    }, 100);
-  }, [isDragging, velocityX, translateX, maxTranslate, animateToPosition]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    handleStart(e.clientX);
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    setActiveFilter('all');
+    setFulfillment('all');
+    setDateRange('all');
+    setSort('newest');
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    handleMove(e.clientX);
-  };
+  if (loading) return <OrdersPageSkeleton />;
 
-  const handleMouseUp = () => {
-    handleEnd();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    handleStart(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isDragging) {
-      e.stopPropagation();
-    }
-    handleMove(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    handleEnd();
-  };
-
-  useEffect(() => {
-    const calculateBounds = () => {
-      const max = getMaxTranslate();
-      setMaxTranslate(max);
-      if (translateX < -max) {
-        setTranslateX(-max);
-      }
-    };
-
-    if (statusOptions.length > 0) {
-      const timer = setTimeout(calculateBounds, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [statusOptions.length, getMaxTranslate, translateX]);
-
-  useEffect(() => {
-    const onResize = () => {
-      const max = getMaxTranslate();
-      setMaxTranslate(max);
-      if (translateX < -max) {
-        animateToPosition(-max);
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', onResize);
-      return () => window.removeEventListener('resize', onResize);
-    }
-  }, [getMaxTranslate, translateX, animateToPosition]);
-
-  useEffect(() => {
-    if (isDragging) {
-      const handleGlobalMouseMove = (e: MouseEvent) => {
-        handleMove(e.clientX);
-      };
-
-      const handleGlobalMouseUp = () => {
-        handleEnd();
-      };
-
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-
-      return () => {
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-      };
-    }
-  }, [isDragging, handleMove, handleEnd]);
-
-  // Filter orders based on active filter and search query
-  const filteredOrders = orders.filter(order => {
-    const matchesFilter = 
-      activeFilter === 'all' || order.status === activeFilter;
-    
-    const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.restaurant.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return matchesFilter && matchesSearch;
-  });
-
-  const handleReorder = (orderId: string) => {
-    console.log('Reordering:', orderId);
-    // Reorder logic here
-  };
-
-  const handleTrackOrder = (orderId: string) => {
-    router.push(`/orders/${orderId}/tracking`);
-  };
-
-  const handleRateOrder = (orderId: string) => {
-    console.log('Rating order:', orderId);
-    // Rate order logic here
-  };
-
-  if (loading) {
-      return <OrdersPageSkeleton />;
+  if (error && orders.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+            <i className="fas fa-exclamation-triangle text-red-500 text-xl" />
+          </div>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Couldn&apos;t load orders</h2>
+          <p className="text-sm text-gray-500 mb-5">{error}</p>
+          <button
+            onClick={() => load({ reset: true })}
+            className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+            style={{ backgroundColor: BRAND }}
+          >
+            <i className="fas fa-redo mr-2" />Try again
+          </button>
+        </div>
+      </div>
+    );
   }
 
+  const isFiltered = searchQuery !== '' || activeFilter !== 'all' || fulfillment !== 'all' || dateRange !== 'all';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white shadow-sm">
-        <div className="w-full px-2.5 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-20">
+        <div className="w-full px-3 sm:px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Orders</h1>
-              <p className="text-gray-600 mt-1 text-base">Track and manage your food orders</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">My Orders</h1>
+              <p className="text-gray-500 mt-0.5 text-sm">
+                {totalDocs > 0 ? `${totalDocs} order${totalDocs === 1 ? '' : 's'} • ` : ''}Track, reorder & manage
+              </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button className="px-4 py-2 rounded-lg hover:opacity-90 transition-colors font-medium text-sm" style={{color: '#239459', backgroundColor: '#239459' + '20'}}>
-                <i className="fas fa-receipt mr-2"></i>
-                Order History
-              </button>
+            <button
+              onClick={() => load({ reset: true })}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-60"
+            >
+              <i className={`fas fa-sync-alt ${refreshing ? 'fa-spin' : ''}`} style={{ color: BRAND }} />
+              {refreshing ? 'Refreshing' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* Stats — Shopee / Lazada style overview */}
+          {orders.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+              {[
+                { label: 'Total orders', value: String(stats.total), icon: 'fa-receipt', bg: 'bg-gray-50', fg: 'text-gray-700' },
+                { label: 'Active', value: String(stats.active), icon: 'fa-motorcycle', bg: 'bg-blue-50', fg: 'text-blue-700' },
+                { label: 'Delivered', value: String(stats.delivered), icon: 'fa-check-circle', bg: 'bg-green-50', fg: 'text-green-700' },
+                { label: 'Total spent', value: formatPHP(stats.spent), icon: 'fa-wallet', bg: 'bg-amber-50', fg: 'text-amber-700' },
+              ].map((s) => (
+                <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
+                  <i className={`fas ${s.icon} ${s.fg}`} />
+                  <div className="min-w-0">
+                    <p className={`text-sm font-extrabold truncate ${s.fg}`}>{s.value}</p>
+                    <p className="text-[11px] text-gray-500 font-medium">{s.label}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+        </div>
+
+        {/* Status tabs — native scroll (accessible, enterprise) */}
+        <div className="border-t border-gray-100">
+          <div className="flex items-center">
+            <button
+              onClick={() => scrollTabs(-1)}
+              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700"
+              aria-label="Scroll tabs left"
+            >
+              <i className="fas fa-chevron-left text-xs" />
+            </button>
+            <div ref={tabsRef} className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide px-3 py-2.5">
+              {STATUS_TABS.map((t) => {
+                const active = activeFilter === t.id;
+                const count = counts[t.id] ?? 0;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setActiveFilter(t.id); setPage(1); }}
+                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl font-bold text-[13px] transition-all border ${
+                      active
+                        ? 'text-white shadow-md border-transparent'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    style={active ? { backgroundColor: BRAND } : {}}
+                  >
+                    {t.label}
+                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => scrollTabs(1)}
+              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700"
+              aria-label="Scroll tabs right"
+            >
+              <i className="fas fa-chevron-right text-xs" />
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="w-full px-2.5 py-4">
-        {/* Search and Filter Section */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="flex-1">
-              <div className="relative">
-                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                <input
-                  type="text"
-                  placeholder="Search orders by number, restaurant, or item..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-lg focus:ring-2 focus:bg-white transition-all text-sm"
-                  style={{'--tw-ring-color': '#239459'} as any}
-                />
-              </div>
-            </div>
-
-            {/* Status Filter Tabs with physics carousel */}
-            <div
-              className="relative w-full lg:w-1/2"
-            >
-              <div
-                ref={tabsContainerRef}
-                className="overflow-hidden"
-                onMouseDown={handleMouseDown}
-                onMouseMove={isDragging ? handleMouseMove : undefined}
-                onMouseUp={isDragging ? handleMouseUp : undefined}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  touchAction: 'pan-y',
-                  cursor: isDragging ? 'grabbing' : 'grab'
-                }}
-              >
-                <div
-                  ref={tabsInnerRef}
-                  className="flex flex-nowrap gap-2 select-none"
-                  style={{
-                    transform: `translateX(${translateX}px)`,
-                    WebkitUserSelect: 'none',
-                    userSelect: 'none',
-                    transition: 'none',
-                    willChange: 'transform'
-                  }}
+      <div className="w-full px-3 sm:px-4 py-4">
+        {/* Toolbar: search + sort + filters */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3.5 mb-4">
+          <div className="flex flex-col xl:flex-row gap-3">
+            <div className="flex-1 relative">
+              <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                placeholder="Search by order #, restaurant, or item…"
+                value={searchInput}
+                onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
+                className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:ring-2 focus:bg-white focus:border-transparent transition-all text-sm outline-none"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
                 >
-                  {statusOptions.map((filter) => (
-                    <button
-                      key={filter.id}
-                      onClick={() => {
-                        if (!hasDragged) {
-                          setActiveFilter(filter.id);
-                        }
-                      }}
-                      className={`px-3 py-2 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
-                        activeFilter === filter.id
-                          ? 'text-white shadow-md'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      style={activeFilter === filter.id ? { backgroundColor: '#239459' } : {}}
-                    >
-                      {filter.label}
-                      <span className="ml-1 text-xs opacity-75">({filter.count})</span>
-                    </button>
+                  <i className="fas fa-times-circle" />
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-600">
+                <i className="fas fa-sort text-gray-400" />
+                <select
+                  value={sort}
+                  onChange={(e) => { setSort(e.target.value as SortKey); setPage(1); }}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-2.5 text-[13px] font-bold text-gray-700 outline-none"
+                >
+                  {SORTS.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
                   ))}
-                </div>
+                </select>
+              </label>
+              <div className="inline-flex bg-gray-50 border border-gray-200 rounded-xl p-1">
+                {(['all', 'delivery', 'pickup'] as FulfillmentFilter[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => { setFulfillment(f); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-bold capitalize transition-all ${
+                      fulfillment === f ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {f === 'all' ? 'All types' : f}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex bg-gray-50 border border-gray-200 rounded-xl p-1">
+                {(['all', 'today', '7d', '30d'] as DateRangeFilter[]).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => { setDateRange(d); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all ${
+                      dateRange === d ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {d === 'all' ? 'Anytime' : d === 'today' ? 'Today' : `Last ${d}`}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
+          {isFiltered && (
+            <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
+              <p className="text-xs text-gray-500">
+                <span className="font-bold text-gray-800">{filtered.length}</span> result{filtered.length === 1 ? '' : 's'}
+              </p>
+              <button onClick={clearFilters} className="text-xs font-bold hover:opacity-80" style={{ color: BRAND }}>
+                <i className="fas fa-times mr-1" />Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Orders List */}
-        {filteredOrders.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
-                <Link href={`/orders/${order.orderId}`} className="block">
-                  <div className="p-4 bg-gray-50">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {order.merchantLogo ? (
-                            <Image
-                              src={order.merchantLogo}
-                              alt={order.restaurant}
-                              width={36}
-                              height={36}
-                              className="object-contain"
-                            />
-                          ) : (
-                            <i className="fas fa-store text-gray-500 text-xs" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 leading-tight">
-                            {order.restaurant}
-                          </p>
-                          <p className="text-[11px] text-gray-500">
-                            {order.orderNumber} • {order.date}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          <i className={`${getStatusIcon(order.status)} mr-1`}></i>
-                          {order.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900 text-base">{order.total}</p>
-                          <p className="text-xs text-gray-500">{order.deliveryTime}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 border-t border-gray-100">
-                    <div className="flex flex-row gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex-shrink-0 w-20">
-                          <div className="relative">
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              width={80}
-                              height={80}
-                              className="w-20 h-20 object-cover rounded-lg bg-gray-100"
-                            />
-                            {item.quantity > 1 && (
-                                <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-tl-md font-medium">
-                                    x{item.quantity}
-                                </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-gray-700 mt-1.5 line-clamp-2 leading-tight">
-                            {item.name}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
-                <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
-                  <button
-                    onClick={() => handleTrackOrder(order.orderId)}
-                    className="flex-1 py-2 px-4 text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
-                    style={{backgroundColor: '#239459'}}
-                  >
-                    <i className="fas fa-map-marker-alt mr-2"></i>
-                    Track Order
-                  </button>
-                  <Link
-                    href={`/orders/${order.orderId}`}
-                    className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm text-center"
-                  >
-                    View
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-12">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                <i className="fas fa-shopping-bag text-3xl text-gray-400"></i>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {searchQuery ? 'No orders found' : 'No orders yet'}
-              </h3>
-              <p className="text-gray-600 mb-6 text-base">
-                {searchQuery 
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Your food orders will appear here once you place them'
-                }
-              </p>
-              {searchQuery && (
+        {/* List */}
+        {visible.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+              {visible.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onTrack={handleTrack}
+                  onReorder={handleReorder}
+                  onRate={(o) => setRateTarget(o)}
+                  onCancel={(o) => setCancelTarget(o)}
+                  onReceipt={(o) => setReceiptOrder(o)}
+                  onCopy={handleCopy}
+                  reorderingId={reorderingId}
+                  cancellingId={cancellingId}
+                />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="text-center mt-6">
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="px-6 py-2 text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm shadow-md"
-                  style={{backgroundColor: '#239459'}}
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={loadingMore}
+                  className="px-8 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-sm disabled:opacity-60"
                 >
-                  Clear Search
+                  {loadingMore ? <i className="fas fa-spinner fa-spin mr-2" /> : <i className="fas fa-chevron-down mr-2" />}
+                  Show more ({filtered.length - visible.length} left)
                 </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 rounded-full flex items-center justify-center">
+                <i className={`fas ${isFiltered ? 'fa-search' : 'fa-shopping-bag'} text-2xl text-gray-300`} />
+              </div>
+              <h3 className="text-lg font-extrabold text-gray-900 mb-2">
+                {isFiltered ? 'No matching orders' : 'No orders yet'}
+              </h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                {isFiltered
+                  ? 'Try a different keyword, status, or date range.'
+                  : 'Your food orders will appear here. Hungry? Let\'s fix that.'}
+              </p>
+              {isFiltered ? (
+                <button
+                  onClick={clearFilters}
+                  className="px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-md hover:opacity-90"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  Clear filters
+                </button>
+              ) : (
+                <Link
+                  href="/merchants"
+                  className="inline-block px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-md hover:opacity-90"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  <i className="fas fa-utensils mr-2" />Browse restaurants
+                </Link>
               )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Cancel confirm */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setCancelTarget(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-extrabold text-gray-900 mb-1">Cancel this order?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              {cancelTarget.orderNumber} • {cancelTarget.restaurant} • {formatPHP(cancelTarget.total)}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCancelTarget(null)}
+                className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+              >
+                Keep order
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={cancellingId != null}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-60"
+              >
+                {cancellingId ? <i className="fas fa-spinner fa-spin mr-2" /> : null}
+                Yes, cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rateTarget && (
+        <RateOrderModal
+          isOpen
+          restaurantName={rateTarget.restaurant}
+          orderNumber={rateTarget.orderNumber}
+          submitting={rateSubmitting}
+          onClose={() => setRateTarget(null)}
+          onSubmit={handleRateSubmit}
+        />
+      )}
+
+      <OrderReceiptModal
+        order={receiptOrder}
+        onClose={() => setReceiptOrder(null)}
+        onTrack={handleTrack}
+      />
     </div>
   );
 }

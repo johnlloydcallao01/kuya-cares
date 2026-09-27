@@ -184,12 +184,6 @@ export function OverlaySidebar({ isOpen, onClose }: OverlaySidebarProps) {
             <div className="space-y-1">
               <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>
               <SidebarItem
-                icon="help"
-                label="Help Center"
-                href="/help"
-                active={pathname === '/help'}
-              />
-              <SidebarItem
                 icon="terms"
                 label="Terms and Conditions"
                 href="/terms"

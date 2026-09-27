@@ -28,7 +28,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-white">
-        <div className="max-w-7xl mx-auto px-2.5 py-3">
+        <div className="px-[10px] py-3">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Terms and Conditions</h1>
@@ -38,7 +38,7 @@ export default function TermsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-2.5 py-4">
+      <div className="px-[10px] py-4">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Navigation Sidebar */}
           <div className="lg:w-1/4">

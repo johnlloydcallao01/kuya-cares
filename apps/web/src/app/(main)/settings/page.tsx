@@ -65,7 +65,6 @@ export default function SettingsPage() {
       title: 'Support',
       icon: 'fa-life-ring',
       items: [
-        { label: 'Help Center', icon: 'fa-question-circle', action: () => console.log('Help center') },
         { label: 'Contact Support', icon: 'fa-headset', action: () => console.log('Contact support') },
         { label: 'Report a Problem', icon: 'fa-exclamation-triangle', action: () => console.log('Report problem') },
         { label: 'Terms of Service', icon: 'fa-file-contract', action: () => console.log('Terms') }

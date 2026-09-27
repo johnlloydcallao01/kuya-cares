@@ -95,6 +95,9 @@ export interface Config {
     'driver-assignments': DriverAssignment;
     'delivery-bookings': DeliveryBooking;
     'order-discounts': OrderDiscount;
+    wallets: Wallet;
+    'wallet-transactions': WalletTransaction;
+    'wallet-topups': WalletTopup;
     coupons: Coupon;
     'coupon-redemptions': CouponRedemption;
     reviews: Review;
@@ -154,6 +157,9 @@ export interface Config {
     'driver-assignments': DriverAssignmentsSelect<false> | DriverAssignmentsSelect<true>;
     'delivery-bookings': DeliveryBookingsSelect<false> | DeliveryBookingsSelect<true>;
     'order-discounts': OrderDiscountsSelect<false> | OrderDiscountsSelect<true>;
+    wallets: WalletsSelect<false> | WalletsSelect<true>;
+    'wallet-transactions': WalletTransactionsSelect<false> | WalletTransactionsSelect<true>;
+    'wallet-topups': WalletTopupsSelect<false> | WalletTopupsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     'coupon-redemptions': CouponRedemptionsSelect<false> | CouponRedemptionsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
@@ -1923,6 +1929,14 @@ export interface Order {
    */
   free_delivery_applied?: boolean | null;
   /**
+   * Wallet amount applied to this order (reduces gateway charge)
+   */
+  wallet_amount_used: number;
+  /**
+   * Order was fully or partially paid with wallet balance
+   */
+  paid_with_wallet?: boolean | null;
+  /**
    * Special instructions for the merchant
    */
   notes?: string | null;
@@ -2575,6 +2589,156 @@ export interface Coupon {
    * Vendor share (1-99) when funded_by is split.
    */
   vendor_share_pct?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Stored-value customer wallet (ShopeePay / Lazada Wallet / pandapay parity)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallets".
+ */
+export interface Wallet {
+  id: number;
+  /**
+   * Owning customer (one wallet per customer)
+   */
+  customer: number | Customer;
+  /**
+   * Current stored balance in PHP (gateway-agnostic ledger)
+   */
+  balance: number;
+  /**
+   * Default PHP
+   */
+  currency?: string | null;
+  /**
+   * Frozen blocks debits; closed blocks all movement
+   */
+  status: 'active' | 'frozen' | 'closed';
+  /**
+   * Lifetime top-up credits (ops counter)
+   */
+  total_topped_up: number;
+  /**
+   * Lifetime wallet payments (ops counter)
+   */
+  total_spent: number;
+  /**
+   * Lifetime cashback/coins credited (ops counter)
+   */
+  total_cashback: number;
+  /**
+   * Lifetime refunds credited back to wallet (ops counter)
+   */
+  total_refunded: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Immutable wallet ledger — one row per debit/credit (gateway-agnostic)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallet-transactions".
+ */
+export interface WalletTransaction {
+  id: number;
+  /**
+   * Wallet debited/credited
+   */
+  wallet: number | Wallet;
+  /**
+   * Owning customer (denormalized for query without join)
+   */
+  customer: number | Customer;
+  /**
+   * Ledger entry kind (gateway-agnostic)
+   */
+  type: 'topup' | 'payment' | 'refund' | 'cashback' | 'withdrawal' | 'adjustment' | 'expiry';
+  /**
+   * Signed amount in PHP (+ credit, - debit)
+   */
+  amount: number;
+  /**
+   * Wallet balance immediately after posting (audit)
+   */
+  balance_after: number;
+  /**
+   * Linked order for payment/refund/cashback entries
+   */
+  order?: (number | null) | Order;
+  /**
+   * External gateway intent (e.g., PayMongo pi_...) for top-ups
+   */
+  payment_intent_id?: string | null;
+  /**
+   * Gateway rail used (paymongo|xendit|manual|...) — ledger stays agnostic
+   */
+  gateway?: string | null;
+  /**
+   * Unique key per business operation — retries return existing row
+   */
+  idempotency_key: string;
+  /**
+   * posted = final; pending = awaiting gateway webhook
+   */
+  status: 'pending' | 'posted' | 'failed' | 'reversed';
+  /**
+   * Cashback/coins expiry — swept by cron into type=expiry entries
+   */
+  expires_at?: string | null;
+  /**
+   * Gateway-agnostic metadata (provider raw ids, reason, actor)
+   */
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Top-up intents bridging any gateway (PayMongo today) to wallet credit
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallet-topups".
+ */
+export interface WalletTopup {
+  id: number;
+  /**
+   * Wallet to credit on payment success
+   */
+  wallet: number | Wallet;
+  /**
+   * Owning customer
+   */
+  customer: number | Customer;
+  /**
+   * Top-up amount in PHP (min PHP 1.00)
+   */
+  amount: number;
+  /**
+   * Default PHP
+   */
+  currency?: string | null;
+  /**
+   * Gateway rail (paymongo|xendit|manual|...)
+   */
+  gateway?: string | null;
+  /**
+   * External gateway intent id (e.g., PayMongo pi_...)
+   */
+  payment_intent_id?: string | null;
+  status: 'pending' | 'paid' | 'failed' | 'cancelled';
+  /**
+   * Timestamp of successful gateway payment
+   */
+  paid_at?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3344,6 +3508,18 @@ export interface PayloadLockedDocument {
         value: number | OrderDiscount;
       } | null)
     | ({
+        relationTo: 'wallets';
+        value: number | Wallet;
+      } | null)
+    | ({
+        relationTo: 'wallet-transactions';
+        value: number | WalletTransaction;
+      } | null)
+    | ({
+        relationTo: 'wallet-topups';
+        value: number | WalletTopup;
+      } | null)
+    | ({
         relationTo: 'coupons';
         value: number | Coupon;
       } | null)
@@ -4044,6 +4220,8 @@ export interface OrdersSelect<T extends boolean = true> {
   discount_total?: T;
   coupon_code?: T;
   free_delivery_applied?: T;
+  wallet_amount_used?: T;
+  paid_with_wallet?: T;
   notes?: T;
   placed_at?: T;
   lalamove_order_id?: T;
@@ -4187,6 +4365,58 @@ export interface OrderDiscountsSelect<T extends boolean = true> {
   platform_share?: T;
   vendor_share?: T;
   source?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallets_select".
+ */
+export interface WalletsSelect<T extends boolean = true> {
+  customer?: T;
+  balance?: T;
+  currency?: T;
+  status?: T;
+  total_topped_up?: T;
+  total_spent?: T;
+  total_cashback?: T;
+  total_refunded?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallet-transactions_select".
+ */
+export interface WalletTransactionsSelect<T extends boolean = true> {
+  wallet?: T;
+  customer?: T;
+  type?: T;
+  amount?: T;
+  balance_after?: T;
+  order?: T;
+  payment_intent_id?: T;
+  gateway?: T;
+  idempotency_key?: T;
+  status?: T;
+  expires_at?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wallet-topups_select".
+ */
+export interface WalletTopupsSelect<T extends boolean = true> {
+  wallet?: T;
+  customer?: T;
+  amount?: T;
+  currency?: T;
+  gateway?: T;
+  payment_intent_id?: T;
+  status?: T;
+  paid_at?: T;
   updatedAt?: T;
   createdAt?: T;
 }
