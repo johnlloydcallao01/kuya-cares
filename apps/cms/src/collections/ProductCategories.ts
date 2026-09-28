@@ -10,19 +10,10 @@ export const ProductCategories: CollectionConfig = {
     description: 'Organize products into hierarchical categories for easy browsing',
   },
   access: {
-    // PayloadCMS automatically authenticates API keys and populates req.user
-    read: ({ req: { user } }) => {
-      // If user exists, they've been authenticated (either via API key or login)
-      if (user) {
-        // Allow service accounts (for website display) and admins
-        if (user.role === 'service' || user.role === 'admin') {
-          return true
-        }
-      }
-      
-      // Block all unauthenticated requests and other roles
-      return false
-    },
+    // Public taxonomy: name/slug/media/SEO only, no PII or secrets.
+    // Storefront browsing must work without credentials (marketplace parity).
+    // Writes stay service/admin-only.
+    read: () => true,
     create: ({ req: { user } }) => {
       // Allow both service accounts and admins to create product categories
       return user?.role === 'service' || user?.role === 'admin' || false
