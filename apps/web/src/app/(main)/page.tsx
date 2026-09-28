@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LocationBasedMerchants } from "@/components/sections/LocationBasedMerchants";
 import { LocationBasedProductCategoriesCarousel } from "@/components/carousels/LocationBasedProductCategoriesCarousel";
+import { HomeMarketplaceProducts } from "@/components/sections/HomeMarketplaceProducts";
 
 /**
  * Home page component - 100% CSR (Client-Side Rendering)
@@ -100,6 +101,14 @@ export default function Home() {
         <LocationBasedMerchants 
           limit={50}
           categoryId={selectedCategoryId}
+        />
+      </div>
+
+      {/* Marketplace Products Section (additive — existing sections above untouched) */}
+      <div id="products-section">
+        <HomeMarketplaceProducts
+          merchantCategoryId={selectedCategoryId}
+          limit={48}
         />
       </div>
     </div>

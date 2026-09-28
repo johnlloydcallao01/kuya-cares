@@ -102,6 +102,51 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
               } catch (couponErr) {
                 console.error(`[paymongo/webhook] coupon finalize error for order ${orderId}:`, couponErr);
               }
+
+              // Mark matching voucher claims as used (best-effort).
+              try {
+                const applied = await req.payload.find({
+                  collection: 'coupon-redemptions',
+                  where: {
+                    and: [{ order: { equals: orderId } }, { status: { equals: 'applied' } }],
+                  },
+                  pagination: false,
+                  limit: 20,
+                  depth: 0,
+                });
+                const couponIds = new Set<string>();
+                for (const r of ((applied as any).docs || []) as any[]) {
+                  const cid = typeof r.coupon === 'object' ? r.coupon?.id : r.coupon;
+                  if (cid != null) couponIds.add(String(cid));
+                }
+                const fullOrder = (await req.payload.findByID({ collection: 'orders', id: orderId, depth: 0 })) as any;
+                const orderCustomer = fullOrder?.customer;
+                const customerId = typeof orderCustomer === 'object' ? orderCustomer?.id : orderCustomer;
+                for (const cid of couponIds) {
+                  const claims = await req.payload.find({
+                    collection: 'coupon-claims',
+                    where: {
+                      and: [
+                        { coupon: { equals: Number(cid) || cid } },
+                        { customer: { equals: Number(customerId) || customerId } },
+                        { status: { equals: 'claimed' } },
+                      ],
+                    },
+                    pagination: false,
+                    limit: 5,
+                    depth: 0,
+                  });
+                  for (const claim of ((claims as any).docs || []) as any[]) {
+                    await req.payload.update({
+                      collection: 'coupon-claims',
+                      id: claim.id,
+                      data: { status: 'used' },
+                    });
+                  }
+                }
+              } catch (claimErr) {
+                console.error(`[paymongo/webhook] claim-used error for order ${orderId}:`, claimErr);
+              }
           }
       } else {
           // Gateway-agnostic wallet top-up credit: same webhook, no new provider code.

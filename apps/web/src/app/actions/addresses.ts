@@ -3,7 +3,7 @@
  * @description Server-side address-book actions (BFF pattern).
  *
  * The /addresses page calls only these actions. They resolve the signed-in
- * customer server-side via getServerUser(), forward to the CMS aggregation
+ * customer server-side via getServerUserId() (depth-0, no hydration), forward to the CMS aggregation
  * endpoint /api/addresses/book/..., and return page-ready data.
  * No localStorage reads, no raw collection fetching, no service key
  * in the browser.
@@ -12,7 +12,7 @@
 'use server';
 
 import type { AddressBook, AddressUI } from '@/types/address';
-import { getServerUser } from './auth';
+import { getServerUserId } from './auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 const SERVICE_KEY = process.env.PAYLOAD_API_KEY || process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
@@ -60,10 +60,10 @@ export async function getAddressBook(input: {
   page?: number;
   limit?: number;
 } = {}): Promise<AddressBook> {
-  const user = await getServerUser();
-  if (!user) throw new Error('ADDRESSES_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('ADDRESSES_NO_SESSION');
 
-  const params = new URLSearchParams({ userId: String(user.id) });
+  const params = new URLSearchParams({ userId: String(userId) });
   if (input.q) params.set('q', input.q);
   if (input.type && input.type !== 'all') params.set('type', input.type);
   params.set('page', String(input.page ?? 1));
@@ -115,13 +115,13 @@ export interface AddressInput {
 }
 
 export async function createAddressAction(input: AddressInput): Promise<{ address: AddressUI; activeAddressId: string | null }> {
-  const user = await getServerUser();
-  if (!user) throw new Error('ADDRESSES_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('ADDRESSES_NO_SESSION');
 
   const res = await fetch(`${API_BASE_URL}/addresses/book`, {
     method: 'POST',
     headers: serviceHeaders(),
-    body: JSON.stringify({ ...input, userId: String(user.id) }),
+    body: JSON.stringify({ ...input, userId: String(userId) }),
     cache: 'no-store',
   });
   const json = await readJson(res);
@@ -134,13 +134,13 @@ export async function updateAddressAction(
   id: string | number,
   input: Partial<AddressInput>,
 ): Promise<{ address: any }> {
-  const user = await getServerUser();
-  if (!user) throw new Error('ADDRESSES_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('ADDRESSES_NO_SESSION');
 
   const res = await fetch(`${API_BASE_URL}/addresses/book/${id}`, {
     method: 'PATCH',
     headers: serviceHeaders(),
-    body: JSON.stringify({ ...input, userId: String(user.id) }),
+    body: JSON.stringify({ ...input, userId: String(userId) }),
     cache: 'no-store',
   });
   const json = await readJson(res);
@@ -149,10 +149,10 @@ export async function updateAddressAction(
 }
 
 export async function deleteAddressAction(id: string | number): Promise<{ deleted: boolean; clearedActive: boolean }> {
-  const user = await getServerUser();
-  if (!user) throw new Error('ADDRESSES_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('ADDRESSES_NO_SESSION');
 
-  const params = new URLSearchParams({ userId: String(user.id) });
+  const params = new URLSearchParams({ userId: String(userId) });
   const res = await fetch(`${API_BASE_URL}/addresses/book/${id}?${params.toString()}`, {
     method: 'DELETE',
     headers: serviceHeaders(),
@@ -164,13 +164,13 @@ export async function deleteAddressAction(id: string | number): Promise<{ delete
 }
 
 export async function setActiveAddressAction(addressId: string | number): Promise<{ activeAddressId: string }> {
-  const user = await getServerUser();
-  if (!user) throw new Error('ADDRESSES_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('ADDRESSES_NO_SESSION');
 
   const res = await fetch(`${API_BASE_URL}/addresses/book/active`, {
     method: 'POST',
     headers: serviceHeaders(),
-    body: JSON.stringify({ userId: String(user.id), addressId: String(addressId) }),
+    body: JSON.stringify({ userId: String(userId), addressId: String(addressId) }),
     cache: 'no-store',
   });
   const json = await readJson(res);

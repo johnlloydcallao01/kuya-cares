@@ -106,26 +106,10 @@ export function OverlaySidebar({ isOpen, onClose }: OverlaySidebarProps) {
               onClick={onClose}
             />
             <SidebarItem
-              icon="coupon"
-              label="Coupons"
-              href="/coupons"
-              active={pathname === '/coupons'}
-              collapsed={false}
-              onClick={onClose}
-            />
-            <SidebarItem
               icon="points"
               label="Points"
               href="/points"
               active={pathname === '/points'}
-              collapsed={false}
-              onClick={onClose}
-            />
-            <SidebarItem
-              icon="invite"
-              label="Invite Friends"
-              href="/invite-friends"
-              active={pathname === '/invite-friends'}
               collapsed={false}
               onClick={onClose}
             />

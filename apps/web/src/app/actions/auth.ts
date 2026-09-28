@@ -104,6 +104,31 @@ export async function getServerToken(): Promise<string | null> {
   return (await cookies()).get(AUTH_COOKIE)?.value || null;
 }
 
+/**
+ * Minimal session check for server actions (perf).
+ * getServerUser() hydrates /users/me?depth=2 (user + media populate) on
+ * EVERY action call. Actions below only need the id — depth 0 keeps the
+ * auth hop cheap. Use getServerUser() only where full fields are needed.
+ */
+export async function getServerUserId(): Promise<string | number | null> {
+  const token = (await cookies()).get(AUTH_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/me?depth=0`, {
+      headers: { Authorization: `JWT ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) return null;
+    const data = await readResponse(response);
+    const user = sanitizeUser(data.user);
+    if (!user || user.role !== 'customer' || user.id == null) return null;
+    return user.id;
+  } catch {
+    return null;
+  }
+}
+
 export async function serverRefresh(): Promise<AuthResponse> {
   const cookieStore = await cookies();
   const currentToken = cookieStore.get(AUTH_COOKIE)?.value;

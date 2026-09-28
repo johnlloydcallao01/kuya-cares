@@ -134,6 +134,48 @@ export async function authenticateVendor(
 }
 
 /**
+ * Authenticate a customer user from the incoming request.
+ * Returns the customer user document or null when unauthenticated / not an
+ * active customer. Mirrors authenticateVendor but checks role === 'customer'.
+ */
+export async function authenticateCustomer(
+  payload: Payload,
+  request: NextRequest
+): Promise<Record<string, any> | null> {
+  const token = extractToken(request)
+  if (!token) return null
+
+  const secretKey = new TextEncoder().encode(payload.secret)
+  let decoded: { id?: unknown; collection?: unknown }
+  try {
+    const result = await jwtVerify(token, secretKey)
+    decoded = result.payload as { id?: unknown; collection?: unknown }
+  } catch {
+    return null
+  }
+
+  if (decoded.collection !== 'users' || decoded.id == null) {
+    return null
+  }
+
+  try {
+    const user = await payload.findByID({
+      collection: 'users',
+      id: decoded.id as number,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (!user || user.role !== 'customer') {
+      return null
+    }
+    if (user.isActive === false) return null
+    return user as Record<string, any>
+  } catch {
+    return null
+  }
+}
+
+/**
  * Traverse a document by a dotted field path and collect referenced media ids.
  * Handles single relationships, groups (media.thumbnail) and arrays (images.image).
  */

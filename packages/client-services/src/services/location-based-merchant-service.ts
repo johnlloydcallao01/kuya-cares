@@ -190,16 +190,23 @@ export class LocationBasedMerchantService {
       );
       if (categoryId) {
         const wanted = String(categoryId);
-        mapped = mapped.filter((m: any) => {
+        // Same "Uncategorized" principle as the product grids: the pseudo id
+        // isolates merchants with zero categories instead of dropping them.
+        const wantUncategorized = wanted.toLowerCase() === 'uncategorized';
+        const idsOf = (m: any): (number | string)[] => {
           const raw = (m as any).merchant_categories;
-          if (!raw) return false;
+          if (!raw) return [];
           if (Array.isArray(raw)) {
-            return raw.some((v: any) => {
-              const id = typeof v === 'number' || typeof v === 'string' ? v : v?.id;
-              return id != null && String(id) === wanted;
-            });
+            return raw
+              .map((v: any) => (typeof v === 'number' || typeof v === 'string' ? v : v?.id))
+              .filter((id: any) => id != null);
           }
-          return false;
+          return [];
+        };
+        mapped = mapped.filter((m: any) => {
+          const ids = idsOf(m);
+          if (wantUncategorized) return ids.length === 0;
+          return ids.some((id) => String(id) === wanted);
         });
         mapped = mapped.slice(0, limit);
       }
@@ -244,6 +251,10 @@ export class LocationBasedMerchantService {
     const cached = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
     if (cached) return cached;
     const list = await LocationBasedMerchantService.getBrowsingMerchants({ limit: 9999 });
+    const hasUncategorized = (list || []).some((m: any) => {
+      const raw = (m as any).merchant_categories;
+      return !raw || (Array.isArray(raw) && raw.length === 0);
+    });
     const ids = Array.from(
       new Set(
         (list || []).flatMap((m: any) => {
@@ -292,6 +303,19 @@ export class LocationBasedMerchantService {
         createdAt: c.createdAt,
       }));
       if (typeof limit === 'number') mapped = mapped.slice(0, limit);
+      // Pseudo-category for untagged merchants (same principle as the
+      // merchant-detail product grid): appended after slicing so it is never
+      // cut off, and only while orphans exist.
+      if (hasUncategorized) {
+        mapped = [
+          ...mapped,
+          {
+            id: 'uncategorized',
+            name: 'Uncategorized',
+            slug: 'uncategorized',
+          } as MerchantCategoryDisplay,
+        ];
+      }
       dataCache.set(cacheKey, mapped, CACHE_TTL.MERCHANTS);
       return mapped;
     } catch {

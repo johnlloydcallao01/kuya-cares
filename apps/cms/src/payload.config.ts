@@ -23,6 +23,8 @@ import { deliveryTrackHandler } from './endpoints/deliveryTrack'
 import { lalamoveWebhookHandler } from './endpoints/lalamoveWebhook'
 import { couponsValidateHandler } from './endpoints/couponsValidate'
 import { couponsAttachHandler } from './endpoints/couponsAttach'
+import { couponsMaintainHandler } from './endpoints/couponsMaintain'
+import { pointsSweepHandler } from './endpoints/pointsSweep'
 import { walletBalanceHandler } from './endpoints/walletBalance'
 import { walletHistoryHandler } from './endpoints/walletHistory'
 import { walletTopupHandler } from './endpoints/walletTopup'
@@ -34,6 +36,9 @@ import type { User as PayloadUser } from './payload-types'
 // import sharp from 'sharp'
 
 import { Users } from './collections/Users'
+import { NotificationPreferences } from './collections/NotificationPreferences'
+import { Devices } from './collections/Devices'
+import { PaymentMethods } from './collections/PaymentMethods'
 import { Customers } from './collections/Customers'
 import { Admins } from './collections/Admins'
 import { UserEvents } from './collections/UserEvents'
@@ -67,6 +72,11 @@ import { Wallets } from './collections/Wallets'
 import { WalletTransactions } from './collections/WalletTransactions'
 import { WalletTopups } from './collections/WalletTopups'
 import { Coupons } from './collections/Coupons'
+import { CouponClaims } from './collections/CouponClaims'
+import { PointRules } from './collections/PointRules'
+import { Rewards } from './collections/Rewards'
+import { Achievements } from './collections/Achievements'
+import { UserAchievements } from './collections/UserAchievements'
 import { CouponRedemptions } from './collections/CouponRedemptions'
 import { Reviews } from './collections/Reviews'
 
@@ -109,6 +119,9 @@ export default buildConfig({
   collections: [
     // User Management
     Users,
+    NotificationPreferences,
+    Devices,
+    PaymentMethods,
     Customers,
     Admins,
     UserEvents,
@@ -148,6 +161,11 @@ export default buildConfig({
     WalletTransactions,
     WalletTopups,
     Coupons,
+    CouponClaims,
+    PointRules,
+    Rewards,
+    Achievements,
+    UserAchievements,
     CouponRedemptions,
     Reviews,
 
@@ -1307,6 +1325,18 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
       path: '/coupons/attach',
       method: 'post',
       handler: couponsAttachHandler,
+    },
+
+    {
+      path: '/coupons/maintain',
+      method: 'post',
+      handler: couponsMaintainHandler,
+    },
+
+    {
+      path: '/points/sweep',
+      method: 'post',
+      handler: pointsSweepHandler,
     },
 
     {

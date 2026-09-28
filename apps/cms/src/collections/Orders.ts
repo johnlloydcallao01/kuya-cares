@@ -161,6 +161,17 @@ export const Orders: CollectionConfig = {
               })
             }
           }
+
+          // Loyalty earn on the delivered transition (single convergence point
+          // for lalamove/pickup/manual paths). Transition-guarded + idempotent.
+          if (operation === 'update' && previousStatus !== 'delivered' && status === 'delivered') {
+            try {
+              const { PointsService } = await import('../services/PointsService')
+              await new PointsService(req.payload).earnForOrder(orderId)
+            } catch (e) {
+              console.error('[orders] loyalty earn error:', e)
+            }
+          }
         } catch (error) {
           console.error('[orders] afterChange notification error:', error)
         }

@@ -115,6 +115,36 @@ export const Wallets: CollectionConfig = {
         description: 'Lifetime refunds credited back to wallet (ops counter)',
       },
     },
+    {
+      name: 'points_balance',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Loyalty points balance (integer; separate currency from PHP)',
+      },
+    },
+    {
+      name: 'points_earned',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Lifetime loyalty points earned (ops counter)',
+      },
+    },
+    {
+      name: 'points_redeemed',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Lifetime loyalty points burned on rewards (ops counter)',
+      },
+    },
   ],
   hooks: {
     beforeValidate: [
@@ -123,6 +153,10 @@ export const Wallets: CollectionConfig = {
         const balance = Number((data as any).balance ?? 0)
         if (!Number.isFinite(balance) || balance < 0) {
           throw new Error('Wallet balance cannot be negative')
+        }
+        const points = Number((data as any).points_balance ?? 0)
+        if (!Number.isFinite(points) || points < 0) {
+          throw new Error('Points balance cannot be negative')
         }
         return data
       },

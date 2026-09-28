@@ -6,6 +6,23 @@ export const UserEvents: CollectionConfig = {
     useAsTitle: 'eventType',
     defaultColumns: ['user', 'eventType', 'timestamp', 'triggeredBy'],
   },
+  indexes: [{ fields: ['user'] }, { fields: ['user', 'createdAt'] }],
+  access: {
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      if (user.role === 'service' || user.role === 'admin') return true
+      return { user: { equals: user.id } }
+    },
+    create: ({ req: { user } }) => {
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+    update: ({ req: { user } }) => {
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+    delete: ({ req: { user } }) => {
+      return user?.role === 'service' || user?.role === 'admin' || false
+    },
+  },
   fields: [
     {
       name: 'user',

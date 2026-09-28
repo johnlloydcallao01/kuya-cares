@@ -3,7 +3,7 @@
  * @description Server-side wallet actions (BFF pattern).
  *
  * The /wallets page calls only these actions. They resolve the signed-in
- * customer server-side via getServerUser(), forward to the CMS aggregation
+ * customer server-side via getServerUserId() (depth-0, no hydration), forward to the CMS aggregation
  * endpoint / custom wallet routes with the service key, and return
  * page-ready data. No localStorage reads, no raw collection fetching,
  * no service key in the browser.
@@ -16,7 +16,7 @@ import type {
   WalletEntryType,
   WalletTransactionUI,
 } from '@/types/wallet';
-import { getServerUser } from './auth';
+import { getServerUserId } from './auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 const SERVICE_KEY = process.env.PAYLOAD_API_KEY || process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
@@ -78,10 +78,10 @@ export async function getWalletSummary(input: {
   limit?: number;
   q?: string;
 } = {}): Promise<WalletSummary> {
-  const user = await getServerUser();
-  if (!user) throw new Error('WALLET_NO_SESSION');
+  const userId = await getServerUserId();
+  if (!userId) throw new Error('WALLET_NO_SESSION');
 
-  const params = new URLSearchParams({ userId: String(user.id) });
+  const params = new URLSearchParams({ userId: String(userId) });
   if (input.type && input.type !== 'all') params.set('type', input.type);
   params.set('page', String(input.page ?? 1));
   params.set('limit', String(input.limit ?? 20));
@@ -135,9 +135,7 @@ export async function createWalletTopupAction(input: {
   amount: number;
   gateway?: string;
 }): Promise<TopupIntent> {
-  const user = await getServerUser();
-  if (!user) throw new Error('WALLET_NO_SESSION');
-
+  // Perf: getWalletSummary re-validates the session — no extra auth hop here.
   const summary = await getWalletSummary({ limit: 1 });
   const res = await fetch(`${API_BASE_URL}/wallet/topup`, {
     method: 'POST',
@@ -165,9 +163,7 @@ export async function requestWalletWithdrawalAction(input: {
   amount: number;
   destination?: string;
 }): Promise<{ entryId: string | number; amount: number }> {
-  const user = await getServerUser();
-  if (!user) throw new Error('WALLET_NO_SESSION');
-
+  // Perf: getWalletSummary re-validates the session — no extra auth hop here.
   const summary = await getWalletSummary({ limit: 1 });
   const res = await fetch(`${API_BASE_URL}/wallet/withdraw`, {
     method: 'POST',

@@ -29,6 +29,25 @@ export const SystemSettings: GlobalConfig = {
       },
     },
     {
+      name: 'pointsEnabled',
+      label: 'Loyalty Points Enabled',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Global kill-switch for loyalty earn/redeem. When off, no points move.',
+      },
+    },
+    {
+      name: 'pointsExpiryDays',
+      label: 'Points Expiry (days)',
+      type: 'number',
+      defaultValue: 365,
+      min: 0,
+      admin: {
+        description: 'Earned lots expire after this many days (0 = never). Swept by POST /api/points/sweep.',
+      },
+    },
+    {
       type: 'tabs',
       tabs: [
         {

@@ -22,7 +22,12 @@ export const Users: CollectionConfig = {
     },
   },
   access: {
-    read: () => true, // Allow reading user data
+    read: ({ req: { user } }) => {
+      // PII lockdown: service/admin see all, everyone else only themselves.
+      if (!user) return false
+      if (user.role === 'admin' || user.role === 'service') return true
+      return { id: { equals: user.id } }
+    },
     create: adminOnly, // Only admins can create users
     update: ({ req: { user } }) => {
       // Service accounts, admins, and users can update data
@@ -33,6 +38,71 @@ export const Users: CollectionConfig = {
     delete: adminOnly, // Only admins can delete users
   },
   hooks: {
+    afterChange: [
+      async ({ doc, previousDoc, operation, req }) => {
+        try {
+          // Security-activity feed: PASSWORD_CHANGED / PROFILE_UPDATED.
+          // Skip pure auth bookkeeping (lastLogin, attempts, lock) to avoid noise.
+          if (operation === 'update' && previousDoc && doc) {
+            const prev = previousDoc as Record<string, any>
+            const next = doc as Record<string, any>
+            if (prev.hash !== next.hash) {
+              await req.payload
+                .create({
+                  collection: 'user-events',
+                  data: {
+                    user: next.id,
+                    eventType: 'PASSWORD_CHANGED',
+                    eventData: { reason: 'password_update' },
+                    triggeredBy: (req.user as any)?.id,
+                    timestamp: new Date().toISOString(),
+                  },
+                  overrideAccess: true,
+                })
+                .catch(() => {})
+              return doc
+            }
+            const watched = [
+              'firstName',
+              'lastName',
+              'middleName',
+              'phone',
+              'username',
+              'gender',
+              'civilStatus',
+              'nationality',
+              'birthDate',
+              'placeOfBirth',
+              'completeAddress',
+              'profilePicture',
+              'preferredLanguage',
+              'timezone',
+              'currency',
+              'email',
+            ]
+            const changed = watched.filter((f) => JSON.stringify(prev[f] ?? null) !== JSON.stringify(next[f] ?? null))
+            if (changed.length > 0) {
+              await req.payload
+                .create({
+                  collection: 'user-events',
+                  data: {
+                    user: next.id,
+                    eventType: 'PROFILE_UPDATED',
+                    eventData: { changedFields: changed },
+                    triggeredBy: (req.user as any)?.id,
+                    timestamp: new Date().toISOString(),
+                  },
+                  overrideAccess: true,
+                })
+                .catch(() => {})
+            }
+          }
+        } catch {
+          // Never block auth writes on audit failures.
+        }
+        return doc
+      },
+    ],
     beforeDelete: [
       async ({ req, id }) => {
         console.log(`🗑️ Attempting to delete user ${id}`);
@@ -276,6 +346,89 @@ export const Users: CollectionConfig = {
         { name: 'token', type: 'text', required: true },
         { name: 'expiresAt', type: 'date', required: true },
       ],
+    },
+    {
+      name: 'emailChangeTokens',
+      type: 'array',
+      admin: {
+        description: 'Pending email change/verification tokens (sha256, single-use)',
+      },
+      fields: [
+        { name: 'token', type: 'text', required: true },
+        { name: 'expiresAt', type: 'date', required: true },
+        { name: 'newEmail', type: 'text', required: true },
+      ],
+    },
+    {
+      name: 'emailVerifiedAt',
+      type: 'date',
+      admin: {
+        description: 'When the login email was last verified',
+      },
+    },
+    {
+      name: 'phoneVerifiedAt',
+      type: 'date',
+      admin: {
+        description: 'When the phone number was last verified (OTP vendor pending)',
+      },
+    },
+    {
+      name: 'preferredLanguage',
+      type: 'select',
+      defaultValue: 'en',
+      options: [
+        { label: 'English', value: 'en' },
+        { label: 'Filipino', value: 'fil' },
+      ],
+      admin: {
+        description: 'Account display language',
+      },
+    },
+    {
+      name: 'timezone',
+      type: 'text',
+      defaultValue: 'Asia/Manila',
+      admin: {
+        description: 'IANA timezone for account display',
+      },
+    },
+    {
+      name: 'currency',
+      type: 'text',
+      defaultValue: 'PHP',
+      admin: {
+        description: 'Display currency (ISO code)',
+      },
+    },
+    {
+      name: 'marketingOptIn',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Consented to marketing notifications at signup (mirrored to notification-preferences)',
+      },
+    },
+    {
+      name: 'dataConsentAt',
+      type: 'date',
+      admin: {
+        description: 'When data-processing consent was last recorded',
+      },
+    },
+    {
+      name: 'deactivatedAt',
+      type: 'date',
+      admin: {
+        description: 'Self-serve deactivation timestamp (isActive=false)',
+      },
+    },
+    {
+      name: 'deleteRequestedAt',
+      type: 'date',
+      admin: {
+        description: 'Account deletion request timestamp (cooling-off, purge is manual)',
+      },
     },
 
   ],

@@ -176,6 +176,53 @@ export const Coupons: CollectionConfig = {
       },
     },
     {
+      name: 'title',
+      type: 'text',
+      admin: {
+        description: 'Customer-facing headline, e.g. 20% off Jollibee',
+      },
+    },
+    {
+      name: 'short_copy',
+      type: 'textarea',
+      admin: {
+        description: 'Customer-facing one-liner for the voucher card',
+      },
+    },
+    {
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description: 'Voucher artwork (optional)',
+      },
+    },
+    {
+      name: 'priority',
+      type: 'number',
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Browse order — higher first',
+      },
+    },
+    {
+      name: 'featured',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Pin to the featured row on the Vouchers page',
+      },
+    },
+    {
+      name: 'claimable',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Uncheck to hide from browse/claim (code entry still works)',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       required: true,

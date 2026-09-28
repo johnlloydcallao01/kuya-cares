@@ -68,6 +68,9 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    'notification-preferences': NotificationPreference;
+    devices: Device;
+    'payment-methods': PaymentMethod;
     customers: Customer;
     admins: Admin;
     'user-events': UserEvent;
@@ -99,6 +102,11 @@ export interface Config {
     'wallet-transactions': WalletTransaction;
     'wallet-topups': WalletTopup;
     coupons: Coupon;
+    'coupon-claims': CouponClaim;
+    'point-rules': PointRule;
+    rewards: Reward;
+    achievements: Achievement;
+    'user-achievements': UserAchievement;
     'coupon-redemptions': CouponRedemption;
     reviews: Review;
     'prod-attributes': ProdAttribute;
@@ -130,6 +138,9 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    'notification-preferences': NotificationPreferencesSelect<false> | NotificationPreferencesSelect<true>;
+    devices: DevicesSelect<false> | DevicesSelect<true>;
+    'payment-methods': PaymentMethodsSelect<false> | PaymentMethodsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     admins: AdminsSelect<false> | AdminsSelect<true>;
     'user-events': UserEventsSelect<false> | UserEventsSelect<true>;
@@ -161,6 +172,11 @@ export interface Config {
     'wallet-transactions': WalletTransactionsSelect<false> | WalletTransactionsSelect<true>;
     'wallet-topups': WalletTopupsSelect<false> | WalletTopupsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
+    'coupon-claims': CouponClaimsSelect<false> | CouponClaimsSelect<true>;
+    'point-rules': PointRulesSelect<false> | PointRulesSelect<true>;
+    rewards: RewardsSelect<false> | RewardsSelect<true>;
+    achievements: AchievementsSelect<false> | AchievementsSelect<true>;
+    'user-achievements': UserAchievementsSelect<false> | UserAchievementsSelect<true>;
     'coupon-redemptions': CouponRedemptionsSelect<false> | CouponRedemptionsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     'prod-attributes': ProdAttributesSelect<false> | ProdAttributesSelect<true>;
@@ -296,6 +312,53 @@ export interface User {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Pending email change/verification tokens (sha256, single-use)
+   */
+  emailChangeTokens?:
+    | {
+        token: string;
+        expiresAt: string;
+        newEmail: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * When the login email was last verified
+   */
+  emailVerifiedAt?: string | null;
+  /**
+   * When the phone number was last verified (OTP vendor pending)
+   */
+  phoneVerifiedAt?: string | null;
+  /**
+   * Account display language
+   */
+  preferredLanguage?: ('en' | 'fil') | null;
+  /**
+   * IANA timezone for account display
+   */
+  timezone?: string | null;
+  /**
+   * Display currency (ISO code)
+   */
+  currency?: string | null;
+  /**
+   * Consented to marketing notifications at signup (mirrored to notification-preferences)
+   */
+  marketingOptIn?: boolean | null;
+  /**
+   * When data-processing consent was last recorded
+   */
+  dataConsentAt?: string | null;
+  /**
+   * Self-serve deactivation timestamp (isActive=false)
+   */
+  deactivatedAt?: string | null;
+  /**
+   * Account deletion request timestamp (cooling-off, purge is manual)
+   */
+  deleteRequestedAt?: string | null;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -337,6 +400,118 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * Per-user notification toggles (Amazon-grade settings support)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-preferences".
+ */
+export interface NotificationPreference {
+  id: number;
+  /**
+   * Owning user (one preferences row per user)
+   */
+  user: number | User;
+  /**
+   * Order updates via email
+   */
+  orderEmail?: boolean | null;
+  /**
+   * Order updates via push
+   */
+  orderPush?: boolean | null;
+  /**
+   * Order updates via SMS
+   */
+  orderSms?: boolean | null;
+  /**
+   * Promotions via email
+   */
+  promoEmail?: boolean | null;
+  /**
+   * Promotions via push
+   */
+  promoPush?: boolean | null;
+  /**
+   * Promotions via SMS
+   */
+  promoSms?: boolean | null;
+  /**
+   * Security/account emails (receipts, password changes)
+   */
+  accountEmail?: boolean | null;
+  /**
+   * Master marketing switch — fanout skips marketing when false
+   */
+  marketingOptIn?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Push-notification device tokens per user (FCM/Expo)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "devices".
+ */
+export interface Device {
+  id: number;
+  /**
+   * Owning user
+   */
+  user: number | User;
+  /**
+   * FCM/Expo push token (one row per token)
+   */
+  pushToken: string;
+  platform: 'ios' | 'android' | 'web';
+  /**
+   * App version that registered the token
+   */
+  appVersion?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Vaulted payment-method references (gateway tokens only — never PAN)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods".
+ */
+export interface PaymentMethod {
+  id: number;
+  /**
+   * Owning user
+   */
+  user: number | User;
+  /**
+   * Gateway that vaulted the method (paymongo|...)
+   */
+  provider?: string | null;
+  /**
+   * Gateway method reference (e.g., PayMongo pm_...) — never a card number
+   */
+  providerMethodId: string;
+  /**
+   * Card brand or wallet name (visa, gcash, ...)
+   */
+  brand?: string | null;
+  /**
+   * Last 4 digits (cards) or masked account suffix
+   */
+  last4?: string | null;
+  expMonth?: number | null;
+  expYear?: number | null;
+  /**
+   * User label, e.g. Personal Visa
+   */
+  nickname?: string | null;
+  /**
+   * Default method at checkout (one per user, enforced server-side)
+   */
+  isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2468,6 +2643,30 @@ export interface Coupon {
    */
   description?: string | null;
   /**
+   * Customer-facing headline, e.g. 20% off Jollibee
+   */
+  title?: string | null;
+  /**
+   * Customer-facing one-liner for the voucher card
+   */
+  short_copy?: string | null;
+  /**
+   * Voucher artwork (optional)
+   */
+  image?: (number | null) | Media;
+  /**
+   * Browse order — higher first
+   */
+  priority?: number | null;
+  /**
+   * Pin to the featured row on the Vouchers page
+   */
+  featured?: boolean | null;
+  /**
+   * Uncheck to hide from browse/claim (code entry still works)
+   */
+  claimable?: boolean | null;
+  /**
    * Only published coupons within their date window can be used.
    */
   status: 'draft' | 'scheduled' | 'published' | 'paused' | 'archived';
@@ -2632,6 +2831,18 @@ export interface Wallet {
    * Lifetime refunds credited back to wallet (ops counter)
    */
   total_refunded: number;
+  /**
+   * Loyalty points balance (integer; separate currency from PHP)
+   */
+  points_balance: number;
+  /**
+   * Lifetime loyalty points earned (ops counter)
+   */
+  points_earned: number;
+  /**
+   * Lifetime loyalty points burned on rewards (ops counter)
+   */
+  points_redeemed: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -2652,17 +2863,25 @@ export interface WalletTransaction {
    */
   customer: number | Customer;
   /**
-   * Ledger entry kind (gateway-agnostic)
+   * Ledger entry kind (gateway-agnostic; earn/redeem move loyalty points)
    */
-  type: 'topup' | 'payment' | 'refund' | 'cashback' | 'withdrawal' | 'adjustment' | 'expiry';
+  type: 'topup' | 'payment' | 'refund' | 'cashback' | 'withdrawal' | 'adjustment' | 'expiry' | 'earn' | 'redeem';
   /**
-   * Signed amount in PHP (+ credit, - debit)
+   * Signed amount in PHP (+ credit, - debit; 0 for pure points moves)
    */
   amount: number;
   /**
    * Wallet balance immediately after posting (audit)
    */
   balance_after: number;
+  /**
+   * Signed loyalty points (+ earn, - redeem/expire; integer)
+   */
+  points: number;
+  /**
+   * Points balance immediately after posting (audit; FIFO lot for expiry)
+   */
+  points_balance_after: number;
   /**
    * Linked order for payment/refund/cashback entries
    */
@@ -2739,6 +2958,172 @@ export interface WalletTopup {
    * Timestamp of successful gateway payment
    */
   paid_at?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Customer voucher wallet — 1-tap claims before checkout (never burns usage)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupon-claims".
+ */
+export interface CouponClaim {
+  id: number;
+  /**
+   * Claimed coupon
+   */
+  coupon: number | Coupon;
+  /**
+   * Claiming customer (one claim per coupon)
+   */
+  customer: number | Customer;
+  /**
+   * claimed = saved; used = paid redemption finalized; expiry is computed, not stored
+   */
+  status: 'claimed' | 'used' | 'cancelled';
+  /**
+   * When the customer claimed the voucher
+   */
+  claimed_at?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Loyalty earn rules (1pt/₱10 orders, review bonus, ...)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "point-rules".
+ */
+export interface PointRule {
+  id: number;
+  /**
+   * Business event that earns points
+   */
+  event: 'order_delivered' | 'review' | 'first_order';
+  /**
+   * Fixed points per event (0 = use rate_per_peso)
+   */
+  points?: number | null;
+  /**
+   * Points per ₱1 of order total, e.g. 0.1 = 1pt/₱10
+   */
+  rate_per_peso?: number | null;
+  /**
+   * Minimum order total in PHP to earn (0 = none)
+   */
+  min_order_total?: number | null;
+  /**
+   * Max points per event (0 = uncapped)
+   */
+  cap_points?: number | null;
+  is_active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Loyalty rewards catalog — burned with points, optionally issues a voucher
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rewards".
+ */
+export interface Reward {
+  id: number;
+  /**
+   * Customer-facing reward name
+   */
+  title: string;
+  /**
+   * Customer-facing details
+   */
+  description?: string | null;
+  /**
+   * Points burned on redeem (integer)
+   */
+  points_cost: number;
+  category: 'food' | 'delivery' | 'discount' | 'exclusive';
+  /**
+   * Reward artwork (optional)
+   */
+  image?: (number | null) | Media;
+  /**
+   * Remaining redemptions (empty = unlimited)
+   */
+  stock?: number | null;
+  /**
+   * Customer-facing terms list
+   */
+  terms?:
+    | {
+        term: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Optional voucher auto-claimed into the wallet on redeem
+   */
+  coupon?: (number | null) | Coupon;
+  /**
+   * Browse order — higher first
+   */
+  priority?: number | null;
+  is_active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Loyalty challenges — progress auto-tracks, completion grants points
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "achievements".
+ */
+export interface Achievement {
+  id: number;
+  title: string;
+  description?: string | null;
+  /**
+   * Points granted on completion (integer)
+   */
+  points_reward: number;
+  /**
+   * Counter that drives progress
+   */
+  metric: 'orders_count' | 'reviews_count' | 'total_spent';
+  /**
+   * Goal, e.g. 10 orders or ₱5000 spend
+   */
+  target: number;
+  /**
+   * Icon key for the client (e.g. target, star, crown)
+   */
+  icon?: string | null;
+  is_active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Per-user challenge progress (auto-tracked, points on claim)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-achievements".
+ */
+export interface UserAchievement {
+  id: number;
+  /**
+   * Progress owner (users id, not customers)
+   */
+  user: number | User;
+  achievement: number | Achievement;
+  progress: number;
+  /**
+   * Snapshot of the goal at completion time
+   */
+  target: number;
+  completed?: boolean | null;
+  /**
+   * Points granted (one-shot, idempotent)
+   */
+  claimed?: boolean | null;
+  completed_at?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3400,6 +3785,18 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'notification-preferences';
+        value: number | NotificationPreference;
+      } | null)
+    | ({
+        relationTo: 'devices';
+        value: number | Device;
+      } | null)
+    | ({
+        relationTo: 'payment-methods';
+        value: number | PaymentMethod;
+      } | null)
+    | ({
         relationTo: 'customers';
         value: number | Customer;
       } | null)
@@ -3522,6 +3919,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'coupons';
         value: number | Coupon;
+      } | null)
+    | ({
+        relationTo: 'coupon-claims';
+        value: number | CouponClaim;
+      } | null)
+    | ({
+        relationTo: 'point-rules';
+        value: number | PointRule;
+      } | null)
+    | ({
+        relationTo: 'rewards';
+        value: number | Reward;
+      } | null)
+    | ({
+        relationTo: 'achievements';
+        value: number | Achievement;
+      } | null)
+    | ({
+        relationTo: 'user-achievements';
+        value: number | UserAchievement;
       } | null)
     | ({
         relationTo: 'coupon-redemptions';
@@ -3689,6 +4106,23 @@ export interface UsersSelect<T extends boolean = true> {
         expiresAt?: T;
         id?: T;
       };
+  emailChangeTokens?:
+    | T
+    | {
+        token?: T;
+        expiresAt?: T;
+        newEmail?: T;
+        id?: T;
+      };
+  emailVerifiedAt?: T;
+  phoneVerifiedAt?: T;
+  preferredLanguage?: T;
+  timezone?: T;
+  currency?: T;
+  marketingOptIn?: T;
+  dataConsentAt?: T;
+  deactivatedAt?: T;
+  deleteRequestedAt?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;
@@ -3708,6 +4142,52 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-preferences_select".
+ */
+export interface NotificationPreferencesSelect<T extends boolean = true> {
+  user?: T;
+  orderEmail?: T;
+  orderPush?: T;
+  orderSms?: T;
+  promoEmail?: T;
+  promoPush?: T;
+  promoSms?: T;
+  accountEmail?: T;
+  marketingOptIn?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "devices_select".
+ */
+export interface DevicesSelect<T extends boolean = true> {
+  user?: T;
+  pushToken?: T;
+  platform?: T;
+  appVersion?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-methods_select".
+ */
+export interface PaymentMethodsSelect<T extends boolean = true> {
+  user?: T;
+  provider?: T;
+  providerMethodId?: T;
+  brand?: T;
+  last4?: T;
+  expMonth?: T;
+  expYear?: T;
+  nickname?: T;
+  isDefault?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4381,6 +4861,9 @@ export interface WalletsSelect<T extends boolean = true> {
   total_spent?: T;
   total_cashback?: T;
   total_refunded?: T;
+  points_balance?: T;
+  points_earned?: T;
+  points_redeemed?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4394,6 +4877,8 @@ export interface WalletTransactionsSelect<T extends boolean = true> {
   type?: T;
   amount?: T;
   balance_after?: T;
+  points?: T;
+  points_balance_after?: T;
   order?: T;
   payment_intent_id?: T;
   gateway?: T;
@@ -4427,6 +4912,12 @@ export interface WalletTopupsSelect<T extends boolean = true> {
 export interface CouponsSelect<T extends boolean = true> {
   code?: T;
   description?: T;
+  title?: T;
+  short_copy?: T;
+  image?: T;
+  priority?: T;
+  featured?: T;
+  claimable?: T;
   status?: T;
   discount_type?: T;
   amount?: T;
@@ -4466,6 +4957,85 @@ export interface CouponsSelect<T extends boolean = true> {
       };
   funded_by?: T;
   vendor_share_pct?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupon-claims_select".
+ */
+export interface CouponClaimsSelect<T extends boolean = true> {
+  coupon?: T;
+  customer?: T;
+  status?: T;
+  claimed_at?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "point-rules_select".
+ */
+export interface PointRulesSelect<T extends boolean = true> {
+  event?: T;
+  points?: T;
+  rate_per_peso?: T;
+  min_order_total?: T;
+  cap_points?: T;
+  is_active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rewards_select".
+ */
+export interface RewardsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  points_cost?: T;
+  category?: T;
+  image?: T;
+  stock?: T;
+  terms?:
+    | T
+    | {
+        term?: T;
+        id?: T;
+      };
+  coupon?: T;
+  priority?: T;
+  is_active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "achievements_select".
+ */
+export interface AchievementsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  points_reward?: T;
+  metric?: T;
+  target?: T;
+  icon?: T;
+  is_active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-achievements_select".
+ */
+export interface UserAchievementsSelect<T extends boolean = true> {
+  user?: T;
+  achievement?: T;
+  progress?: T;
+  target?: T;
+  completed?: T;
+  claimed?: T;
+  completed_at?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4910,6 +5480,14 @@ export interface SystemSetting {
    */
   couponsEnabled?: boolean | null;
   /**
+   * Global kill-switch for loyalty earn/redeem. When off, no points move.
+   */
+  pointsEnabled?: boolean | null;
+  /**
+   * Earned lots expire after this many days (0 = never). Swept by POST /api/points/sweep.
+   */
+  pointsExpiryDays?: number | null;
+  /**
    * Select which delivery provider to use for order bookings.
    */
   deliveryProvider: 'lalamove' | 'native';
@@ -4947,6 +5525,8 @@ export interface SystemSetting {
 export interface SystemSettingsSelect<T extends boolean = true> {
   maintenanceMode?: T;
   couponsEnabled?: T;
+  pointsEnabled?: T;
+  pointsExpiryDays?: T;
   deliveryProvider?: T;
   lalamove?:
     | T

@@ -107,24 +107,10 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
               collapsed={!isOpen}
             />
             <SidebarItem
-              icon="coupon"
-              label="Coupons"
-              href="/coupons"
-              active={pathname === '/coupons'}
-              collapsed={!isOpen}
-            />
-            <SidebarItem
               icon="points"
               label="Points"
               href="/points"
               active={pathname === '/points'}
-              collapsed={!isOpen}
-            />
-            <SidebarItem
-              icon="invite"
-              label="Invite Friends"
-              href="/invite-friends"
-              active={pathname === '/invite-friends'}
               collapsed={!isOpen}
             />
           </div>

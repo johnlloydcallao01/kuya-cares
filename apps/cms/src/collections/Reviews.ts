@@ -98,4 +98,20 @@ export const Reviews: CollectionConfig = {
       },
     },
   ],
+  hooks: {
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        // Loyalty review bonus (best-effort, idempotent per review).
+        if (operation === 'create' && doc) {
+          try {
+            const { PointsService } = await import('../services/PointsService')
+            await new PointsService(req.payload).earnForReview(doc.id)
+          } catch (e) {
+            console.error('[reviews] loyalty earn error:', e)
+          }
+        }
+        return doc
+      },
+    ],
+  },
 }

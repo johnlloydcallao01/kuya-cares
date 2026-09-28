@@ -78,17 +78,20 @@ export const WalletTransactions: CollectionConfig = {
         { label: 'Withdrawal', value: 'withdrawal' },
         { label: 'Adjustment', value: 'adjustment' },
         { label: 'Expiry', value: 'expiry' },
+        { label: 'Points Earn', value: 'earn' },
+        { label: 'Points Redeem', value: 'redeem' },
       ],
       admin: {
-        description: 'Ledger entry kind (gateway-agnostic)',
+        description: 'Ledger entry kind (gateway-agnostic; earn/redeem move loyalty points)',
       },
     },
     {
       name: 'amount',
       type: 'number',
       required: true,
+      defaultValue: 0,
       admin: {
-        description: 'Signed amount in PHP (+ credit, - debit)',
+        description: 'Signed amount in PHP (+ credit, - debit; 0 for pure points moves)',
       },
     },
     {
@@ -98,6 +101,25 @@ export const WalletTransactions: CollectionConfig = {
       min: 0,
       admin: {
         description: 'Wallet balance immediately after posting (audit)',
+      },
+    },
+    {
+      name: 'points',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      admin: {
+        description: 'Signed loyalty points (+ earn, - redeem/expire; integer)',
+      },
+    },
+    {
+      name: 'points_balance_after',
+      type: 'number',
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: 'Points balance immediately after posting (audit; FIFO lot for expiry)',
       },
     },
     {
@@ -166,9 +188,13 @@ export const WalletTransactions: CollectionConfig = {
     beforeValidate: [
       ({ data }) => {
         if (!data || typeof data !== 'object') return data
-        const amount = Number((data as any).amount)
-        if (!Number.isFinite(amount) || amount === 0) {
-          throw new Error('Wallet transaction amount must be a non-zero number')
+        const amount = Number((data as any).amount ?? 0)
+        const points = Number((data as any).points ?? 0)
+        if (!Number.isFinite(amount) || !Number.isFinite(points)) {
+          throw new Error('Wallet transaction amount/points must be numbers')
+        }
+        if (amount === 0 && points === 0) {
+          throw new Error('Wallet transaction must move PHP or points')
         }
         if (!((data as any).idempotency_key && String((data as any).idempotency_key).trim())) {
           throw new Error('idempotency_key is required')

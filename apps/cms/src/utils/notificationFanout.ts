@@ -25,6 +25,30 @@ type NotificationFanoutArgs = {
 
 type NotificationFanoutInput = Omit<NotificationFanoutArgs, 'payload' | 'userId'>
 
+// In-memory template cache (perf): avoids one find per fanout.
+// TTL 60s; templates change rarely and lookup is fail-open anyway.
+const TEMPLATE_TTL_MS = 60 * 1000
+const templateCache = new Map<string, { at: number; doc: any | null }>()
+
+async function findTemplateCached(payload: Payload, typeKey: string): Promise<any | null> {
+  const hit = templateCache.get(typeKey)
+  if (hit && Date.now() - hit.at < TEMPLATE_TTL_MS) return hit.doc
+  try {
+    const result = await payload.find({
+      collection: 'notification-templates',
+      where: { typeKey: { equals: typeKey } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const doc = result.docs[0] ?? null
+    templateCache.set(typeKey, { at: Date.now(), doc })
+    return doc
+  } catch {
+    return hit?.doc ?? null
+  }
+}
+
 const ORDER_STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
   accepted: 'Accepted',
@@ -90,17 +114,34 @@ export async function createNotificationFanout({
   const numericUserId = typeof userId === 'number' ? userId : Number(userId)
   if (!Number.isFinite(numericUserId)) return null
 
-  // Try to attach a template for admin-configured messages (optional).
+  // Preference gate: marketing requires explicit opt-in; an inactive
+  // template suppresses the fanout entirely. Fail-open (deliver) on lookup
+  // errors to preserve existing behavior for order/account/system.
+  try {
+    if (domain === 'marketing') {
+      const { docs } = await payload.find({
+        collection: 'notification-preferences',
+        where: { user: { equals: numericUserId } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const prefs = docs[0] as any
+      const optedIn = prefs ? !!prefs.marketingOptIn : true
+      if (!optedIn) return { skipped: 'opted-out' as const }
+    }
+  } catch {
+    // Fail-open: deliver when preferences cannot be read.
+  }
+
+  // Template lookup is cached in-memory (perf: one fewer find per fanout).
   let template: number | undefined
   try {
-    const templateResult = await payload.find({
-      collection: 'notification-templates',
-      where: { typeKey: { equals: typeKey } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const templateId = templateResult.docs[0]?.id
+    const templateDoc = (await findTemplateCached(payload, typeKey)) as any
+    if (templateDoc && templateDoc.isActive === false) {
+      return { skipped: 'template-inactive' as const }
+    }
+    const templateId = templateDoc?.id
     if (typeof templateId === 'number') {
       template = templateId
     } else if (typeof templateId === 'string' && /^\d+$/.test(templateId)) {
@@ -141,7 +182,8 @@ export async function createNotificationFanout({
     overrideAccess: true,
   })
 
-  await broadcastUserNotification(userId, {
+  // Realtime bell is best-effort — never gate the response on it (perf).
+  void broadcastUserNotification(userId, {
     id: userNotification.id,
     title,
     body,
@@ -152,7 +194,7 @@ export async function createNotificationFanout({
     priority,
     deliveredAt,
     metadata,
-  })
+  }).catch(() => {})
 
   return { notificationEvent, userNotification }
 }
