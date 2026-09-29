@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import SearchField from '@/components/ui/SearchField';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
-import { AddressService, getCurrentCustomerId, getLocationBasedMerchants, getLocationBasedMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
+import { AddressService, getCurrentCustomerId, getLocationBasedMerchants, getLocationBasedMerchantCategories, getBrowsingMerchants, getBrowsingMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
+import { getShowAll, useShowAll } from '@/lib/show-all';
 import { getWishlistMerchantIdsForCurrentUser, addMerchantToWishlist, removeMerchantFromWishlist } from '@/lib/client-services/wishlist-service';
 import { toast } from 'react-hot-toast';
 
@@ -35,6 +36,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
   type Suggestion = { text: string; source: 'merchant' | 'category' | 'product' | 'tag' };
   const [isProductLoading, setIsProductLoading] = useState(false);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const [showAll, setShowAllFlag] = useShowAll();
   const toggleWishlist = useCallback((id: string | number) => {
     const idStr = String(id);
     setWishlistIds(prev => {
@@ -169,29 +171,56 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
     }
   }, [query]);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!isOpen || !isMobile) return;
-      setIsLoading(true);
+  const fetchModalIndex = useCallback(async () => {
+    setIsLoading(true);
+    try {
       const cid = await getCurrentCustomerId();
-      if (!active) return;
       setCustomerId(cid);
-      if (cid) {
+      if (getShowAll()) {
+        const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+        setMerchants(list || []);
+        const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+        setCategories(cats || []);
+      } else if (cid) {
         const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
-        if (!active) return;
         setMerchants(list || []);
         const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
-        if (!active) return;
         setCategories(cats || []);
       } else {
         setMerchants([]);
         setCategories([]);
       }
+    } catch (e: any) {
+      if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+        console.error('Failed to build search index:', e);
+      }
+      setMerchants([]);
+      setCategories([]);
+    } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!isOpen || !isMobile) return;
+      if (!active) return;
+      await fetchModalIndex();
     })();
     return () => { active = false; };
-  }, [isOpen, isMobile]);
+  }, [isOpen, isMobile, fetchModalIndex]);
+
+  // Show-all scope toggle → rebuild modal index (skip initial run).
+  const modalScopeFirstRun = useRef(false);
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!modalScopeFirstRun.current) {
+      modalScopeFirstRun.current = true;
+      return;
+    }
+    fetchModalIndex();
+  }, [showAll, isOpen, fetchModalIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,18 +333,32 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!matchedCategory || !customerId) {
+      if (!matchedCategory) {
+        setCategoryMerchants([]);
+        return;
+      }
+      if (!showAll && !customerId) {
         setCategoryMerchants([]);
         return;
       }
       setIsCategoryLoading(true);
-      const list = await getLocationBasedMerchants({ customerId, limit: 24, categoryId: String(matchedCategory.id) });
-      if (cancel) return;
-      setCategoryMerchants(list || []);
-      setIsCategoryLoading(false);
+      try {
+        const list = showAll
+          ? await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 24, categoryId: String(matchedCategory.id) })
+          : await getLocationBasedMerchants({ customerId: customerId as string, limit: 24, categoryId: String(matchedCategory.id) });
+        if (cancel) return;
+        setCategoryMerchants(list || []);
+      } catch (e: any) {
+        if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+          console.error('Failed to load category merchants:', e);
+        }
+        if (!cancel) setCategoryMerchants([]);
+      } finally {
+        if (!cancel) setIsCategoryLoading(false);
+      }
     })();
     return () => { cancel = true; };
-  }, [matchedCategory, customerId]);
+  }, [matchedCategory, customerId, showAll]);
 
   const filtered = useMemo(() => {
     const q = normalizeQuery(query);
@@ -457,6 +500,18 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
           </div>
         </div>
         <div className="flex-1 px-4 py-4 overflow-y-auto">
+          <label className="flex items-center gap-2.5 pb-3 mb-1 border-b border-gray-100 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showAll}
+              onChange={(e) => setShowAllFlag(e.target.checked)}
+              className="w-4 h-4 accent-green-700"
+            />
+            <span className="text-[13px] font-semibold text-gray-700">
+              Show All Merchants & Products
+              <span className="block text-[11px] font-normal text-gray-400">Turn off location filtering</span>
+            </span>
+          </label>
           {query.trim().length === 0 ? (
             recentList.length > 0 ? (
               <div>

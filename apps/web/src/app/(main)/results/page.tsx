@@ -1,16 +1,21 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchModal from "@/components/search/SearchModal";
 import LocationMerchantCard from "@/components/cards/LocationMerchantCard";
 import {
   getCurrentCustomerId,
+  getLocationBasedMerchants,
+  getLocationBasedMerchantCategories,
   getBrowsingMerchants,
   getBrowsingMerchantCategories,
   type LocationBasedMerchant,
   type MerchantCategoryDisplay,
 } from '@encreasl/client-services';
+import { getShowAll, useShowAll } from '@/lib/show-all';
+import { useAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import {
   getWishlistMerchantIdsForCurrentUser,
   addMerchantToWishlist,
@@ -35,6 +40,7 @@ export default function SearchResultsPage() {
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [isProductLoading, setIsProductLoading] = useState(false);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const [showAll, setShowAllFlag] = useShowAll();
 
   const toggleWishlist = useCallback((id: string | number) => {
     const idStr = String(id);
@@ -92,25 +98,61 @@ export default function SearchResultsPage() {
     setQuery(initialQuery);
   }, [searchParams]);
 
+  const fetchResultsIndex = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const cid = await getCurrentCustomerId();
+      setCustomerId(cid);
+      if (getShowAll()) {
+        const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+        setMerchants(list || []);
+        const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+        setCategories(cats || []);
+      } else if (cid) {
+        const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
+        setMerchants(list || []);
+        const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
+        setCategories(cats || []);
+      } else {
+        setMerchants([]);
+        setCategories([]);
+      }
+    } catch (e: any) {
+      if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+        console.error('Failed to build search index:', e);
+      }
+      setMerchants([]);
+      setCategories([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     (async () => {
-      setIsLoading(true);
-      const cid = await getCurrentCustomerId();
       if (!active) return;
-      setCustomerId(cid);
-      const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
-      if (!active) return;
-      setMerchants(list || []);
-      const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
-      if (!active) return;
-      setCategories(cats || []);
-      setIsLoading(false);
+      await fetchResultsIndex();
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [fetchResultsIndex]);
+
+  // Address change or scope toggle → rebuild index.
+  useAddressChange(() => {
+    clearAllLocationCaches();
+    fetchResultsIndex();
+  });
+
+  const resultsScopeFirstRun = useRef(false);
+  useEffect(() => {
+    if (!resultsScopeFirstRun.current) {
+      resultsScopeFirstRun.current = true;
+      return;
+    }
+    fetchResultsIndex();
+  }, [showAll, fetchResultsIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,20 +201,38 @@ export default function SearchResultsPage() {
         setCategoryMerchants([]);
         return;
       }
+      if (!showAll && !customerId) {
+        setCategoryMerchants([]);
+        return;
+      }
       setIsCategoryLoading(true);
-      const list = await getBrowsingMerchants({
-        customerId: customerId ?? undefined,
-        limit: 24,
-        categoryId: String(matchedCategory.id),
-      });
-      if (cancel) return;
-      setCategoryMerchants(list || []);
-      setIsCategoryLoading(false);
+      try {
+        const list = showAll
+          ? await getBrowsingMerchants({
+              customerId: customerId ?? undefined,
+              limit: 24,
+              categoryId: String(matchedCategory.id),
+            })
+          : await getLocationBasedMerchants({
+              customerId: customerId as string,
+              limit: 24,
+              categoryId: String(matchedCategory.id),
+            });
+        if (cancel) return;
+        setCategoryMerchants(list || []);
+      } catch (e: any) {
+        if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+          console.error('Failed to load category merchants:', e);
+        }
+        if (!cancel) setCategoryMerchants([]);
+      } finally {
+        if (!cancel) setIsCategoryLoading(false);
+      }
     })();
     return () => {
       cancel = true;
     };
-  }, [matchedCategory, customerId]);
+  }, [matchedCategory, customerId, showAll]);
 
   useEffect(() => {
     let cancelled = false;
@@ -334,6 +394,18 @@ export default function SearchResultsPage() {
         </div>
       </div>
       <div className="max-w-5xl mx-auto px-2.5 pt-2 lg:pt-6 pb-6">
+        <label className="flex items-center gap-2.5 mb-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showAll}
+            onChange={(e) => setShowAllFlag(e.target.checked)}
+            className="w-4 h-4 accent-green-700"
+          />
+          <span className="text-[13px] font-semibold text-gray-700">
+            Show All Merchants & Products
+            <span className="block text-[11px] font-normal text-gray-400">Turn off location filtering</span>
+          </span>
+        </label>
         {query.trim().length === 0 ? (
           <div className="text-gray-500 text-sm">
             Use the search bar in the header to find restaurants and foods.

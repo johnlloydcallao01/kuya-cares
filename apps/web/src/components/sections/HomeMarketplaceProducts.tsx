@@ -17,6 +17,7 @@ import {
 } from '@encreasl/client-services';
 import { useAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
+import { getShowAll, useShowAll } from '@/lib/show-all';
 
 interface HomeMarketplaceProductsProps {
   limit?: number;
@@ -260,12 +261,14 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
   // always fetched with null there — but strictly follows the delivery
   // *location*. No customer/address → zero products, never the global pool.
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [showAll] = useShowAll();
 
   const fetchPool = useCallback(async (cid: string | null) => {
     try {
       setIsLoading(true);
       setError(null);
-      if (!cid) {
+      const scopeAll = getShowAll();
+      if (!scopeAll && !cid) {
         setAllProducts([]);
         setActiveCategoryId(null);
         return;
@@ -274,6 +277,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
         limit: poolLimit,
         merchantCategoryId: null,
         customerId: cid,
+        ignoreLocation: scopeAll,
       });
       setAllProducts(items);
       // Drop a stale active pill when the new pool no longer contains it.
@@ -298,7 +302,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
     fetchCategories();
   }, [fetchCategories]);
 
-  // Initial load: resolve customer, then fetch location-aware pool.
+  // Initial load + Show-All toggle: resolve customer, then fetch pool.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -310,7 +314,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
     return () => {
       cancelled = true;
     };
-  }, [fetchPool]);
+  }, [fetchPool, showAll]);
 
   // Delivery address change → clear + refetch location-aware pool.
   useAddressChange(
@@ -679,7 +683,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
               <i className="fas fa-box-open text-3xl text-gray-300 mb-3" />
               <p className="font-medium text-gray-900">No products found</p>
               <p className="text-sm text-gray-500 mt-1">
-                {customerId == null
+                {customerId == null && !showAll
                   ? 'Set your delivery address above to see products from merchants near you.'
                   : 'Try a different category or loosen your filters — new items are added daily.'}
               </p>

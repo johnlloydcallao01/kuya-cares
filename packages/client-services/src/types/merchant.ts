@@ -79,6 +79,8 @@ export interface Vendor {
   logo?: Media | null;
   description?: string | null;
   isActive?: boolean | null;
+  /** Owner display identity (populated by location queries; number when shallow). */
+  user?: { id: number | string; firstName?: string | null; lastName?: string | null } | number | null;
 }
 
 // Main Merchant interface

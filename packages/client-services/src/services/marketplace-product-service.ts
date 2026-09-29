@@ -183,28 +183,34 @@ export class MarketplaceProductService {
     merchantCategoryId?: number | string | null;
     search?: string | null;
     customerId?: string | null;
+    /** Show-All scope: bypass the location gate entirely (global pool). */
+    ignoreLocation?: boolean;
   } = {}): Promise<MarketplaceProduct[]> {
-    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null } = options;
-    const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}`;
+    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false } = options;
+    const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
 
     try {
-      // HARD RULE: products are ONLY ever the products of location-qualified
-      // merchants — the exact same gate as the merchants section (which
-      // renders empty on no-customer / no-address / location failure).
-      // No customer → []. Location failure → empty set (mirrors merchants).
-      // There is deliberately NO global fallback: showing the full pool
-      // while merchants show none is a lie.
-      if (!customerId) return [];
+      // HARD RULE (unless Show-All scope): products are ONLY ever the
+      // products of location-qualified merchants — the exact same gate as
+      // the merchants section (which renders empty on no-customer /
+      // no-address / location failure). No customer → []. Location
+      // failure → empty set (mirrors merchants). There is deliberately NO
+      // silent global fallback: showing the full pool while merchants show
+      // none is a lie. Explicit user opt-out via `ignoreLocation` only.
+      const gated = !ignoreLocation;
+      if (gated && !customerId) return [];
       let nearby: LocationBasedMerchant[] = [];
-      try {
-        nearby = await LocationBasedMerchantService.getLocationBasedMerchants({
-          customerId,
-          limit: 9999,
-        });
-      } catch {
-        nearby = [];
+      if (gated && customerId) {
+        try {
+          nearby = await LocationBasedMerchantService.getLocationBasedMerchants({
+            customerId,
+            limit: 9999,
+          });
+        } catch {
+          nearby = [];
+        }
       }
       const nearbyIds = new Set(nearby.map((m) => String((m as { id: number | string }).id)));
       const distanceByMerchant = new Map<string, { distanceKm: number | null; isWithinDeliveryRadius: boolean; estimatedDeliveryTime: string | null }>();
@@ -320,8 +326,9 @@ export class MarketplaceProductService {
             ? (merchant.outletName as string)
             : 'Merchant';
         const mId = (merchant?.id as number | string | undefined) ?? (mp.merchant_id as number | string);
-        // Location gate: drop every product whose merchant is not qualified.
-        if (!nearbyIds.has(String(mId))) continue;
+        // Location gate: drop every product whose merchant is not qualified
+        // (skipped entirely in Show-All scope).
+        if (gated && !nearbyIds.has(String(mId))) continue;
         const geo = distanceByMerchant.get(String(mId));
         const merchantSlug = toSlug(outletName);
         const merchantSlugId = `${merchantSlug}-${String(mId)}`;
@@ -373,8 +380,8 @@ export class MarketplaceProductService {
   }
 
   /** Top discounted products for a Shopee-style "Flash Deals" rail. */
-  static async getFlashDeals(limit = 10, customerId?: string | null): Promise<MarketplaceProduct[]> {
-    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200, customerId: customerId ?? null });
+  static async getFlashDeals(limit = 10, customerId?: string | null, ignoreLocation = false): Promise<MarketplaceProduct[]> {
+    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200, customerId: customerId ?? null, ignoreLocation });
     return all
       .filter((p) => (p.discountPercent ?? 0) > 0 && p.price != null)
       .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))

@@ -38,6 +38,9 @@ interface DatabaseRow {
   vendor_average_rating: number
   vendor_total_orders: number
   vendor_cuisine_types: unknown
+  vendor_owner_id: number | null
+  vendor_owner_first_name: string | null
+  vendor_owner_last_name: string | null
   // Merchant thumbnail media fields
   merchant_thumbnail_id: number | null
   merchant_thumbnail_cloudinary_public_id: string | null
@@ -761,6 +764,10 @@ export class GeospatialService {
           v.average_rating as vendor_average_rating,
           v.total_orders as vendor_total_orders,
           v.cuisine_types as vendor_cuisine_types,
+          -- Vendor owner (display name for merchant cards)
+          u.id as vendor_owner_id,
+          u.first_name as vendor_owner_first_name,
+          u.last_name as vendor_owner_last_name,
           -- Merchant Categories (IDs)
           COALESCE(
             (
@@ -796,6 +803,9 @@ export class GeospatialService {
           vl.alt as vendor_logo_alt
         FROM merchants m
         LEFT JOIN vendors v ON m.vendor_id = v.id
+        -- Owner display name: same relationship depth as vendor.logo/upload
+        -- population (vendors.user -> users). Required by merchant cards.
+        LEFT JOIN users u ON u.id = v.user_id
         LEFT JOIN business_zones bz ON m.business_zone_id = bz.id
         LEFT JOIN media mt ON m.media_thumbnail_id = mt.id
         LEFT JOIN media ms ON m.media_store_front_image_id = ms.id
@@ -892,13 +902,18 @@ export class GeospatialService {
             row.avg_delivery_time_minutes || undefined
           ),
           merchant_categories: merchantCategoryIds,
-          // Vendor information
+          // Vendor information (incl. owner display name for cards)
           vendor: {
             id: row.vendor_id,
             businessName: row.vendor_business_name,
             average_rating: row.vendor_average_rating,
             total_orders: row.vendor_total_orders,
             cuisineTypes: row.vendor_cuisine_types,
+            user: row.vendor_owner_id ? {
+              id: row.vendor_owner_id,
+              firstName: row.vendor_owner_first_name,
+              lastName: row.vendor_owner_last_name,
+            } : null,
             logo: row.vendor_logo_id ? {
               id: row.vendor_logo_id,
               cloudinary_public_id: row.vendor_logo_cloudinary_public_id,

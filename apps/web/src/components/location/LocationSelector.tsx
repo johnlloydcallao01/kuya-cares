@@ -9,6 +9,7 @@ import { useUser } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { emitAddressChange, useAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
+import { useShowAll } from '@/lib/show-all';
 import { AddressSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton';
 
 interface LocationSelectorProps {
@@ -62,6 +63,7 @@ function LocationModal({ isOpen, onClose, onLocationSelect, onAddressesChanged }
   // Multi-step popup state
   const [currentStep, setCurrentStep] = useState<'search' | 'preview'>('search');
   const [selectedAddress, setSelectedAddress] = useState<google.maps.places.PlaceResult | null>(null);
+  const [showAll, setShowAllFlag] = useShowAll();
 
   const { user } = useUser();
 
@@ -434,6 +436,19 @@ function LocationModal({ isOpen, onClose, onLocationSelect, onAddressesChanged }
                 inputClassName="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
                 fullPage={true}
               />
+
+              <label className="flex items-center gap-2.5 mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showAll}
+                  onChange={(e) => setShowAllFlag(e.target.checked)}
+                  className="w-4 h-4 accent-green-700 flex-shrink-0"
+                />
+                <span className="text-[13px] font-semibold text-gray-700">
+                  Show All Merchants & Products
+                  <span className="block text-[11px] font-normal text-gray-400">Turn off location filtering</span>
+                </span>
+              </label>
 
               {/* Manage Address Section */}
               {user?.id && (

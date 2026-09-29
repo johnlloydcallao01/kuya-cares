@@ -9,9 +9,11 @@ import {
   type Media,
   getCurrentCustomerId,
   getLocationBasedMerchants,
+  getBrowsingMerchants,
 } from '@encreasl/client-services';
 import { useAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
+import { getShowAll, useShowAll } from '@/lib/show-all';
 import {
   getWishlistMerchantIdsForCurrentUser,
   addMerchantToWishlist,
@@ -174,6 +176,28 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
           </p>
         )}
 
+        {(() => {
+          const user = (merchant.vendor as { user?: unknown } | null | undefined)?.user;
+          if (!user || typeof user !== 'object') return null;
+          const record = user as Record<string, unknown>;
+          const first =
+            (record.firstName as string | undefined) ??
+            (record.first_name as string | undefined) ??
+            '';
+          const last =
+            (record.lastName as string | undefined) ??
+            (record.last_name as string | undefined) ??
+            '';
+          const full = `${String(first ?? '')} ${String(last ?? '')}`.trim();
+          if (!full) return null;
+          return (
+            <p className="text-[11px] text-gray-400 line-clamp-1">
+              <i className="fas fa-user mr-1" />
+              by {full}
+            </p>
+          );
+        })()}
+
         {/* Rating and Orders */}
         <div className="flex items-center gap-2 text-sm text-gray-500">
           {merchant.metrics?.averageRating && (
@@ -277,12 +301,25 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
   const boundsCalculatedRef = useRef(false);
 
   // Location-based fetch (tap2go parity): customerId-gated, empty for
-  // guests without a delivery location.
+  // guests without a delivery location — unless Show-All scope is on,
+  // which browses everything with no location gate.
+  const [showAll] = useShowAll();
+
   const fetchLocationBasedMerchants = useCallback(async (cid: string | null) => {
     setIsLoading(true);
     setError(null);
 
     try {
+      const scopeAll = getShowAll();
+      if (scopeAll) {
+        const locationMerchants = await getBrowsingMerchants({
+          customerId: cid ?? undefined,
+          limit,
+          categoryId: categoryId || undefined,
+        });
+        setMerchants(locationMerchants);
+        return;
+      }
       if (!cid) {
         setMerchants([]);
         return;
@@ -435,6 +472,7 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
 
   // Resolve customer (prop wins, else session) then location fetch.
   // Delivery address change clears + refetches (tap2go parity).
+  // Show-All toggle refetches under the new scope.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -444,7 +482,7 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
       fetchLocationBasedMerchants(cid);
     })();
     return () => { active = false; };
-  }, [customerIdProp, fetchLocationBasedMerchants]);
+  }, [customerIdProp, fetchLocationBasedMerchants, showAll]);
 
   useAddressChange(() => {
     // Bust first: keys are customerId-scoped, so a refetch alone would hit

@@ -18,6 +18,32 @@ function getImageUrl(media: Media | null | undefined): string | null {
   return media.cloudinaryURL || media.url || media.thumbnailURL || null;
 }
 
+function getOwnerName(merchant: { vendor?: unknown }): string | null {
+  const user = (merchant.vendor as { user?: unknown } | null | undefined)?.user;
+  if (!user || typeof user !== 'object') return null;
+  const record = user as Record<string, unknown>;
+  // PostGIS maps to camelCase; Payload depth=2 is camelCase; tolerate snake_case.
+  const first =
+    (record.firstName as string | undefined) ??
+    (record.first_name as string | undefined) ??
+    '';
+  const last =
+    (record.lastName as string | undefined) ??
+    (record.last_name as string | undefined) ??
+    '';
+  const full = `${String(first ?? '')} ${String(last ?? '')}`.trim();
+  return full || null;
+}
+
+function getVendorName(merchant: { outletName?: unknown; vendor?: unknown }): string | null {
+  const business = ((merchant.vendor as { businessName?: unknown } | null | undefined)?.businessName as string | undefined) || '';
+  if (!business.trim()) return null;
+  // Skip when identical to the outlet name (already shown above it).
+  const outlet = typeof merchant.outletName === 'string' ? merchant.outletName : '';
+  if (business.trim().toLowerCase() === outlet.trim().toLowerCase()) return null;
+  return business;
+}
+
 function formatDistanceKm(distanceKm?: number): string | null {
   if (typeof distanceKm !== "number") return null;
   // Explicit 0km: same-spot merchants show their distance, never a blank badge.
@@ -127,8 +153,14 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                       <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
                         {addressName ? `${merchant.outletName} - ${addressName}` : merchant.outletName}
                       </h3>
-                      {merchant.vendor?.businessName && (
-                        <p className="text-sm text-gray-600 truncate">{merchant.vendor.businessName}</p>
+                      {getVendorName(merchant) && (
+                        <p className="text-sm text-gray-600 truncate">{getVendorName(merchant)}</p>
+                      )}
+                      {getOwnerName(merchant) && (
+                        <p className="text-[11px] text-gray-400 truncate">
+                          <i className="fas fa-user mr-1" />
+                          by {getOwnerName(merchant)}
+                        </p>
                       )}
                     </div>
                     <button
@@ -209,8 +241,14 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
               <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                 {addressName ? `${merchant.outletName} - ${addressName}` : merchant.outletName}
               </h3>
-              {merchant.vendor?.businessName && (
-                <p className="text-sm text-gray-600 line-clamp-1">{merchant.vendor.businessName}</p>
+              {getVendorName(merchant) && (
+                <p className="text-sm text-gray-600 line-clamp-1">{getVendorName(merchant)}</p>
+              )}
+              {getOwnerName(merchant) && (
+                <p className="text-[11px] text-gray-400 line-clamp-1">
+                  <i className="fas fa-user mr-1" />
+                  by {getOwnerName(merchant)}
+                </p>
               )}
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 {typeof rating === "number" && (

@@ -75,10 +75,17 @@ export class LocationBasedMerchantService {
     // Create cache key based on options
     const cacheKey = `${CACHE_KEYS.MERCHANTS}-location-${customerId}-${limit}-${categoryId || 'all'}`;
     
-    // Check cache first
+    // Check cache first — but never serve stale rows missing vendor owners.
+    // Pre-owner caches (same customerId-scoped key) would otherwise hide
+    // `by <owner>` on location-based cards while browsing cards show it.
     const cachedData = dataCache.get<LocationBasedMerchant[]>(cacheKey);
     if (cachedData) {
-      return cachedData;
+      const enrichedCached =
+        await LocationBasedMerchantService.backfillMissingVendorOwners(cachedData);
+      if (enrichedCached !== cachedData) {
+        dataCache.set(cacheKey, enrichedCached, CACHE_TTL.MERCHANTS);
+      }
+      return enrichedCached;
     }
 
     try {
@@ -110,16 +117,29 @@ export class LocationBasedMerchantService {
       const url = `${LocationBasedMerchantService.API_BASE}/merchant/location-based-display?${params}`;
 
       // IMPORTANT: Explicitly set credentials to 'omit' to prevent sending cookies that might override the API Key
+      // cache:no-store: identical URLs must never serve stale rows (e.g. pre-owner rows) from HTTP cache.
       const response = await fetch(url, {
         headers,
-        credentials: 'omit', 
+        credentials: 'omit',
+        cache: 'no-store',
       });
       
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(`Failed to fetch location-based merchants: ${response.status}`);
+        // Expected fallback path (customer without an active address):
+        // stay quiet so browsing fallbacks don't spam the console.
+        // Genuine failures still log at error level.
+        const isNoAddress =
+          errorText.includes('CUSTOMER_DATA_ERROR') || errorText.includes('no active address');
+        if (!isNoAddress) {
+          console.error('❌ API Error Response:', errorText);
+        }
+        const err: Error & { code?: string } = new Error(
+          `Failed to fetch location-based merchants: ${response.status}`,
+        );
+        err.code = isNoAddress ? 'NO_ACTIVE_ADDRESS' : 'LOCATION_FETCH_FAILED';
+        throw err;
       }
       
       const data: LocationBasedMerchantsResponse = await response.json();
@@ -130,11 +150,16 @@ export class LocationBasedMerchantService {
       }
       
       const merchants = data.data.merchants || [];
-      
+
+      // Guarantee consistent `by <owner>` rendering: PostGIS rows from older
+      // CMS deploys omit vendor.user. Backfill from depth=2 before caching.
+      const enriched =
+        await LocationBasedMerchantService.backfillMissingVendorOwners(merchants);
+
       // Cache the result
-      dataCache.set(cacheKey, merchants, CACHE_TTL.MERCHANTS);
-      
-      return merchants;
+      dataCache.set(cacheKey, enriched, CACHE_TTL.MERCHANTS);
+
+      return enriched;
     } catch (error) {
       console.error('❌ Error fetching location-based merchants:', error);
       return []; // Graceful fallback
@@ -181,7 +206,7 @@ export class LocationBasedMerchantService {
       });
       params.append('where[isActive][equals]', 'true');
       const url = `${base}/merchants?${params.toString()}&depth=2`;
-      const res = await fetch(url, { headers, credentials: 'omit' });
+      const res = await fetch(url, { headers, credentials: 'omit', cache: 'no-store' });
       if (!res.ok) return [];
       const json = await res.json();
       const docs: any[] = json.docs || json.data?.docs || [];
@@ -228,6 +253,137 @@ export class LocationBasedMerchantService {
       estimatedDeliveryTime: d?.deliverySettings?.estimatedDeliveryTime ?? d?.estimatedDeliveryTime ?? '',
       operationalStatus: d?.operationalStatus ?? (d?.isAcceptingOrders === false ? 'closed' : 'open'),
     } as LocationBasedMerchant;
+  }
+
+  private static hasVendorOwner(m: any): boolean {
+    const user = (m as any)?.vendor?.user;
+    if (!user || typeof user !== 'object') return false;
+    const first =
+      (user as Record<string, unknown>).firstName ??
+      (user as Record<string, unknown>).first_name ??
+      '';
+    const last =
+      (user as Record<string, unknown>).lastName ??
+      (user as Record<string, unknown>).last_name ??
+      '';
+    return `${String(first ?? '')} ${String(last ?? '')}`.trim().length > 0;
+  }
+
+  /**
+   * Consistency guard: location-based (PostGIS) rows from older CMS deploys
+   * omit `vendor.user`, while browsing (`/merchants?depth=2`) includes it.
+   * That mismatch is exactly why cards showed `by <owner>` without an
+   * address but only `<n> min delivery` with an active address.
+   * Backfill missing owners via depth-populated reads so the card can always
+   * render `by <owner>` alongside delivery info.
+   */
+  private static async backfillMissingVendorOwners<T extends { id: string | number; vendor?: any }>(
+    merchants: T[],
+  ): Promise<T[]> {
+    if (!merchants || merchants.length === 0) return merchants;
+    const missing = merchants.filter((m) => !LocationBasedMerchantService.hasVendorOwner(m));
+    if (missing.length === 0) return merchants;
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const apiKey = LocationBasedMerchantService.PAYLOAD_API_KEY;
+    if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+    const base = LocationBasedMerchantService.API_BASE;
+
+    const merchantIds = Array.from(
+      new Set(missing.map((m) => String((m as any)?.id ?? '').trim()).filter(Boolean)),
+    );
+    if (merchantIds.length === 0) return merchants;
+
+    try {
+      // Path 1 (proven): /merchants?depth=2 populates vendor.user (browsing path).
+      const params = new URLSearchParams({
+        limit: String(merchantIds.length),
+        page: '1',
+      });
+      params.append('where[id][in]', merchantIds.join(','));
+      const res = await fetch(`${base}/merchants?${params.toString()}&depth=2`, {
+        headers,
+        credentials: 'omit',
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const docs: any[] = json.docs || json.data?.docs || [];
+        const ownerByMerchantId = new Map<string, unknown>();
+        const ownerByVendorId = new Map<string, unknown>();
+        for (const d of docs) {
+          const owner = (d as any)?.vendor?.user;
+          if (owner && typeof owner === 'object') {
+            ownerByMerchantId.set(String((d as any)?.id ?? ''), owner);
+            const vendorId = (d as any)?.vendor?.id;
+            if (vendorId != null) ownerByVendorId.set(String(vendorId), owner);
+          }
+        }
+        let patched = false;
+        const next = merchants.map((m) => {
+          if (LocationBasedMerchantService.hasVendorOwner(m)) return m;
+          const byMerchant = ownerByMerchantId.get(String((m as any)?.id ?? ''));
+          const vendorId = (m as any)?.vendor?.id;
+          const byVendor = vendorId != null ? ownerByVendorId.get(String(vendorId)) : undefined;
+          const owner = byMerchant ?? byVendor;
+          if (owner && typeof owner === 'object') {
+            patched = true;
+            return { ...m, vendor: { ...(m as any).vendor, user: owner } };
+          }
+          return m;
+        });
+        if (patched) return next;
+      }
+    } catch {
+      // Fall through to vendors endpoint.
+    }
+
+    try {
+      // Path 2: /vendors directly (same relationship vendors.user -> users).
+      const vendorIds = Array.from(
+        new Set(
+          missing
+            .map((m) => (m as any)?.vendor?.id)
+            .filter((v) => v != null)
+            .map((v) => String(v)),
+        ),
+      );
+      if (vendorIds.length === 0) return merchants;
+      const params = new URLSearchParams({
+        limit: String(vendorIds.length),
+        page: '1',
+      });
+      params.append('where[id][in]', vendorIds.join(','));
+      const res = await fetch(`${base}/vendors?${params.toString()}&depth=2`, {
+        headers,
+        credentials: 'omit',
+        cache: 'no-store',
+      });
+      if (!res.ok) return merchants;
+      const json = await res.json();
+      const docs: any[] = json.docs || json.data?.docs || [];
+      const ownerByVendorId = new Map<string, unknown>();
+      for (const d of docs) {
+        const owner = (d as any)?.user;
+        if (owner && typeof owner === 'object') {
+          ownerByVendorId.set(String((d as any)?.id ?? ''), owner);
+        }
+      }
+      let patched = false;
+      const next = merchants.map((m) => {
+        if (LocationBasedMerchantService.hasVendorOwner(m)) return m;
+        const vendorId = (m as any)?.vendor?.id;
+        const owner = vendorId != null ? ownerByVendorId.get(String(vendorId)) : undefined;
+        if (owner && typeof owner === 'object') {
+          patched = true;
+          return { ...m, vendor: { ...(m as any).vendor, user: owner } };
+        }
+        return m;
+      });
+      return patched ? next : merchants;
+    } catch {
+      return merchants;
+    }
   }
 
   /**
@@ -283,7 +439,7 @@ export class LocationBasedMerchantService {
       if (!includeInactive) params.append('where[isActive][equals]', 'true');
       params.append('limit', String(ids.length));
       const url = `${base}/merchant-categories?${params.toString()}`;
-      const res = await fetch(url, { headers, credentials: 'omit' });
+      const res = await fetch(url, { headers, credentials: 'omit', cache: 'no-store' });
       if (!res.ok) {
         dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
         return [];
@@ -355,9 +511,9 @@ export class LocationBasedMerchantService {
     params.append('where[id][in]', ids.join(','));
     if (!includeInactive) params.append('where[isActive][equals]', 'true');
     params.append('limit', String(ids.length));
-    const url = `${base}/merchant-categories?${params.toString()}`;
-    const res = await fetch(url, { headers, credentials: 'omit' });
-    if (!res.ok) { dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS); return []; }
+      const url = `${base}/merchant-categories?${params.toString()}`;
+      const res = await fetch(url, { headers, credentials: 'omit', cache: 'no-store' });
+      if (!res.ok) { dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS); return []; }
     const json = await res.json();
     const docs: any[] = json.docs || json.data?.docs || [];
     let mapped: MerchantCategoryDisplay[] = docs.map((c: any) => ({
@@ -407,7 +563,7 @@ export class LocationBasedMerchantService {
       const cached = dataCache.get<string>(cacheKey);
       if (cached) { out[m.id] = cached; return; }
       try {
-        const res = await fetch(`${base}/merchants/${m.id}?depth=1`, { headers });
+        const res = await fetch(`${base}/merchants/${m.id}?depth=1`, { headers, cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           const addr = data?.activeAddress;
@@ -423,7 +579,7 @@ export class LocationBasedMerchantService {
       const lng = (m as any).merchant_longitude ?? (m as any).longitude ?? null;
       if (lat != null && lng != null) {
         try {
-          const res2 = await fetch(`${base}/addresses?where[latitude][equals]=${lat}&where[longitude][equals]=${lng}&limit=1`, { headers });
+          const res2 = await fetch(`${base}/addresses?where[latitude][equals]=${lat}&where[longitude][equals]=${lng}&limit=1`, { headers, cache: 'no-store' });
           if (res2.ok) {
             const j = await res2.json();
             const doc = j?.docs?.[0];
@@ -474,6 +630,7 @@ export class LocationBasedMerchantService {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          cache: 'no-store',
         });
 
         if (response.ok) {
@@ -541,8 +698,8 @@ export class LocationBasedMerchantService {
         method: 'GET',
         headers,
         credentials: 'omit',
+        cache: 'no-store',
       });
-
 
       if (!response.ok) {
         console.error('❌ Failed to fetch customer by user ID:', response.status);

@@ -14,6 +14,31 @@ function getImageUrl(media: Media | null | undefined): string | null {
   return media.cloudinaryURL || media.url || media.thumbnailURL || null;
 }
 
+function getOwnerName(merchant: { vendor?: unknown }): string | null {
+  const user = (merchant.vendor as { user?: unknown } | null | undefined)?.user;
+  if (!user || typeof user !== 'object') return null;
+  const record = user as Record<string, unknown>;
+  const first =
+    (record.firstName as string | undefined) ??
+    (record.first_name as string | undefined) ??
+    '';
+  const last =
+    (record.lastName as string | undefined) ??
+    (record.last_name as string | undefined) ??
+    '';
+  const full = `${String(first ?? '')} ${String(last ?? '')}`.trim();
+  return full || null;
+}
+
+function getVendorName(merchant: { outletName?: unknown; vendor?: unknown }): string | null {
+  const business =
+    ((merchant.vendor as { businessName?: unknown } | null | undefined)?.businessName as string | undefined) || '';
+  if (!business.trim()) return null;
+  const outlet = typeof merchant.outletName === 'string' ? merchant.outletName : '';
+  if (business.trim().toLowerCase() === outlet.trim().toLowerCase()) return null;
+  return business;
+}
+
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolved = (await params) ?? {};
@@ -126,8 +151,17 @@ export default async function MerchantPage({ params }: PageProps) {
           {/* Main column: description, hours, media */}
           <div className="space-y-6">
             {/* Merchant name + active address below the logo */}
-            <div>
+            <div className="space-y-1">
               <h1 className="text-xl font-semibold text-gray-900 line-clamp-2">{displayName}</h1>
+              {getVendorName(merchant) && (
+                <p className="text-sm text-gray-600 line-clamp-1">{getVendorName(merchant)}</p>
+              )}
+              {getOwnerName(merchant) && (
+                <p className="text-xs text-gray-500 line-clamp-1">
+                  <i className="fas fa-user mr-1" />
+                  by {getOwnerName(merchant)}
+                </p>
+              )}
             </div>
             {/* Description */}
             {merchant.description && (

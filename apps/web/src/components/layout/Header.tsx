@@ -10,13 +10,14 @@ import { LocationSelector } from '@/components/location';
 import SearchModal from '@/components/search/SearchModal';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import SearchField from '@/components/ui/SearchField';
-import { AddressService, getCurrentCustomerId as getCustomerIdForMerchants, getLocationBasedMerchants, getLocationBasedMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
+import { AddressService, getCurrentCustomerId as getCustomerIdForMerchants, getLocationBasedMerchants, getLocationBasedMerchantCategories, getBrowsingMerchants, getBrowsingMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
 import { getWishlistMerchantIdsForCurrentUser, addMerchantToWishlist, removeMerchantFromWishlist } from '@/lib/client-services/wishlist-service';
 import { NotificationPopup, mockNotifications } from '@/components/notifications/NotificationPopup';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import { useAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
+import { getShowAll, useShowAll } from '@/lib/show-all';
 
 /**
  * Header component with navigation, search, and user controls
@@ -295,20 +296,40 @@ export function Header({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const [showAll, setShowAllFlag] = useShowAll();
+
   const fetchSearchIndex = useCallback(async () => {
     setIsLoading(true);
-    const cid = await getCustomerIdForMerchants();
-    setCustomerId(cid);
-    if (cid) {
-      const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
-      setMerchants(list || []);
-      const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
-      setCategories(cats || []);
-    } else {
+    try {
+      const cid = await getCustomerIdForMerchants();
+      setCustomerId(cid);
+      const scopeAll = getShowAll();
+      if (scopeAll) {
+        // Show All scope: global browsing, no location gate.
+        const list = await getBrowsingMerchants({ customerId: cid ?? undefined, limit: 9999 });
+        setMerchants(list || []);
+        const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, limit: 100 });
+        setCategories(cats || []);
+      } else if (cid) {
+        const list = await getLocationBasedMerchants({ customerId: cid, limit: 9999 });
+        setMerchants(list || []);
+        const cats = await getLocationBasedMerchantCategories({ customerId: cid, limit: 100 });
+        setCategories(cats || []);
+      } else {
+        setMerchants([]);
+        setCategories([]);
+      }
+    } catch (e: any) {
+      // NO_ACTIVE_ADDRESS (no delivery address yet) is an expected empty
+      // state, not a failure — stay silent like the sections do.
+      if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+        console.error('Failed to build search index:', e);
+      }
       setMerchants([]);
       setCategories([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -398,18 +419,43 @@ export function Header({
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!matchedCategory || !customerId) {
+      if (!matchedCategory) {
+        setCategoryMerchants([]);
+        return;
+      }
+      if (!showAll && !customerId) {
         setCategoryMerchants([]);
         return;
       }
       setIsCategoryLoading(true);
-      const list = await getLocationBasedMerchants({ customerId, limit: 24, categoryId: String(matchedCategory.id) });
-      if (cancel) return;
-      setCategoryMerchants(list || []);
-      setIsCategoryLoading(false);
+      try {
+        const list = showAll
+          ? await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 24, categoryId: String(matchedCategory.id) })
+          : await getLocationBasedMerchants({ customerId: customerId as string, limit: 24, categoryId: String(matchedCategory.id) });
+        if (cancel) return;
+        setCategoryMerchants(list || []);
+      } catch (e: any) {
+        if (e?.code !== 'NO_ACTIVE_ADDRESS') {
+          console.error('Failed to load category merchants:', e);
+        }
+        if (!cancel) setCategoryMerchants([]);
+      } finally {
+        if (!cancel) setIsCategoryLoading(false);
+      }
     })();
     return () => { cancel = true; };
-  }, [matchedCategory, customerId]);
+  }, [matchedCategory, customerId, showAll]);
+
+  // Show-all scope toggle → rebuild search index under the new scope.
+  // Skips the initial run (the mount effect above already fetched).
+  const scopeFirstRun = useRef(true);
+  useEffect(() => {
+    if (scopeFirstRun.current) {
+      scopeFirstRun.current = false;
+      return;
+    }
+    fetchSearchIndex();
+  }, [showAll, fetchSearchIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -609,6 +655,18 @@ export function Header({
                 {isDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
                     <div className="p-3 max-h-[70vh] overflow-y-auto">
+                      <label className="flex items-center gap-2.5 px-1 pb-2.5 mb-1 border-b border-gray-100 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={showAll}
+                          onChange={(e) => setShowAllFlag(e.target.checked)}
+                          className="w-4 h-4 accent-green-700"
+                        />
+                        <span className="text-[13px] font-semibold text-gray-700">
+                          Show All Merchants & Products
+                          <span className="block text-[11px] font-normal text-gray-400">Turn off location filtering</span>
+                        </span>
+                      </label>
                       {searchQuery.trim().length === 0 ? (
                         recentList.length > 0 ? (
                           <div>

@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ProductCategoryCircle } from '@/components/ui/ProductCategoryCircle';
-import { getCurrentCustomerId, getLocationBasedMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
+import { getCurrentCustomerId, getLocationBasedMerchantCategories, getBrowsingMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
 import { useAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
+import { getShowAll, useShowAll } from '@/lib/show-all';
 
 interface LocationBasedProductCategoriesCarouselProps {
   limit?: number;
@@ -67,10 +68,17 @@ export const LocationBasedProductCategoriesCarousel = ({
   const itemWidth = isUltraWide ? 80 : 64;
   const gapWidth = isUltraWide ? 56 : 48;
 
+  const [showAll] = useShowAll();
+
   const fetchMerchantCategories = useCallback(async (cid: string | null) => {
     try {
       setLoading(true);
       setError(null);
+      if (getShowAll()) {
+        const cats = await getBrowsingMerchantCategories({ customerId: cid ?? undefined, includeInactive, limit: limit });
+        setCategories(cats || []);
+        return;
+      }
       if (!cid) {
         setCategories([]);
         return;
@@ -93,6 +101,7 @@ export const LocationBasedProductCategoriesCarousel = ({
 
   // Resolve customer (prop wins, else session) then location fetch.
   // Delivery address change clears + refetches (tap2go parity).
+  // Show-All toggle refetches under the new scope.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -101,7 +110,7 @@ export const LocationBasedProductCategoriesCarousel = ({
       fetchMerchantCategories(cid);
     })();
     return () => { active = false; };
-  }, [customerIdProp, fetchMerchantCategories]);
+  }, [customerIdProp, fetchMerchantCategories, showAll]);
 
   useAddressChange(() => {
     clearAllLocationCaches();
