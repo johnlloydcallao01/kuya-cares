@@ -108,7 +108,7 @@ function ProductCardSkeleton() {
   );
 }
 
-function ProductCard({ product }: { product: MarketplaceProduct }) {
+function ProductCard({ product, hideDistance = false }: { product: MarketplaceProduct; hideDistance?: boolean }) {
   const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);
   const LinkComponent = Link as unknown as React.ElementType;
@@ -200,7 +200,7 @@ function ProductCard({ product }: { product: MarketplaceProduct }) {
           <p className="text-[11px] text-gray-500 truncate">
             <i className="fas fa-store mr-1 text-gray-400" />
             {product.merchantName}
-            {typeof product.distanceKm === 'number' && (
+            {!hideDistance && typeof product.distanceKm === 'number' && (
               <span className="ml-1 text-gray-400">
                 • {product.distanceKm <= 0 ? '0km' : product.distanceKm < 1 ? `${Math.round(product.distanceKm * 1000)}m` : `${product.distanceKm.toFixed(1)}km`}
               </span>
@@ -528,7 +528,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
             <div ref={flashRailRef} className="flex gap-3 overflow-x-auto pb-1 -mx-2.5 px-2.5" style={{ scrollbarWidth: 'none' }}>
               {flashDeals.map((p) => (
                 <div key={`flash-${String(p.merchantProductId)}`} className="w-[140px] sm:w-[160px] shrink-0">
-                  <ProductCard product={p} />
+                  <ProductCard product={p} hideDistance={showAll} />
                 </div>
               ))}
             </div>
@@ -701,7 +701,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                 {visibleProducts.map((p) => (
-                  <ProductCard key={String(p.merchantProductId)} product={p} />
+                  <ProductCard key={String(p.merchantProductId)} product={p} hideDistance={showAll} />
                 ))}
               </div>
               <div className="flex justify-center mt-5">

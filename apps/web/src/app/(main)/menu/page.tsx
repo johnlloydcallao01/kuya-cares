@@ -1,202 +1,298 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from "@/components/ui/ImageWrapper";
+import React, { useCallback, useEffect, useState } from 'react';
+import Image from '@/components/ui/ImageWrapper';
 import { useRouter } from 'next/navigation';
-import { useLogout } from '@/hooks/useAuth';
+import { useLogout, useUser } from '@/hooks/useAuth';
+import {
+  asObject,
+  fetchAccountOverview,
+  formatPHPPrice,
+  type AccountOverview,
+} from '@/lib/client-services/account-service';
 
 /**
- * Professional Menu Page - Facebook-style user menu
- * Mobile-optimized with comprehensive app navigation and user options
+ * Production Account Menu — mirrors apps/mobile-customer AccountScreen
+ * (Menu tab → Account): real user, real customer/active-address,
+ * real stats (orders / spent / reviews / favorites), real badges.
  */
 
-// Mock user data
-const mockUser = {
-  name: 'Alex Customer',
-  email: 'alex.customer@example.com',
-  rank: 'Premium Member',
-  company: 'Kuya Cares Customer',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-  memberSince: '2023',
-  ordersCompleted: 8,
-  rewardsEarned: 6
-};
-
-// Menu sections data
-const menuSections = [
-  {
-    title: 'Shopping',
-    items: [
-      { icon: 'fa-shopping-bag', label: 'My Orders', path: '/orders', badge: '3' },
-      { icon: 'fa-heart', label: 'Wishlist', path: '/wishlist', badge: null },
-      { icon: 'fa-shopping-cart', label: 'Carts', path: '/carts', badge: null },
-      { icon: 'fa-store', label: 'Browse Merchants', path: '/merchants', badge: '12' },
-      { icon: 'fa-history', label: 'Order History', path: '/history', badge: null }
-    ]
-  },
-  {
-    title: 'Account',
-    items: [
-      { icon: 'fa-user-edit', label: 'Edit Profile', path: '/profile', badge: null },
-      { icon: 'fa-cog', label: 'Settings', path: '/settings', badge: null },
-      { icon: 'fa-bell', label: 'Notifications', path: '/notifications', badge: '5' },
-      { icon: 'fa-credit-card', label: 'Billing & Payments', path: '/billing', badge: null },
-      { icon: 'fa-shield-alt', label: 'Privacy & Security', path: '/privacy', badge: null }
-    ]
-  },
-  {
-    title: 'Support',
-    items: [
-      { icon: 'fa-comments', label: 'Contact Support', path: '/support', badge: null },
-      { icon: 'fa-bug', label: 'Report Issue', path: '/report', badge: null },
-      { icon: 'fa-star', label: 'Rate App', path: '/rate', badge: null }
-    ]
-  },
-  {
-    title: 'More',
-    items: [
-      { icon: 'fa-users', label: 'Invite Friends', path: '/invite', badge: null },
-      { icon: 'fa-share-alt', label: 'Share App', path: '/share', badge: null },
-      { icon: 'fa-info-circle', label: 'About', path: '/about', badge: null },
-      { icon: 'fa-file-alt', label: 'Terms & Privacy', path: '/terms', badge: null }
-    ]
-  }
-];
+function MenuSkeleton() {
+  return (
+    <div className="px-4 py-6 space-y-4">
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse">
+        <div className="flex items-center">
+          <div className="w-[72px] h-[72px] rounded-full bg-gray-200 mr-4" />
+          <div className="flex-1 space-y-2">
+            <div className="h-5 w-3/5 bg-gray-100 rounded" />
+            <div className="h-3.5 w-4/5 bg-gray-100 rounded" />
+            <div className="h-3 w-2/5 bg-gray-100 rounded" />
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+          <div className="h-3 w-1/3 bg-gray-100 rounded" />
+          <div className="h-3.5 w-4/5 bg-gray-100 rounded" />
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse">
+        <div className="h-4 w-1/3 bg-gray-100 rounded mb-4" />
+        <div className="flex justify-around">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-2 flex-1">
+              <div className="w-12 h-6 bg-gray-200 rounded" />
+              <div className="w-10 h-3 bg-gray-100 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-pulse">
+        <div className="p-5 pb-3">
+          <div className="h-4 w-1/3 bg-gray-100 rounded" />
+        </div>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center px-5 py-4 border-t border-gray-100 first:border-t-0">
+            <div className="w-[22px] h-[22px] rounded-md bg-gray-200 mr-3.5" />
+            <div className="h-4 w-2/5 bg-gray-100 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function MenuPage() {
   const router = useRouter();
+  const { user, isLoading: isAuthLoading } = useUser();
   const { logout, isLoggingOut } = useLogout();
+
+  const [overview, setOverview] = useState<AccountOverview | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Guest';
+  const email = user?.email || '';
+  const profileImageUrl =
+    user?.profilePicture?.cloudinaryURL || user?.profilePicture?.url || null;
+  const initials = displayName.charAt(0).toUpperCase() || 'G';
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
+
+  const activeAddress = overview?.customer?.activeAddress
+    ? asObject(overview.customer.activeAddress)
+    : null;
+  const formattedAddress =
+    activeAddress?.formatted_address || activeAddress?.formattedAddress || null;
+
+  const loadData = useCallback(async () => {
+    if (!user?.id) {
+      setOverview(null);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await fetchAccountOverview(user.id);
+      setOverview(data);
+    } catch (err) {
+      console.error('Failed to load account overview:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!isAuthLoading) loadData();
+  }, [isAuthLoading, loadData]);
 
   const handleMenuItemClick = (path: string) => {
     router.push(path as any);
   };
 
+  if (isAuthLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <h1 className="text-2xl font-bold text-gray-900">Account</h1>
+        </div>
+        <MenuSkeleton />
+      </div>
+    );
+  }
+
+  const stats = overview?.stats;
+
+  const quickActions: {
+    icon: string;
+    label: string;
+    badge?: number;
+    path: string;
+  }[] = [
+    {
+      icon: 'fa-receipt',
+      label: 'My Orders',
+      badge: stats?.orderCount,
+      path: '/orders',
+    },
+    {
+      icon: 'fa-heart',
+      label: 'Favorites',
+      badge: stats?.favoriteCount,
+      path: '/wishlists',
+    },
+    {
+      icon: 'fa-bell',
+      label: 'Notifications',
+      badge: stats?.unreadNotificationCount,
+      path: '/notifications',
+    },
+    {
+      icon: 'fa-location-dot',
+      label: 'Delivery Addresses',
+      badge: stats?.addressCount,
+      path: '/addresses',
+    },
+    {
+      icon: 'fa-pen-to-square',
+      label: 'Edit Profile',
+      path: '/settings',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* User Profile Section */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-4 pt-8 pb-6">
-          {/* Page Title */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Menu</h1>
-            <p className="text-gray-600 text-sm mt-1">Account and app settings</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200">
-              <Image
-                src={mockUser.avatar}
-                alt={mockUser.name}
-                width={64}
-                height={64}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold text-gray-900">{mockUser.name}</h2>
-              <p className="text-sm text-gray-600">{mockUser.rank}</p>
-              <p className="text-sm text-gray-500">{mockUser.company}</p>
-            </div>
-            <button 
-              onClick={() => handleMenuItemClick('/profile')}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              <i className="fa fa-chevron-right text-gray-600 text-sm"></i>
-            </button>
-          </div>
-          
-          {/* Quick Stats */}
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-lg font-bold text-[#201a7c]">{mockUser.ordersCompleted}</div>
-              <div className="text-xs text-gray-600">Orders</div>
-            </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-lg font-bold text-green-600">{mockUser.rewardsEarned}</div>
-              <div className="text-xs text-gray-600">Rewards</div>
-            </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <div className="text-lg font-bold text-purple-600">{mockUser.memberSince}</div>
-              <div className="text-xs text-gray-600">Member Since</div>
-            </div>
-          </div>
-        </div>
+      {/* Header — same as mobile AccountScreen */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <h1 className="text-2xl font-bold text-gray-900">Account</h1>
       </div>
 
-      {/* Menu Sections */}
-      <div className="px-4 py-6">
-        {menuSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 px-2">{section.title}</h3>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              {section.items.map((item, itemIndex) => (
-                <button
-                  key={itemIndex}
-                  onClick={() => handleMenuItemClick(item.path)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <i className={`fa ${item.icon} text-gray-600`}></i>
-                    </div>
-                    <span className="font-medium text-gray-900">{item.label}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {item.badge && (
-                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
-                        {item.badge}
-                      </span>
-                    )}
-                    <i className="fa fa-chevron-right text-gray-400 text-sm"></i>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-
-
-      </div>
-
-      {/* Sign Out Section */}
-      <div className="px-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="border-t border-gray-100 py-1">
-            <button
-              onClick={async () => {
-                try {
-                  await logout();
-                } catch (error) {
-                  console.error('Logout failed:', error);
-                }
-              }}
-              disabled={isLoggingOut}
-              className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-            >
-              {isLoggingOut ? (
-                <svg className="w-4 h-4 mr-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+      <div className="px-4 py-4 pb-24 space-y-4">
+        {/* Profile Card */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center">
+            {profileImageUrl ? (
+              <div className="w-[72px] h-[72px] rounded-full overflow-hidden mr-4 shrink-0">
+                <Image
+                  src={profileImageUrl}
+                  alt={displayName}
+                  width={72}
+                  height={72}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-[72px] h-[72px] rounded-full mr-4 shrink-0 bg-green-50 flex items-center justify-center">
+                <span className="text-[28px] font-bold text-[#239459]">{initials}</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-bold text-gray-900 truncate">{displayName}</h2>
+              {!!email && <p className="text-sm text-gray-500 truncate mt-0.5">{email}</p>}
+              {memberSince && (
+                <p className="text-xs text-gray-500 mt-1">Member since {memberSince}</p>
               )}
-              {isLoggingOut ? 'Signing out...' : 'Sign out'}
-            </button>
+            </div>
           </div>
+
+          {/* Active Delivery Address */}
+          <button
+            type="button"
+            onClick={() => handleMenuItemClick('/addresses')}
+            className="mt-4 pt-4 border-t border-gray-100 w-full flex items-start text-left hover:bg-gray-50 transition-colors rounded-lg"
+          >
+            <i
+              className={`fa fa-location-dot text-[18px] mt-0.5 mr-2.5 ${
+                formattedAddress ? 'text-[#239459]' : 'text-gray-400'
+              }`}
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-0.5">
+                Delivery Address
+              </span>
+              <span
+                className={`block text-sm leading-5 line-clamp-2 ${
+                  formattedAddress ? 'text-gray-900' : 'text-gray-500'
+                }`}
+              >
+                {formattedAddress || 'No delivery address set yet'}
+              </span>
+            </span>
+            <i className="fa fa-chevron-right text-gray-400 text-xs ml-2 mt-1" />
+          </button>
+        </div>
+
+        {/* Stats Row — Orders / Total Spent / Reviews / Favorites */}
+        {stats && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 className="text-base font-bold text-gray-900 mb-4">Your Stats</h3>
+            <div className="flex justify-around">
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-2xl font-bold text-[#239459]">{stats.orderCount}</span>
+                <span className="text-xs text-gray-500 mt-1">Orders</span>
+              </div>
+              <div className="flex flex-col items-center flex-1 min-w-0 px-1">
+                <span className="text-[22px] leading-7 font-bold text-green-600 truncate max-w-full">
+                  {stats.totalSpent > 0 ? formatPHPPrice(stats.totalSpent) : '—'}
+                </span>
+                <span className="text-xs text-gray-500 mt-1">Total Spent</span>
+              </div>
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-2xl font-bold text-purple-600">{stats.reviewCount}</span>
+                <span className="text-xs text-gray-500 mt-1">Reviews</span>
+              </div>
+              <div className="flex flex-col items-center flex-1">
+                <span className="text-2xl font-bold text-orange-500">{stats.favoriteCount}</span>
+                <span className="text-xs text-gray-500 mt-1">Favorites</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* My Account actions */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <h3 className="text-base font-bold text-gray-900 px-5 pt-5 pb-3">My Account</h3>
+          {quickActions.map((item, idx) => (
+            <button
+              key={item.label}
+              onClick={() => handleMenuItemClick(item.path)}
+              className={`w-full flex items-center px-5 py-4 hover:bg-gray-50 transition-colors ${
+                idx > 0 ? 'border-t border-gray-100' : ''
+              }`}
+            >
+              <i className={`fa ${item.icon} text-[22px] text-gray-500 w-[22px] text-center`} />
+              <span className="flex-1 ml-3.5 text-left text-base text-gray-900">{item.label}</span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="bg-[#239459] min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1.5 mr-2">
+                  <span className="text-white text-xs font-bold">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                </span>
+              )}
+              <i className="fa fa-chevron-right text-gray-400 text-xs" />
+            </button>
+          ))}
+        </div>
+
+        {/* Sign Out */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <button
+            onClick={async () => {
+              try {
+                await logout();
+              } catch (error) {
+                console.error('Logout failed:', error);
+              }
+            }}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center px-4 py-5 text-base text-red-500 font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+          </button>
         </div>
       </div>
-
-      {/* App Info */}
-      <div className="px-4 pb-20">
-        <div className="text-center text-gray-500 text-sm">
-          <p>Grandline Maritime Training</p>
-          <p>Version 1.0.0</p>
-          <p className="mt-2">© 2024 Grandline Maritime Training Center</p>
-        </div>
-      </div>
-
-
     </div>
   );
 }

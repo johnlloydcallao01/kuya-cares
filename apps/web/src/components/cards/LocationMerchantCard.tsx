@@ -11,6 +11,7 @@ interface LocationMerchantCardProps {
   onToggleWishlist?: (id: string) => void;
   addressName?: string | null;
   variant?: 'card' | 'list';
+  hideDistance?: boolean;
 }
 
 function getImageUrl(media: Media | null | undefined): string | null {
@@ -52,7 +53,7 @@ function formatDistanceKm(distanceKm?: number): string | null {
   return `${distanceKm.toFixed(1)}km`;
 }
 
-export default function LocationMerchantCard({ merchant, isWishlisted = false, onToggleWishlist, addressName = null, variant = 'card' }: LocationMerchantCardProps) {
+export default function LocationMerchantCard({ merchant, isWishlisted = false, onToggleWishlist, addressName = null, variant = 'card', hideDistance = false }: LocationMerchantCardProps) {
   const thumbnailImageUrl = getImageUrl(merchant.media?.thumbnail);
   const altText = merchant.media?.thumbnail?.alt || `${merchant.outletName} thumbnail`;
   const vendorLogoUrl = getImageUrl(merchant.vendor?.logo);
@@ -60,7 +61,18 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
   const listImageAlt = vendorLogoUrl ? `${merchant.vendor?.businessName || merchant.outletName || "Vendor"} logo` : altText;
   const distanceKm = (merchant as any)?.distanceKm as number | undefined;
   const distanceInMeters = (merchant as any)?.distanceInMeters as number | undefined;
-  const distanceText = typeof distanceKm === "number" ? formatDistanceKm(distanceKm) : (typeof distanceInMeters === "number" ? formatDistanceKm(distanceInMeters / 1000) : null);
+  const rawDistanceText = typeof distanceKm === "number" ? formatDistanceKm(distanceKm) : (typeof distanceInMeters === "number" ? formatDistanceKm(distanceInMeters / 1000) : null);
+  // Show All scope is location-agnostic: browsing rows carry placeholder 0km.
+  // Never show the badge in that mode, even if callers forget to pass the prop.
+  const isShowAllScope = (() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      return window.localStorage.getItem('kuyacares_show_all') === '1';
+    } catch {
+      return false;
+    }
+  })();
+  const distanceText = (hideDistance || isShowAllScope) ? null : rawDistanceText;
   const rating = typeof merchant.metrics?.averageRating === "number" ? merchant.metrics.averageRating : null;
 
   const trackRecentView = (merchantId: string | number) => {

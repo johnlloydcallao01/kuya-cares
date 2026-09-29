@@ -704,6 +704,7 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
               merchant={merchant}
               isWishlisted={wishlistIds.has(String(merchant.id))}
               onToggleWishlist={toggleWishlist}
+              hideDistance={showAll}
                           />
           ))}
         </div>
@@ -751,6 +752,7 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
                     merchant={merchant}
                     isWishlisted={wishlistIds.has(String(merchant.id))}
                     onToggleWishlist={toggleWishlist}
+                    hideDistance={showAll}
                                       />
                 </div>
               ))}
