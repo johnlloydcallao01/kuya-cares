@@ -7,8 +7,11 @@ import { useRouter } from 'next/navigation';
 import {
   type LocationBasedMerchant,
   type Media,
-  getBrowsingMerchants,
+  getCurrentCustomerId,
+  getLocationBasedMerchants,
 } from '@encreasl/client-services';
+import { useAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import {
   getWishlistMerchantIdsForCurrentUser,
   addMerchantToWishlist,
@@ -19,6 +22,7 @@ import { toast } from 'react-hot-toast';
 interface LocationBasedMerchantsProps {
   limit?: number;
   categoryId?: string | null;
+  customerId?: string | null;
 }
 
 // Location-based Merchant Card Skeleton
@@ -66,9 +70,10 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
   // Get vendor logo URL
   const vendorLogoUrl = getImageUrl(merchant.vendor?.logo);
 
-  // Format distance display (null when address-free browsing)
+  // Format distance display (explicit 0km for same-spot merchants)
   const formatDistance = (distanceKm: number): string | null => {
-    if (typeof distanceKm !== 'number' || distanceKm <= 0) return null;
+    if (typeof distanceKm !== 'number') return null;
+    if (distanceKm <= 0) return '0km';
     if (distanceKm < 1) {
       return `${Math.round(distanceKm * 1000)}m`;
     }
@@ -196,7 +201,8 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
 }
 
 // Main LocationBasedMerchants Component
-export function LocationBasedMerchants({ limit = 9999, categoryId }: LocationBasedMerchantsProps) {
+export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: customerIdProp }: LocationBasedMerchantsProps) {
+  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(customerIdProp ?? null);
   const router = useRouter();
   const [merchants, setMerchants] = useState<LocationBasedMerchant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -270,21 +276,25 @@ export function LocationBasedMerchants({ limit = 9999, categoryId }: LocationBas
   const animationRef = useRef<number | null>(null);
   const boundsCalculatedRef = useRef(false);
 
-  // Helper: build headers with API key
-  // Lazada/Shopee-style: display merchants directly, no address/location required.
-  // Fetch plain active merchants without any customer/address round-trips.
-  const fetchLocationBasedMerchants = useCallback(async () => {
+  // Location-based fetch (tap2go parity): customerId-gated, empty for
+  // guests without a delivery location.
+  const fetchLocationBasedMerchants = useCallback(async (cid: string | null) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const locationMerchants = await getBrowsingMerchants({
+      if (!cid) {
+        setMerchants([]);
+        return;
+      }
+      const locationMerchants = await getLocationBasedMerchants({
+        customerId: cid,
         limit,
         categoryId: categoryId || undefined,
       });
       setMerchants(locationMerchants);
     } catch (err) {
-      console.error('âŒ Error fetching merchants:', err);
+      console.error('Error fetching merchants:', err);
       setError('Failed to load merchants. Please try again.');
     } finally {
       setIsLoading(false);
@@ -423,11 +433,30 @@ export function LocationBasedMerchants({ limit = 9999, categoryId }: LocationBas
     animateToPosition(finalPos, 400);
   }, [isDragging, velocityX, translateX, maxTranslate, animateToPosition]);
 
-  // Lazada/Shopee-style: fetch merchants directly on mount.
-  // No customer/address resolution â€” no location-based endpoint round-trips.
+  // Resolve customer (prop wins, else session) then location fetch.
+  // Delivery address change clears + refetches (tap2go parity).
   useEffect(() => {
-    fetchLocationBasedMerchants();
-  }, [fetchLocationBasedMerchants]);
+    let active = true;
+    (async () => {
+      const cid = customerIdProp ?? await getCurrentCustomerId().catch(() => null);
+      if (!active) return;
+      setResolvedCustomerId(cid);
+      fetchLocationBasedMerchants(cid);
+    })();
+    return () => { active = false; };
+  }, [customerIdProp, fetchLocationBasedMerchants]);
+
+  useAddressChange(() => {
+    // Bust first: keys are customerId-scoped, so a refetch alone would hit
+    // the old address's cached rows.
+    clearAllLocationCaches();
+    getCurrentCustomerId()
+      .catch(() => null)
+      .then((cid) => {
+        setResolvedCustomerId(cid);
+        fetchLocationBasedMerchants(cid);
+      });
+  });
 
   // Calculate bounds when merchants change or component mounts (for carousel)
   useEffect(() => {

@@ -6,6 +6,7 @@ import { AddressService } from '@encreasl/client-services';
 import { useUser } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { emitAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
 
 interface CheckoutAddressSectionProps {
@@ -91,6 +92,8 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
         if (activeAddressId === addressId) {
           setActiveAddressId(null);
         }
+        clearAllLocationCaches();
+        emitAddressChange(addressId);
       } else {
         throw new Error(response.error || 'Failed to delete address');
       }
@@ -113,6 +116,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
       if (response.success) {
         toast.success('Active address updated successfully!');
         setActiveAddressId(addressId);
+        clearAllLocationCaches();
         emitAddressChange(addressId);
       } else {
         throw new Error(response.error || 'Failed to set active address');
@@ -160,7 +164,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
 
       toast.success('Address saved and activated successfully!');
       setActiveAddressId(addressId);
-      AddressService.clearCache();
+      clearAllLocationCaches();
       await loadUserAddresses();
       emitAddressChange(addressId);
       

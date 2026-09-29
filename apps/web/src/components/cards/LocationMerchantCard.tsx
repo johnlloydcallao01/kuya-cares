@@ -20,8 +20,8 @@ function getImageUrl(media: Media | null | undefined): string | null {
 
 function formatDistanceKm(distanceKm?: number): string | null {
   if (typeof distanceKm !== "number") return null;
-  // Address-free browsing fallback uses 0 — hide the badge Shopee-style.
-  if (distanceKm <= 0) return null;
+  // Explicit 0km: same-spot merchants show their distance, never a blank badge.
+  if (distanceKm <= 0) return '0km';
   if (distanceKm < 1) return `${Math.round(distanceKm * 1000)}m`;
   return `${distanceKm.toFixed(1)}km`;
 }

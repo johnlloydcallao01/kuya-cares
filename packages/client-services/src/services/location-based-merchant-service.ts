@@ -452,9 +452,14 @@ export class LocationBasedMerchantService {
 
 
   /**
-   * Get customer ID from current user session
-   * Delegates to the /api/customer/me BFF endpoint which reads the session
-   * cookie. Returns null silently for guests or unauthenticated users.
+   * Get customer ID from current user session.
+   * Path 1: /api/customer/me with the session cookie (works when a
+   * Payload session cookie is present for the CMS origin).
+   * Path 2 (fallback): stored user id + service API key via
+   * getCustomerIdFromUserId — the same identity the address bar uses
+   * (localStorage user + API key), so sections never go blind while
+   * the header shows an active address.
+   * Returns null silently for guests or unauthenticated users.
    */
   static async getCurrentCustomerId(): Promise<string | null> {
     try {
@@ -463,27 +468,58 @@ export class LocationBasedMerchantService {
         return cachedCustomerId;
       }
 
-      const url = `${this.API_BASE}/customer/me`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      try {
+        const url = `${this.API_BASE}/customer/me`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
+        if (response.ok) {
+          const data = await response.json();
+          const customerId = data?.customerId ?? null;
+          if (customerId != null) {
+            dataCache.set('current-customer-id', String(customerId), CACHE_TTL.MERCHANTS);
+            return String(customerId);
+          }
+        }
+      } catch {
+        // Fall through to the API-key path below.
+      }
+
+      const userId = LocationBasedMerchantService.getStoredUserId();
+      if (userId == null) {
         return null;
       }
-
-      const data = await response.json();
-      const customerId = data?.customerId ?? null;
+      const customerId = await LocationBasedMerchantService.getCustomerIdFromUserId(userId);
       if (customerId != null) {
         dataCache.set('current-customer-id', String(customerId), CACHE_TTL.MERCHANTS);
+        return String(customerId);
       }
-
-      return customerId != null ? String(customerId) : null;
+      return null;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Read the signed-in user id from local storage (both current and
+   * legacy keys, mirroring AuthContext persistence).
+   */
+  static getStoredUserId(): string | number | null {
+    if (typeof window === 'undefined') return null;
+    for (const key of ['kuyacares_auth_user', 'grandline_auth_user']) {
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        const id = JSON.parse(raw)?.id;
+        if (typeof id === 'number' || (typeof id === 'string' && id.trim() !== '')) return id;
+      } catch {
+        // Try the next key.
+      }
+    }
+    return null;
   }
 
   /**

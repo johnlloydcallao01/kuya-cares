@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LocationBasedMerchants } from "@/components/sections/LocationBasedMerchants";
 import { LocationBasedProductCategoriesCarousel } from "@/components/carousels/LocationBasedProductCategoriesCarousel";
 import { HomeMarketplaceProducts } from "@/components/sections/HomeMarketplaceProducts";
+import { getCurrentCustomerId } from "@encreasl/client-services";
 
 /**
  * Home page component - 100% CSR (Client-Side Rendering)
@@ -22,12 +23,24 @@ export default function Home() {
   const searchParams = useSearchParams();
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   // Read category filter from URL on mount and when URL changes
   useEffect(() => {
     const categorySlug = searchParams.get('category');
     setSelectedCategorySlug(categorySlug);
   }, [searchParams]);
+
+  // Resolve customer once for location-based sections (tap2go parity).
+  useEffect(() => {
+    let active = true;
+    getCurrentCustomerId()
+      .catch(() => null)
+      .then((cid) => {
+        if (active) setCustomerId(cid);
+      });
+    return () => { active = false; };
+  }, []);
 
   // Handle category selection from carousel
   const handleCategorySelect = (categoryId: string | null, categorySlug: string | null, categoryName?: string) => {
@@ -93,6 +106,7 @@ export default function Home() {
           selectedCategorySlug={selectedCategorySlug}
           onCategorySelect={handleCategorySelect}
           onCategoryIdResolved={handleCategoryIdResolved}
+          customerId={customerId ?? undefined}
         />
       </div>
 
@@ -101,13 +115,13 @@ export default function Home() {
         <LocationBasedMerchants 
           limit={50}
           categoryId={selectedCategoryId}
+          customerId={customerId ?? undefined}
         />
       </div>
 
-      {/* Marketplace Products Section (additive — existing sections above untouched) */}
+      {/* Marketplace Products Section (independent — never narrowed by the merchant-category filter) */}
       <div id="products-section">
         <HomeMarketplaceProducts
-          merchantCategoryId={selectedCategoryId}
           limit={48}
         />
       </div>

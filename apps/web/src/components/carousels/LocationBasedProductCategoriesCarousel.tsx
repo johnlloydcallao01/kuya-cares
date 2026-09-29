@@ -2,7 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ProductCategoryCircle } from '@/components/ui/ProductCategoryCircle';
-import { getBrowsingMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
+import { getCurrentCustomerId, getLocationBasedMerchantCategories, type MerchantCategoryDisplay, type Media } from '@encreasl/client-services';
+import { useAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 
 interface LocationBasedProductCategoriesCarouselProps {
   limit?: number;
@@ -11,6 +13,7 @@ interface LocationBasedProductCategoriesCarouselProps {
   selectedCategorySlug?: string | null;
   onCategorySelect?: (categoryId: string | null, categorySlug: string | null, categoryName?: string) => void;
   onCategoryIdResolved?: (categoryId: string | null) => void;
+  customerId?: string | null;
 }
 
 /**
@@ -26,6 +29,7 @@ export const LocationBasedProductCategoriesCarousel = ({
   selectedCategorySlug,
   onCategorySelect,
   onCategoryIdResolved,
+  customerId: customerIdProp,
 }: LocationBasedProductCategoriesCarouselProps): React.ReactNode => {
   // CSR state management for product categories
   const [categories, setCategories] = useState<MerchantCategoryDisplay[]>([]);
@@ -63,11 +67,15 @@ export const LocationBasedProductCategoriesCarousel = ({
   const itemWidth = isUltraWide ? 80 : 64;
   const gapWidth = isUltraWide ? 56 : 48;
 
-  const fetchMerchantCategories = useCallback(async () => {
+  const fetchMerchantCategories = useCallback(async (cid: string | null) => {
     try {
       setLoading(true);
       setError(null);
-      const cats = await getBrowsingMerchantCategories({ includeInactive, limit: limit });
+      if (!cid) {
+        setCategories([]);
+        return;
+      }
+      const cats = await getLocationBasedMerchantCategories({ customerId: cid, includeInactive, limit: limit });
       let mapped = cats || [];
       if (sortBy === 'name') {
         mapped = mapped.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -83,11 +91,24 @@ export const LocationBasedProductCategoriesCarousel = ({
     }
   }, [includeInactive, limit, sortBy]);
 
-  // Lazada/Shopee-style: fetch categories directly on mount.
-  // No customer/address resolution — no location-based endpoint round-trips.
+  // Resolve customer (prop wins, else session) then location fetch.
+  // Delivery address change clears + refetches (tap2go parity).
   useEffect(() => {
-    fetchMerchantCategories();
-  }, [fetchMerchantCategories]);
+    let active = true;
+    (async () => {
+      const cid = customerIdProp ?? await getCurrentCustomerId().catch(() => null);
+      if (!active) return;
+      fetchMerchantCategories(cid);
+    })();
+    return () => { active = false; };
+  }, [customerIdProp, fetchMerchantCategories]);
+
+  useAddressChange(() => {
+    clearAllLocationCaches();
+    getCurrentCustomerId()
+      .catch(() => null)
+      .then((cid) => fetchMerchantCategories(cid));
+  });
 
   // Calculate proper maxTranslate to ensure last item is fully visible - identical to ProductCategoryCarousel
   const getMaxTranslate = useCallback(() => {

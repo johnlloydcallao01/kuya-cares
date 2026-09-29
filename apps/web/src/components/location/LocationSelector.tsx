@@ -8,6 +8,7 @@ import { AddressService } from '@encreasl/client-services';
 import { useUser } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { emitAddressChange, useAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import { AddressSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton';
 
 interface LocationSelectorProps {
@@ -156,6 +157,11 @@ function LocationModal({ isOpen, onClose, onLocationSelect, onAddressesChanged }
           setActiveAddressId(null);
         }
 
+        // Bust location caches so merchants/categories/products refetch fresh,
+        // then notify every subscriber (no page reload needed).
+        clearAllLocationCaches();
+        emitAddressChange(addressId);
+
         // Notify parent component that addresses have changed
         onAddressesChanged?.();
       } else {
@@ -186,6 +192,9 @@ function LocationModal({ isOpen, onClose, onLocationSelect, onAddressesChanged }
 
         // Optimistically update UI state - set the new active address
         setActiveAddressId(addressId);
+
+        // Bust location caches BEFORE emitting so subscribers refetch fresh.
+        clearAllLocationCaches();
 
         // Emit address change event for real-time updates
         console.log('📢 About to emit address change for:', addressId);
@@ -256,8 +265,9 @@ function LocationModal({ isOpen, onClose, onLocationSelect, onAddressesChanged }
       // Update local state to reflect the new active address
       setActiveAddressId(addressId);
 
-      // Clear cache and force fresh fetch to ensure data consistency
-      AddressService.clearCache();
+      // Clear ALL location caches (not just addresses) and force fresh
+      // fetch to ensure data consistency
+      clearAllLocationCaches();
       await loadUserAddresses();
 
       // Emit address change event for real-time updates

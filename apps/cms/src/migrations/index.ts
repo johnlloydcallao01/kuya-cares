@@ -74,6 +74,7 @@ import * as migration_20260928_005440 from './20260928_005440';
 import * as migration_20260928_014901 from './20260928_014901';
 import * as migration_20260928_021136 from './20260928_021136';
 import * as migration_20260928_044323 from './20260928_044323';
+import * as migration_20260929_060000_enable_postgis from './20260929_060000_enable_postgis';
 
 export const migrations = [
   {
@@ -455,5 +456,10 @@ export const migrations = [
     up: migration_20260928_044323.up,
     down: migration_20260928_044323.down,
     name: '20260928_044323'
+  },
+  {
+    up: migration_20260929_060000_enable_postgis.up,
+    down: migration_20260929_060000_enable_postgis.down,
+    name: '20260929_060000_enable_postgis',
   },
 ];

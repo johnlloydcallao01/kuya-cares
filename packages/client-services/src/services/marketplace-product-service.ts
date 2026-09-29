@@ -1,5 +1,6 @@
 import { dataCache, CACHE_KEYS, CACHE_TTL } from '../cache/data-cache';
 import type { Media } from '../types/merchant';
+import { LocationBasedMerchantService, type LocationBasedMerchant } from './location-based-merchant-service';
 
 export interface MarketplaceProductCategory {
   id: number | string;
@@ -43,6 +44,10 @@ export interface MarketplaceProduct {
   totalOrders?: number | null;
   stockQuantity?: number | null;
   isAvailable: boolean;
+  /** Location enrichment — present when fetched with customerId */
+  distanceKm?: number | null;
+  isWithinDeliveryRadius?: boolean;
+  estimatedDeliveryTime?: string | null;
 }
 
 export interface MarketplaceProductsResult {
@@ -166,19 +171,51 @@ export class MarketplaceProductService {
    * Fetch marketplace-wide sellable products via the `merchant-products`
    * junction (price/stock-aware — preferred over raw `products`).
    * Filters client-side by product category + merchant category.
+   *
+   * Location gate (hard rule): `customerId` is REQUIRED. Products are
+   * narrowed to merchants within the customer's delivery location and
+   * enriched with distance/ETA. No customer (or no qualified merchants)
+   * yields zero products — never the global pool.
    */
   static async getMarketplaceProducts(options: {
     limit?: number;
     productCategoryId?: number | string | null;
     merchantCategoryId?: number | string | null;
     search?: string | null;
+    customerId?: string | null;
   } = {}): Promise<MarketplaceProduct[]> {
-    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null } = options;
-    const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}`;
+    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null } = options;
+    const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
 
     try {
+      // HARD RULE: products are ONLY ever the products of location-qualified
+      // merchants — the exact same gate as the merchants section (which
+      // renders empty on no-customer / no-address / location failure).
+      // No customer → []. Location failure → empty set (mirrors merchants).
+      // There is deliberately NO global fallback: showing the full pool
+      // while merchants show none is a lie.
+      if (!customerId) return [];
+      let nearby: LocationBasedMerchant[] = [];
+      try {
+        nearby = await LocationBasedMerchantService.getLocationBasedMerchants({
+          customerId,
+          limit: 9999,
+        });
+      } catch {
+        nearby = [];
+      }
+      const nearbyIds = new Set(nearby.map((m) => String((m as { id: number | string }).id)));
+      const distanceByMerchant = new Map<string, { distanceKm: number | null; isWithinDeliveryRadius: boolean; estimatedDeliveryTime: string | null }>();
+      for (const m of nearby) {
+        const mm = m as unknown as Record<string, unknown>;
+        distanceByMerchant.set(String((m as { id: number | string }).id), {
+          distanceKm: typeof mm.distanceKm === 'number' ? (mm.distanceKm as number) : null,
+          isWithinDeliveryRadius: (mm.isWithinDeliveryRadius as boolean) !== false,
+          estimatedDeliveryTime: typeof mm.estimatedDeliveryTime === 'string' ? (mm.estimatedDeliveryTime as string) : null,
+        });
+      }
       // Over-fetch then filter client-side so category filtering is exact
       // even though Payload can't join-filter across relationships.
       const fetchLimit = Math.min(500, Math.max(limit * 4, 100));
@@ -283,6 +320,9 @@ export class MarketplaceProductService {
             ? (merchant.outletName as string)
             : 'Merchant';
         const mId = (merchant?.id as number | string | undefined) ?? (mp.merchant_id as number | string);
+        // Location gate: drop every product whose merchant is not qualified.
+        if (!nearbyIds.has(String(mId))) continue;
+        const geo = distanceByMerchant.get(String(mId));
         const merchantSlug = toSlug(outletName);
         const merchantSlugId = `${merchantSlug}-${String(mId)}`;
         const pId = (product.id as number | string | undefined) ?? (mp.id as number | string);
@@ -316,13 +356,16 @@ export class MarketplaceProductService {
           totalOrders: typeof metrics?.totalOrders === 'number' ? (metrics.totalOrders as number) : null,
           stockQuantity: typeof mp.stock_quantity === 'number' ? (mp.stock_quantity as number) : null,
           isAvailable: mp.is_available !== false && mp.is_active !== false,
+          distanceKm: geo?.distanceKm ?? null,
+          isWithinDeliveryRadius: geo ? geo.isWithinDeliveryRadius : undefined,
+          estimatedDeliveryTime: geo?.estimatedDeliveryTime ?? null,
         });
 
-        if (out.length >= limit) break;
       }
 
-      dataCache.set(cacheKey, out, CACHE_TTL.MERCHANTS);
-      return out;
+      const finalOut = out.slice(0, limit);
+      dataCache.set(cacheKey, finalOut, CACHE_TTL.MERCHANTS);
+      return finalOut;
     } catch (err) {
       console.error('Error fetching marketplace products:', err);
       return [];
@@ -330,8 +373,8 @@ export class MarketplaceProductService {
   }
 
   /** Top discounted products for a Shopee-style "Flash Deals" rail. */
-  static async getFlashDeals(limit = 10): Promise<MarketplaceProduct[]> {
-    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200 });
+  static async getFlashDeals(limit = 10, customerId?: string | null): Promise<MarketplaceProduct[]> {
+    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200, customerId: customerId ?? null });
     return all
       .filter((p) => (p.discountPercent ?? 0) > 0 && p.price != null)
       .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))

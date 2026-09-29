@@ -8,16 +8,17 @@ import { useCart } from '@/contexts/CartContext';
 import {
   getMarketplaceProducts,
   getMarketplaceProductCategories,
+  getCurrentCustomerId,
   formatPHP,
   UNCATEGORIZED_PRODUCT_CATEGORY_ID,
   isUncategorizedId,
   type MarketplaceProduct,
   type MarketplaceProductCategory,
 } from '@encreasl/client-services';
+import { useAddressChange } from '@/hooks/useAddressChange';
+import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 
 interface HomeMarketplaceProductsProps {
-  /** Merchant-category filter coming from the existing merchants carousel (kept independent). */
-  merchantCategoryId?: string | null;
   limit?: number;
 }
 
@@ -198,6 +199,11 @@ function ProductCard({ product }: { product: MarketplaceProduct }) {
           <p className="text-[11px] text-gray-500 truncate">
             <i className="fas fa-store mr-1 text-gray-400" />
             {product.merchantName}
+            {typeof product.distanceKm === 'number' && (
+              <span className="ml-1 text-gray-400">
+                • {product.distanceKm <= 0 ? '0km' : product.distanceKm < 1 ? `${Math.round(product.distanceKm * 1000)}m` : `${product.distanceKm.toFixed(1)}km`}
+              </span>
+            )}
           </p>
           {typeof product.rating === 'number' && (
             <span className="flex items-center gap-0.5 text-[11px] text-gray-500 shrink-0">
@@ -226,7 +232,7 @@ function ProductCard({ product }: { product: MarketplaceProduct }) {
  * products exist. Pill switching filters client-side from a single pool,
  * so "All" always contains every product including uncategorized ones.
  */
-export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 }: HomeMarketplaceProductsProps) {
+export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsProps) {
   const [categories, setCategories] = useState<MarketplaceProductCategory[]>([]);
   const [allProducts, setAllProducts] = useState<MarketplaceProduct[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -249,15 +255,36 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
     }
   }, []);
 
-  const fetchPool = useCallback(async (mCatId: string | null) => {
+  // Location-gated pool (hard rule): ONLY products of location-qualified
+  // merchants. Independent from the merchants carousel *category* filter —
+  // always fetched with null there — but strictly follows the delivery
+  // *location*. No customer/address → zero products, never the global pool.
+  const [customerId, setCustomerId] = useState<string | null>(null);
+
+  const fetchPool = useCallback(async (cid: string | null) => {
     try {
       setIsLoading(true);
       setError(null);
+      if (!cid) {
+        setAllProducts([]);
+        setActiveCategoryId(null);
+        return;
+      }
       const items = await getMarketplaceProducts({
         limit: poolLimit,
-        merchantCategoryId: mCatId,
+        merchantCategoryId: null,
+        customerId: cid,
       });
       setAllProducts(items);
+      // Drop a stale active pill when the new pool no longer contains it.
+      setActiveCategoryId((prev) => {
+        if (prev == null) return prev;
+        if (isUncategorizedId(prev)) {
+          return items.some((p) => !p.categoryIds || p.categoryIds.length === 0) ? prev : null;
+        }
+        const ids = new Set(items.flatMap((p) => (p.categoryIds || []).map(String)));
+        return ids.has(prev) ? prev : null;
+      });
       setVisibleCount(getStep());
     } catch {
       setError('Failed to load products. Please try again.');
@@ -271,12 +298,32 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
     fetchCategories();
   }, [fetchCategories]);
 
-  // Initial + merchant-category-driven pool reload (kept independent from product pills).
-  // Active product-category resets since its ids may be stale for the new pool.
+  // Initial load: resolve customer, then fetch location-aware pool.
   useEffect(() => {
-    setActiveCategoryId(null);
-    fetchPool(merchantCategoryId ?? null);
-  }, [merchantCategoryId, fetchPool]);
+    let cancelled = false;
+    (async () => {
+      const cid = await getCurrentCustomerId().catch(() => null);
+      if (cancelled) return;
+      setCustomerId(cid);
+      fetchPool(cid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPool]);
+
+  // Delivery address change → clear + refetch location-aware pool.
+  useAddressChange(
+    useCallback(() => {
+      clearAllLocationCaches();
+      getCurrentCustomerId()
+        .catch(() => null)
+        .then((cid) => {
+          setCustomerId(cid);
+          fetchPool(cid);
+        });
+    }, [fetchPool]),
+  );
 
   const handleSelectProductCategory = useCallback(
     (id: string | null) => {
@@ -286,29 +333,34 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
     [],
   );
 
-  // ── Uncategorized principle (same as MerchantProductGrid) ────────────
-  // Orphans = products with zero categories. The pseudo pill is always
-  // present (mirroring the merchants rail); with no orphans in the pool it
-  // simply yields an empty grid with a Clear-filter action.
-
-  // ── Merchant-category linkage ────────────────────────────────────────
-  // Same as the Merchants section above: picking a merchant category narrows
-  // the pool to those merchants' products — and the product-category rail
-  // narrows to categories present in that pool (never the full CMS list).
+  // ── Product-category rail ────────────────────────────────────────────
+  // Fully pool-driven (location-aware like everything else here): only
+  // categories owning products in the current pool get pills — including
+  // the "Uncategorized" pseudo pill, shown only when the pool actually
+  // contains orphan products (zero categories).
   const poolCategoryIds = useMemo(() => {
     const s = new Set<string>();
     allProducts.forEach((p) => (p.categoryIds || []).forEach((id) => s.add(String(id))));
     return s;
   }, [allProducts]);
 
+  const poolHasOrphans = useMemo(
+    () => allProducts.some((p) => !p.categoryIds || p.categoryIds.length === 0),
+    [allProducts],
+  );
+
   const displayCategories = useMemo<MarketplaceProductCategory[]>(
     () => [
       ...categories.filter((c) => poolCategoryIds.has(String(c.id))),
-      {
-        id: UNCATEGORIZED_PRODUCT_CATEGORY_ID,
-        name: 'Uncategorized',
-        slug: UNCATEGORIZED_PRODUCT_CATEGORY_ID,
-      },
+      ...(poolHasOrphans
+        ? [
+            {
+              id: UNCATEGORIZED_PRODUCT_CATEGORY_ID,
+              name: 'Uncategorized',
+              slug: UNCATEGORIZED_PRODUCT_CATEGORY_ID,
+            },
+          ]
+        : []),
     ],
     [categories, poolCategoryIds],
   );
@@ -451,76 +503,6 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
 
   return (
     <div className="pb-6">
-      {/* ── Shop by Product Category (YouTube-style chips) */}
-      <section className="bg-white mt-2 border-y border-gray-200">
-        <div className="w-full px-2.5 pt-4">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-[1.2rem] font-bold text-gray-900">Shop by Product Category</h2>
-          </div>
-        </div>
-        <div className="relative">
-          {isLoading && displayCategories.length === 0 ? (
-            <div className="overflow-hidden px-2.5">
-              <div className="flex gap-2 py-2.5">
-                {[96, 128, 84, 140, 104, 72].map((w, index) => (
-                  <div key={index} className="h-8 bg-gray-200 rounded-lg animate-pulse shrink-0" style={{ width: w }} />
-                ))}
-              </div>
-            </div>
-          ) : displayCategories.length > 0 ? (
-            <>
-              {!chipsAtStart && (
-                <button
-                  onClick={() => scrollChips(-1)}
-                  className="hidden lg:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-gray-50 transition-colors"
-                  aria-label="Scroll categories left"
-                >
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              )}
-              {!chipsAtEnd && (
-                <button
-                  onClick={() => scrollChips(1)}
-                  className="hidden lg:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-gray-50 transition-colors"
-                  aria-label="Scroll categories right"
-                >
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
-              <div
-                ref={chipsRef}
-                onScroll={updateChipsEdges}
-                className="flex gap-2 overflow-x-auto px-2.5 py-2.5 [&::-webkit-scrollbar]:hidden"
-                style={{ scrollbarWidth: 'none' }}
-              >
-                {displayCategories.map((c) => {
-                  const id = String(c.id);
-                  const active = activeCategoryId === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleSelectProductCategory(id)}
-                      className={`h-8 shrink-0 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors ${
-                        active
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : null}
-        </div>
-      </section>
-
       {/* ── Flash Deals rail (only when discounts exist) ─────────────── */}
       {!isLoading && flashDeals.length > 0 && (
         <section className="bg-white mt-2 border-y border-gray-200">
@@ -553,13 +535,76 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
       {/* ── Recommended / All Products grid ──────────────────────────── */}
       <section className="bg-white mt-2 border-y border-gray-200">
         <div className="w-full px-2.5 py-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-1">
             <div>
               <h2 className="text-[1.2rem] font-bold text-gray-900">{activeCategoryName ?? 'Recommended For You'}</h2>
               {!isLoading && filteredProducts.length > 0 && (
                 <p className="text-xs text-gray-500 mt-0.5">{filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} from local merchants</p>
               )}
             </div>
+          </div>
+
+          {/* ── Product Category chips ─────────────────────────────────── */}
+          <div className="relative -mx-2.5">
+            {isLoading && displayCategories.length === 0 ? (
+              <div className="overflow-hidden px-2.5">
+                <div className="flex gap-2 py-2.5">
+                  {[96, 128, 84, 140, 104, 72].map((w, index) => (
+                    <div key={index} className="h-8 bg-gray-200 rounded-lg animate-pulse shrink-0" style={{ width: w }} />
+                  ))}
+                </div>
+              </div>
+            ) : displayCategories.length > 0 ? (
+              <>
+                {!chipsAtStart && (
+                  <button
+                    onClick={() => scrollChips(-1)}
+                    className="hidden lg:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-gray-50 transition-colors"
+                    aria-label="Scroll categories left"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                {!chipsAtEnd && (
+                  <button
+                    onClick={() => scrollChips(1)}
+                    className="hidden lg:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-gray-50 transition-colors"
+                    aria-label="Scroll categories right"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+                <div
+                  ref={chipsRef}
+                  onScroll={updateChipsEdges}
+                  className="flex gap-2 overflow-x-auto px-2.5 py-2.5 [&::-webkit-scrollbar]:hidden"
+                  style={{ scrollbarWidth: 'none' }}
+                >
+                  {displayCategories.map((c) => {
+                    const id = String(c.id);
+                    const active = activeCategoryId === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleSelectProductCategory(id)}
+                        className={`h-8 shrink-0 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors ${
+                          active
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
           </div>
 
           {/* ── Toolbar: filters + sort ─────────────────────────────────── */}
@@ -622,7 +667,7 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
               <p className="text-gray-500 mb-3">{error}</p>
               <button
                 type="button"
-                onClick={() => fetchPool(merchantCategoryId ?? null)}
+                onClick={() => fetchPool(customerId)}
                 className="px-4 py-2 rounded-lg text-white text-sm font-medium"
                 style={{ backgroundColor: '#239459' }}
               >
@@ -633,7 +678,11 @@ export function HomeMarketplaceProducts({ merchantCategoryId = null, limit = 48 
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <i className="fas fa-box-open text-3xl text-gray-300 mb-3" />
               <p className="font-medium text-gray-900">No products found</p>
-              <p className="text-sm text-gray-500 mt-1">Try a different category or loosen your filters — new items are added daily.</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {customerId == null
+                  ? 'Set your delivery address above to see products from merchants near you.'
+                  : 'Try a different category or loosen your filters — new items are added daily.'}
+              </p>
               {(activeCategoryId !== null || activeFilterCount > 0) && (
                 <button
                   type="button"
