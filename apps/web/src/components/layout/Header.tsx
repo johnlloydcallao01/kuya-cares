@@ -12,7 +12,8 @@ import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import SearchField from '@/components/ui/SearchField';
 import { AddressService, getCurrentCustomerId as getCustomerIdForMerchants, getLocationBasedMerchants, getLocationBasedMerchantCategories, getBrowsingMerchants, getBrowsingMerchantCategories, type LocationBasedMerchant, type MerchantCategoryDisplay } from '@encreasl/client-services';
 import { getWishlistMerchantIdsForCurrentUser, addMerchantToWishlist, removeMerchantFromWishlist } from '@/lib/client-services/wishlist-service';
-import { NotificationPopup, mockNotifications } from '@/components/notifications/NotificationPopup';
+import { NotificationPopup } from '@/components/notifications/NotificationPopup';
+import { useNotifications } from '@/contexts/NotificationsContext';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import { useAddressChange } from '@/hooks/useAddressChange';
@@ -93,9 +94,9 @@ export function Header({
     });
   }, []);
 
-  // Notification popup state
+  // Notification popup state — real data via shared context (mobile parity)
   const [isNotificationPopupOpen, setIsNotificationPopupOpen] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { unseenCount, markAllAsSeen } = useNotifications();
   const notificationPopupRef = useRef<HTMLDivElement>(null);
   const { totalQuantity } = useCart();
 
@@ -192,22 +193,9 @@ export function Header({
     }
   }, [isNotificationPopupOpen]);
 
-  // Notification handlers
-  const handleMarkAsRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
+  // Notification handlers — bell clears badge (seen) without marking read (mobile parity)
   const toggleNotificationPopup = () => {
+    if (!isNotificationPopupOpen) markAllAsSeen();
     setIsNotificationPopupOpen(!isNotificationPopupOpen);
   };
 
@@ -596,10 +584,21 @@ export function Header({
                 <i className="fa fa-search text-gray-600 text-lg"></i>
               </button>
               <button
-                onClick={() => router.push('/notifications' as any)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={() => {
+                  markAllAsSeen();
+                  router.push('/notifications' as any);
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
               >
                 <i className="fas fa-bell text-gray-600 text-lg"></i>
+                {unseenCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[11px] font-semibold flex items-center justify-center leading-none"
+                    style={{ backgroundColor: '#239459' }}
+                  >
+                    {unseenCount > 9 ? '9+' : unseenCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -850,19 +849,21 @@ export function Header({
                 aria-label="Notifications"
               >
                 <i className="fas fa-bell text-lg"></i>
-                {/* Unread Badge */}
-                {notifications.filter(n => !n.read).length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                {/* Unseen Badge — same size/pattern as cart badge, green */}
+                {unseenCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[11px] font-semibold flex items-center justify-center leading-none"
+                    style={{ backgroundColor: '#239459' }}
+                  >
+                    {unseenCount > 9 ? '9+' : unseenCount}
+                  </span>
                 )}
               </button>
 
-              {/* Notification Popup */}
+              {/* Notification Popup — desktop modal sharing page content */}
               <NotificationPopup
                 isOpen={isNotificationPopupOpen}
                 onClose={() => setIsNotificationPopupOpen(false)}
-                notifications={notifications}
-                onMarkAsRead={handleMarkAsRead}
-                onMarkAllAsRead={handleMarkAllAsRead}
               />
             </div>
 

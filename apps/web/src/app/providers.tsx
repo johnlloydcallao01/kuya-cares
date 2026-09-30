@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { AuthErrorBoundary } from '@/components/auth';
 import { LoadingScreenWrapper } from '@/components/loading/LoadingScreenWrapper';
 import { ToasterProvider } from '@/components/toast/ToasterProvider';
@@ -18,7 +19,9 @@ export function Providers({ children, initialUser, initialToken }: ProvidersProp
     <AuthErrorBoundary>
       <AuthProvider initialUser={initialUser} initialToken={initialToken}>
         <CartProvider>
-          <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
+          <NotificationsProvider>
+            <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
+          </NotificationsProvider>
         </CartProvider>
       </AuthProvider>
       <ToasterProvider />
