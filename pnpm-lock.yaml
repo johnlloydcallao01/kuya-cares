@@ -577,6 +577,9 @@ importers:
       '@react-google-maps/api':
         specifier: ^2.20.8
         version: 2.20.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@supabase/supabase-js':
+        specifier: ^2
+        version: 2.112.2
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.3)
@@ -16236,9 +16239,7 @@ snapshots:
       metro-runtime: 0.84.5
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.74.89': {}
 
