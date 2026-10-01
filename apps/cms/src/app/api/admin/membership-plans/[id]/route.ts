@@ -33,7 +33,7 @@ export async function GET(
     } catch {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
     }
-    return NextResponse.json({ doc: sanitizePlan(doc) }, { status: 200 })
+    return NextResponse.json({ doc: sanitizePlan(doc, { internal: true }) }, { status: 200 })
   } catch (err: any) {
     console.error('[admin/membership-plans/[id]] GET error:', err)
     return NextResponse.json({ error: err?.message || 'Internal Server Error' }, { status: 500 })
@@ -76,7 +76,7 @@ export async function PATCH(
       if (isMissingCollection(err)) return NextResponse.json({ error: 'Membership collections not installed' }, { status: 500 })
       return NextResponse.json({ error: err?.message || 'Failed to update plan' }, { status: 400 })
     }
-    return NextResponse.json({ doc: sanitizePlan(updated) }, { status: 200 })
+      return NextResponse.json({ doc: sanitizePlan(updated, { internal: true }) }, { status: 200 })
   } catch (err: any) {
     console.error('[admin/membership-plans/[id]] PATCH error:', err)
     return NextResponse.json({ error: err?.message || 'Internal Server Error' }, { status: 500 })
@@ -122,7 +122,7 @@ export async function DELETE(
         data: { status: 'disabled' } as any,
         overrideAccess: true,
       })
-      return NextResponse.json({ doc: sanitizePlan(updated as any), softDisabled: true }, { status: 200 })
+      return NextResponse.json({ doc: sanitizePlan(updated as any, { internal: true }), softDisabled: true }, { status: 200 })
     }
 
     try {

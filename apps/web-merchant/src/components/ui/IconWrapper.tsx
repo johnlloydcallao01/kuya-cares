@@ -46,6 +46,7 @@ export const Trash2 = createIconWrapper(LucideIcons.Trash2);
 export const MoreHorizontal = createIconWrapper(LucideIcons.MoreHorizontal);
 export const Check = createIconWrapper(LucideIcons.Check);
 export const ArrowLeft = createIconWrapper(LucideIcons.ArrowLeft);
+export const ChevronRight = createIconWrapper(LucideIcons.ChevronRight);
 export const X = createIconWrapper(LucideIcons.X);
 export const ChevronDown = createIconWrapper(LucideIcons.ChevronDown);
 export const Settings = createIconWrapper(LucideIcons.Settings);

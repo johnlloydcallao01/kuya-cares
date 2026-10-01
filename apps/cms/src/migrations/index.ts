@@ -78,6 +78,7 @@ import * as migration_20260929_060000_enable_postgis from './20260929_060000_ena
 import * as migration_20260930_111554 from './20260930_111554';
 import * as migration_20261001_061959 from './20261001_061959';
 import * as migration_20261001_063000_membership_disabled_setting from './20261001_063000_membership_disabled_setting';
+import * as migration_20261001_115008 from './20261001_115008';
 
 export const migrations = [
   {
@@ -473,11 +474,16 @@ export const migrations = [
   {
     up: migration_20261001_061959.up,
     down: migration_20261001_061959.down,
-    name: '20261001_061959'
+    name: '20261001_061959',
   },
   {
     up: migration_20261001_063000_membership_disabled_setting.up,
     down: migration_20261001_063000_membership_disabled_setting.down,
-    name: '20261001_063000_membership_disabled_setting'
+    name: '20261001_063000_membership_disabled_setting',
+  },
+  {
+    up: migration_20261001_115008.up,
+    down: migration_20261001_115008.down,
+    name: '20261001_115008'
   },
 ];

@@ -200,6 +200,34 @@ export async function createInvoice(
 }
 
 /** Mark an invoice paid by provider payment ref (webhook path, replay-safe). */
+/**
+ * Multi-key invoice lookup for webhook join keys. Links events arrive keyed by
+ * our persisted reference_number (or the link id); legacy/intent events arrive
+ * keyed by provider_payment_intent. Tries each column in order.
+ */
+export async function findInvoiceByRef(payload: any, paymentRef: string): Promise<any | null> {
+  const p = payload as any
+  const ref = String(paymentRef ?? '')
+  if (!ref) return null
+  for (const field of ['reference_number', 'provider_payment_intent', 'paymongo_link_id']) {
+    try {
+      const found = await (p as Payload).find({
+        collection: 'subscription-invoices',
+        where: { [field]: { equals: ref } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      } as any)
+      const doc = (found as any)?.docs?.[0]
+      if (doc) return doc
+    } catch {
+      // Best effort per key; a missing column must not break the lookup chain
+      // (e.g. reference_number predates its migration on older DBs).
+    }
+  }
+  return null
+}
+
 export async function handlePaid(
   payload: any,
   paymentRef: string,
@@ -221,14 +249,7 @@ export async function handlePaid(
     // Replay guard is best effort.
   }
 
-  const found = await (p as Payload).find({
-    collection: 'subscription-invoices',
-    where: { provider_payment_intent: { equals: paymentRef } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  } as any)
-  const invoice = (found as any)?.docs?.[0]
+  const invoice = await findInvoiceByRef(p, paymentRef)
   if (!invoice) throw new Error(`INVOICE_NOT_FOUND (paymentRef=${paymentRef})`)
   if (invoice.status === 'paid') {
     await auditLog(payload, {
@@ -353,14 +374,7 @@ export async function handleFailed(
     // Replay guard is best effort.
   }
 
-  const found = await (p as Payload).find({
-    collection: 'subscription-invoices',
-    where: { provider_payment_intent: { equals: paymentRef } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  } as any)
-  const invoice = (found as any)?.docs?.[0]
+  const invoice = await findInvoiceByRef(p, paymentRef)
   if (!invoice) throw new Error(`INVOICE_NOT_FOUND (paymentRef=${paymentRef})`)
   if (invoice.status === 'paid') {
     return { invoice, deduplicated: true }

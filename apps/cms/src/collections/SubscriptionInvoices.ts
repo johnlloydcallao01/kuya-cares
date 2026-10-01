@@ -91,6 +91,17 @@ export const SubscriptionInvoices: CollectionConfig = {
     },
     { name: 'provider_payment_intent', type: 'text', index: true },
     { name: 'payment_link_url', type: 'text' },
+    {
+      name: 'paymongo_link_id',
+      type: 'text',
+      admin: { description: 'PayMongo payment link id (link_...) for Links checkouts' },
+    },
+    {
+      name: 'reference_number',
+      type: 'text',
+      index: true,
+      admin: { description: 'PayMongo link reference_number — webhook join key' },
+    },
     { name: 'period_start', type: 'date' },
     { name: 'period_end', type: 'date' },
     { name: 'due_at', type: 'date', required: true },
@@ -106,6 +117,7 @@ export const SubscriptionInvoices: CollectionConfig = {
     { fields: ['vendor', 'status'] },
     { fields: ['subscription', 'status'] },
     { fields: ['provider_payment_intent'] },
+    { fields: ['reference_number'] },
     { fields: ['idempotencyKey'], unique: true },
   ],
   hooks: {

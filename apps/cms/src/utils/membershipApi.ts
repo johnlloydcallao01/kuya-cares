@@ -146,6 +146,10 @@ const PROVIDER_BLOB_KEYS = new Set([
   'secret',
   'clientSecret',
   'webhookSecret',
+  'provider_payment_intent',
+  'stripe_price_id',
+  'stripe_product_id',
+  'paymongo_plan_ref',
 ])
 
 export function stripProviderBlobs<T>(doc: T): T {
@@ -177,10 +181,13 @@ function relId(v: unknown): string | number | null {
   return v as string | number
 }
 
-export function sanitizePlan(raw: Record<string, any>): Record<string, any> {
+export function sanitizePlan(
+  raw: Record<string, any>,
+  opts?: { internal?: boolean },
+): Record<string, any> {
   if (!raw) return raw
   const d = stripProviderBlobs<Record<string, any>>(raw)
-  return {
+  const out: Record<string, any> = {
     id: d.id,
     name: d.name ?? null,
     slug: d.slug ?? null,
@@ -200,6 +207,19 @@ export function sanitizePlan(raw: Record<string, any>): Record<string, any> {
     createdAt: d.createdAt ?? null,
     updatedAt: d.updatedAt ?? null,
   }
+  if (opts?.internal) {
+    // Admin-only verify-what-you-wrote fields, read from the PRE-strip doc so
+    // the provider-blob denylist cannot eat them. Never pass internal:true on
+    // vendor-facing routes.
+    const relIds = (v: unknown) => (Array.isArray(v) ? v.map(relId) : (v ?? null))
+    out.stripe_product_id = raw.stripe_product_id ?? null
+    out.stripe_price_id = raw.stripe_price_id ?? null
+    out.paymongo_plan_ref = raw.paymongo_plan_ref ?? null
+    out.is_fallback_basic = raw.is_fallback_basic ?? false
+    out.allowed_categories = relIds(raw.allowed_categories)
+    out.allowed_business_types = raw.allowed_business_types ?? null
+  }
+  return out
 }
 
 export function sanitizeSubscription(raw: Record<string, any>): Record<string, any> {
@@ -228,6 +248,7 @@ export function sanitizeSubscription(raw: Record<string, any>): Record<string, a
     retryCount: d.retryCount ?? d.retry_count ?? 0,
     usage: d.usage ?? null,
     grandfathered: d.grandfathered ?? false,
+    meta: d.meta ?? null,
     createdAt: d.createdAt ?? null,
     updatedAt: d.updatedAt ?? null,
   }
@@ -253,6 +274,7 @@ export function sanitizeInvoice(raw: Record<string, any>): Record<string, any> {
     payment_provider: d.payment_provider ?? d.paymentProvider ?? 'paymongo',
     payment_link_url: d.payment_link_url ?? d.paymentLinkUrl ?? d.checkoutUrl ?? null,
     checkoutUrl: d.checkoutUrl ?? d.payment_link_url ?? d.paymentLinkUrl ?? null,
+    reference_number: d.reference_number ?? d.referenceNumber ?? null,
     period_start: d.period_start ?? d.periodStart ?? null,
     period_end: d.period_end ?? d.periodEnd ?? null,
     due_at: d.due_at ?? d.dueAt ?? null,
@@ -547,13 +569,14 @@ export function verifyPaymongoMembershipSignature(
   rawBody: string,
   signatureHeader: string | null,
   secret: string,
+  slot?: 'li' | 'te',
 ): boolean {
   if (!signatureHeader || !secret) return false
   const parts = signatureHeader.split(',')
   const timestamp = parts.find((p) => p.startsWith('t='))?.split('=')[1]
   const liveSig = parts.find((p) => p.startsWith('li='))?.split('=')[1]
   const testSig = parts.find((p) => p.startsWith('te='))?.split('=')[1]
-  const sig = liveSig || testSig
+  const sig = slot === 'li' ? liveSig : slot === 'te' ? testSig : liveSig || testSig
   if (!timestamp || !sig) return false
   const computed = crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex')
   try {

@@ -72,6 +72,10 @@ export async function POST(request: NextRequest) {
     const plans = await payload.find({ collection: 'membership-plans' as any, where: { slug: { equals: planSlug } }, limit: 1, depth: 0, overrideAccess: true })
     const plan = plans?.docs?.[0] as any
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    const planStatus = String(plan.status ?? 'active')
+    if (!['active', 'hidden'].includes(planStatus)) {
+      return NextResponse.json({ error: 'Plan is not available', code: 'PLAN_UNAVAILABLE' }, { status: 422 })
+    }
     const trialDays = Number(plan.trial_days ?? plan.trialDays ?? 0) || 0
     if (trialDays <= 0) {
       return NextResponse.json({ error: 'Plan has no trial', code: 'NO_TRIAL' }, { status: 422 })

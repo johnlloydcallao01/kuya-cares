@@ -51,18 +51,21 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
   const [isModifiersExpanded, setIsModifiersExpanded] = React.useState(false);
   const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
   const [isPromotionsExpanded, setIsPromotionsExpanded] = React.useState(false);
+  const [isBillingExpanded, setIsBillingExpanded] = React.useState(false);
   const [isCustomerActivityExpanded, setIsCustomerActivityExpanded] = React.useState(false);
 
   const hasActiveAttributesChild = dropdownActive(pathname, '/catalog/attributes') || dropdownActive(pathname, '/catalog/attribute-terms') || dropdownActive(pathname, '/catalog/variations') || dropdownActive(pathname, '/catalog/variation-values');
   const hasActiveModifiersChild = dropdownActive(pathname, '/catalog/modifier-groups') || dropdownActive(pathname, '/catalog/modifier-options') || dropdownActive(pathname, '/catalog/variation-modifier-groups') || dropdownActive(pathname, '/catalog/variation-modifier-options') || dropdownActive(pathname, '/catalog/variation-modifier-group-overrides') || dropdownActive(pathname, '/catalog/variation-modifier-option-overrides') || dropdownActive(pathname, '/catalog/merchant-product-modifier-group-overrides') || dropdownActive(pathname, '/catalog/merchant-product-modifier-option-overrides') || dropdownActive(pathname, '/catalog/merchant-variation-modifier-group-overrides') || dropdownActive(pathname, '/catalog/merchant-variation-modifier-option-overrides');
   const hasActiveTagsChild = dropdownActive(pathname, '/catalog/tags') || dropdownActive(pathname, '/catalog/tag-groups');
   const hasActivePromotionsChild = dropdownActive(pathname, '/promotions') || dropdownActive(pathname, '/coupons');
+  const hasActiveBillingChild = dropdownActive(pathname, '/billing');
   const hasActiveCustomerActivityChild = dropdownActive(pathname, '/activity');
 
   React.useEffect(() => { if (hasActiveAttributesChild) setIsAttributesExpanded(true); }, [hasActiveAttributesChild]);
   React.useEffect(() => { if (hasActiveModifiersChild) setIsModifiersExpanded(true); }, [hasActiveModifiersChild]);
   React.useEffect(() => { if (hasActiveTagsChild) setIsTagsExpanded(true); }, [hasActiveTagsChild]);
   React.useEffect(() => { if (hasActivePromotionsChild) setIsPromotionsExpanded(true); }, [hasActivePromotionsChild]);
+  React.useEffect(() => { if (hasActiveBillingChild) setIsBillingExpanded(true); }, [hasActiveBillingChild]);
   React.useEffect(() => { if (hasActiveCustomerActivityChild) setIsCustomerActivityExpanded(true); }, [hasActiveCustomerActivityChild]);
 
   const accountTab = searchParams.get('tab');
@@ -183,6 +186,19 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
           <div className="space-y-1">
             <SidebarSectionLabel isOpen={expanded}>Finance</SidebarSectionLabel>
             <SidebarItem icon="payments" label="Transactions" active={dropdownActive(pathname, '/payments/transactions')} collapsed={!expanded} href="/payments/transactions" />
+
+            <SidebarDropdownGroup
+              icon="billing"
+              label="Billing"
+              isOpen={expanded}
+              isExpanded={isBillingExpanded}
+              onToggle={() => setIsBillingExpanded((c) => !c)}
+              active={hasActiveBillingChild}
+            >
+              {renderChildLink({ label: 'Plans', href: '/billing/plans', isActive: exactActive(pathname, '/billing/plans') })}
+              {renderChildLink({ label: 'Subscription', href: '/billing/subscription', isActive: exactActive(pathname, '/billing/subscription') })}
+              {renderChildLink({ label: 'Invoices', href: '/billing/invoices', isActive: dropdownActive(pathname, '/billing/invoices') })}
+            </SidebarDropdownGroup>
 
             <SidebarDropdownGroup
               icon="campaigns"

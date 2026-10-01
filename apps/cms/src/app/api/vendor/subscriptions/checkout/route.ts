@@ -197,10 +197,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Provider intent (prefer membershipProviders when present)
+    // Real provider link (PayMongo Payment Links). Any provider failure is an
+    // honest 502 — never a fake ref: without a checkoutUrl the vendor cannot
+    // pay, so succeeding would be a lie.
     let paymentIntentId: string | null = null
     let checkoutUrl: string | null = null
-    let rawProvider: Record<string, any> | null = null
+    let linkId: string | null = null
+    let referenceNumber: string | null = null
     try {
       const provMod = await loadOptionalModule('@/services/membershipProviders')
       const getter = provMod?.getMembershipProvider
@@ -220,18 +223,34 @@ export async function POST(request: NextRequest) {
         const provider = getter(providerName)
         const intent = await provider.createMembershipIntent({
           amountCentavos: toCentavos(amount),
+          currency: 'PHP',
           reference: idemKey,
           vendorId,
           planSlug,
         })
         paymentIntentId = intent?.paymentRef ?? null
         checkoutUrl = intent?.checkoutUrl ?? null
-        rawProvider = intent?.raw ?? null
+        linkId = intent?.linkId ?? null
+        referenceNumber = intent?.referenceNumber ?? intent?.paymentRef ?? null
+        if (!checkoutUrl || !referenceNumber) {
+          throw new Error('PayMongo did not return a payment link. Please contact the developer.')
+        }
+      } else {
+        throw new Error('Payment provider unavailable. Please contact the developer.')
       }
-    } catch {
-      // provider optional in tests
+    } catch (err: any) {
+      const msg = String(err?.message || '')
+      const notConfigured = /not integrated yet|Missing PayMongo|not configured|STRIPE_NOT_CONFIGURED/i.test(msg)
+      return NextResponse.json(
+        {
+          error: notConfigured
+            ? 'PayMongo credentials are not integrated yet. Please contact the developer.'
+            : msg || 'Could not start payment. Please try again.',
+          code: notConfigured ? 'PAYMONGO_NOT_CONFIGURED' : 'PAYMENT_PROVIDER_ERROR',
+        },
+        { status: 502 },
+      )
     }
-    if (!paymentIntentId) paymentIntentId = `pi_${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
 
     // Create invoice (sanitized on read; raw blobs never persisted to vendor-visible fields)
     let invoice: any
@@ -252,6 +271,8 @@ export async function POST(request: NextRequest) {
           payment_provider: 'paymongo',
           provider_payment_intent: paymentIntentId,
           payment_link_url: checkoutUrl,
+          paymongo_link_id: linkId,
+          reference_number: referenceNumber,
           period_start: new Date().toISOString(),
           period_end: periodEndFor(billingInterval),
           due_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
@@ -278,8 +299,6 @@ export async function POST(request: NextRequest) {
       }
       throw err
     }
-    void rawProvider
-
     await audit(payload, {
       vendor: vendorId,
       subscription: (subscription as any).id,
@@ -292,7 +311,14 @@ export async function POST(request: NextRequest) {
 
     const s = sanitizeInvoice(invoice)
     return NextResponse.json(
-      { invoiceId: s.id, amount: s.amount, checkoutUrl: s.checkoutUrl, paymentIntentId, status: 'pending' },
+      {
+        invoiceId: s.id,
+        amount: s.amount,
+        checkoutUrl: s.checkoutUrl,
+        paymentIntentId,
+        referenceNumber,
+        status: 'pending',
+      },
       { status: 201 },
     )
   } catch (err: any) {

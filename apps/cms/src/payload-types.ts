@@ -1339,7 +1339,7 @@ export interface VendorSubscription {
   createdAt: string;
 }
 /**
- * Vendor membership plan catalog (admin CRUD, vendors read active only)
+ * Vendor membership plan catalog (admin CRUD, public reads active only)
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "membership-plans".
@@ -4084,6 +4084,14 @@ export interface SubscriptionInvoice {
   payment_provider?: ('paymongo' | 'stripe' | 'manual') | null;
   provider_payment_intent?: string | null;
   payment_link_url?: string | null;
+  /**
+   * PayMongo payment link id (link_...) for Links checkouts
+   */
+  paymongo_link_id?: string | null;
+  /**
+   * PayMongo link reference_number — webhook join key
+   */
+  reference_number?: string | null;
   period_start?: string | null;
   period_end?: string | null;
   due_at: string;
@@ -6059,6 +6067,8 @@ export interface SubscriptionInvoicesSelect<T extends boolean = true> {
   payment_provider?: T;
   provider_payment_intent?: T;
   payment_link_url?: T;
+  paymongo_link_id?: T;
+  reference_number?: T;
   period_start?: T;
   period_end?: T;
   due_at?: T;

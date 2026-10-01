@@ -22,6 +22,8 @@ export interface MembershipIntentRequest {
 export interface MembershipIntentResult {
   paymentRef: string
   checkoutUrl?: string
+  linkId?: string
+  referenceNumber?: string
   raw: unknown
 }
 
@@ -57,48 +59,84 @@ function toPaidAtIso(value: unknown): string | undefined {
 async function createPaymongoMembershipIntent(
   req: MembershipIntentRequest,
 ): Promise<MembershipIntentResult> {
+  // Real checkout via PayMongo Payment Links (current API): POST /v1/payment_links
+  // with a flat body returns a hosted `url` the vendor is redirected to.
+  // `sk_test_*` vs `sk_live_*` selects sandbox vs live — same URL, no flag.
+  // Throws honest, surfaced errors when keys are missing or PayMongo rejects
+  // the call (callers turn these into 502, never fake refs).
   const sandbox = process.env.PAYMONGO_SANDBOX === 'true'
-  const secretKey = sandbox
+  const rawKey = sandbox
     ? process.env.PAYMONGO_SANDBOX_API_KEY
     : process.env.PAYMONGO_SECRET_KEY_LIVE
+  const secretKey = (rawKey || '').trim()
   if (!secretKey) {
-    throw new Error('Server configuration error: Missing PayMongo Secret Key')
+    throw new Error(
+      'PayMongo credentials are not integrated yet. Please contact the developer.',
+    )
   }
-  if (!Number.isInteger(req.amountCentavos) || req.amountCentavos < 0) {
-    throw new Error('Membership intent amount must be a non-negative integer (centavos)')
+  if (!Number.isInteger(req.amountCentavos) || req.amountCentavos < 100) {
+    throw new Error('Membership link amount must be an integer of at least 100 centavos (₱1.00)')
   }
-  const response = await fetch('https://api.paymongo.com/v1/payment_intents', {
+  const currency = (req.currency || 'PHP').toUpperCase()
+  const description = String(`Membership payment ${req.reference}`).slice(0, 1000)
+  // Fail-fast: without a timeout a stalled egress would hang checkout (and the
+  // vendor's UI) forever.
+  const response = await fetch('https://api.paymongo.com/v1/payment_links', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`,
     },
+    signal: AbortSignal.timeout(20000),
     body: JSON.stringify({
-      data: {
-        attributes: {
-          amount: req.amountCentavos,
-          payment_method_allowed: ['card', 'gcash', 'grab_pay', 'paymaya', 'billease', 'dob', 'brankas', 'qrph'],
-          payment_method_options: { card: { request_three_d_secure: 'any' } },
-          currency: req.currency,
-          description: req.reference,
-        },
-      },
+      amount: req.amountCentavos,
+      currency,
+      description,
+      remarks: String(req.reference).slice(0, 1000),
+      metadata: { reference: String(req.reference) },
+      restriction: { completed_sessions: { limit: 1 } },
     }),
   })
-  const data = await response.json()
+  const data = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const errMsg = data?.errors?.[0]?.detail || data?.error || 'Failed to create membership intent'
-    throw new Error(errMsg)
+    const errDetail = data?.errors?.[0]?.detail || data?.error || ''
+    const errCode = data?.errors?.[0]?.code || ''
+    if (response.status === 401 || /unauthor|auth/i.test(`${errCode} ${errDetail}`)) {
+      throw new Error(
+        'PayMongo credentials are not integrated yet. Please contact the developer.',
+      )
+    }
+    throw new Error(errDetail || `PayMongo rejected the payment link (${response.status})`)
   }
-  return { paymentRef: data?.data?.id, checkoutUrl: undefined, raw: data }
+  const node = data?.data ?? {}
+  const checkoutUrl: string | undefined = node?.url ?? node?.attributes?.checkout_url
+  const referenceNumber: string | undefined =
+    node?.reference_number ?? node?.attributes?.reference_number
+  const linkId: string | undefined = node?.id
+  if (!checkoutUrl || !referenceNumber) {
+    throw new Error('PayMongo did not return a payment link. Please contact the developer.')
+  }
+  return { paymentRef: referenceNumber, checkoutUrl, linkId, referenceNumber, raw: data }
 }
 
 function normalizePaymongoMembershipEvent(raw: any): MembershipNormalizedEvent {
   const envelope = raw?.data?.attributes ?? {}
   const type = String(envelope?.type ?? raw?.type ?? raw?.kind ?? '')
   const nested = envelope?.data ?? {}
+  const nestedAttrs = nested?.attributes ?? {}
+  // Join keys for Links flow first: our reference persisted at create time,
+  // then intent id, then raw ids. (There is no link.payment.failed event —
+  // failures surface as payment.failed or absence.)
   const paymentRef = String(
-    nested?.id ?? envelope?.payment_intent_id ?? raw?.paymentRef ?? raw?.data?.id ?? '',
+    nestedAttrs?.metadata?.pm_reference_number ??
+      nestedAttrs?.external_reference_number ??
+      nestedAttrs?.reference_number ??
+      nestedAttrs?.payment_intent_id ??
+      nested?.id ??
+      envelope?.payment_intent_id ??
+      raw?.paymentRef ??
+      raw?.data?.id ??
+      '',
   )
   const eventId = String(raw?.data?.id ?? raw?.id ?? (type && paymentRef ? `${type}:${paymentRef}` : ''))
   if (!paymentRef || !eventId) {

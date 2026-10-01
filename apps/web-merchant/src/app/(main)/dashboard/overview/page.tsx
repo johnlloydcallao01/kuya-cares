@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@encreasl/client-services';
 import { useMerchantDashboardMetrics, useMerchantDashboardCharts, useMerchantDashboardTables } from '@/hooks/useMerchantDashboard';
@@ -183,6 +184,113 @@ function DashboardSkeleton() {
   );
 }
 
+function MembershipBanner() {
+  const [state, setState] = useState<{ kind: 'loading' | 'hidden' | 'none' | 'trialing' | 'past_due' | 'paywalled'; daysLeft?: number; graceLeft?: number; label?: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setState({ kind: 'loading' });
+      try {
+        const res = await fetch(`/api/membership/subscription?_t=${Date.now()}`, { cache: 'no-store' });
+        if (res.status === 402) {
+          if (!cancelled) setState({ kind: 'paywalled', label: 'Subscription payment required to keep selling.' });
+          return;
+        }
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 404) {
+            if (!cancelled) setState({ kind: 'none' });
+            return;
+          }
+          if (!cancelled) setState(null);
+          return;
+        }
+        const sub = (j.subscription ?? j.doc ?? j.data ?? j) as {
+          status?: string; state?: string; phase?: string;
+          trial_ends_at?: string; trialEndsAt?: string; trialEnd?: string;
+          current_period_end?: string; currentPeriodEnd?: string;
+          grace_period_ends_at?: string; gracePeriodEndsAt?: string; grace_ends_at?: string;
+          days_left?: number; daysLeft?: number; trial_days_left?: number;
+        };
+        const raw = String(sub?.status ?? sub?.state ?? sub?.phase ?? '').toLowerCase();
+        if (!raw || raw === 'active') {
+          if (!cancelled) setState({ kind: 'hidden' });
+          return;
+        }
+        if (raw === 'trialing') {
+          const endIso = sub.trial_ends_at ?? sub.trialEndsAt ?? sub.trialEnd ?? sub.current_period_end ?? sub.currentPeriodEnd ?? null;
+          let days: number | undefined;
+          if (typeof sub.days_left === 'number') days = sub.days_left;
+          else if (typeof sub.daysLeft === 'number') days = sub.daysLeft;
+          else if (typeof sub.trial_days_left === 'number') days = sub.trial_days_left;
+          else if (endIso) {
+            const ms = new Date(endIso).getTime() - Date.now();
+            if (Number.isFinite(ms)) days = Math.max(0, Math.ceil(ms / 86400000));
+          }
+          if (!cancelled) setState({ kind: 'trialing', daysLeft: days });
+          return;
+        }
+        if (raw === 'past_due' || raw === 'pastdue' || raw === 'grace' || raw === 'grace_period') {
+          const graceIso = sub.grace_period_ends_at ?? sub.gracePeriodEndsAt ?? sub.grace_ends_at ?? null;
+          let grace: number | undefined;
+          if (graceIso) {
+            const ms = new Date(graceIso).getTime() - Date.now();
+            if (Number.isFinite(ms)) grace = Math.max(0, Math.ceil(ms / 86400000));
+          }
+          if (!cancelled) setState({ kind: 'past_due', graceLeft: grace });
+          return;
+        }
+        if (raw === 'suspended' || raw === 'cancelled' || raw === 'canceled' || raw === 'expired' || raw === 'pending' || raw === 'incomplete' || raw === 'unpaid') {
+          if (!cancelled) setState({ kind: 'paywalled', label: `Subscription ${raw.replace('_', ' ')} — renew to keep selling.` });
+          return;
+        }
+        if (!cancelled) setState(null);
+      } catch {
+        if (!cancelled) setState(null);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!state || state.kind === 'loading' || state.kind === 'hidden') return null;
+
+  if (state.kind === 'none') {
+    return (
+      <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <p className="text-sm text-amber-800 dark:text-amber-200"><span className="font-semibold">Choose a plan to start selling.</span> Membership is required to accept orders.</p>
+        <Link href="/billing/plans" className="shrink-0 inline-flex items-center px-4 py-2 bg-[#239459] hover:bg-[#215035] text-white rounded-lg text-sm font-semibold transition">View plans</Link>
+      </div>
+    );
+  }
+
+  if (state.kind === 'trialing') {
+    return (
+      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-900/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <p className="text-sm text-emerald-800 dark:text-emerald-200"><span className="font-semibold">Trial active{typeof state.daysLeft === 'number' ? ` — ends in ${state.daysLeft}d` : ''}.</span> Pick a plan to avoid interruption.</p>
+        <Link href="/billing/plans" className="shrink-0 inline-flex items-center px-4 py-2 bg-[#239459] hover:bg-[#215035] text-white rounded-lg text-sm font-semibold transition">View plans</Link>
+      </div>
+    );
+  }
+
+  if (state.kind === 'past_due') {
+    return (
+      <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <p className="text-sm text-red-800 dark:text-red-200"><span className="font-semibold">Payment past due — pay now{typeof state.graceLeft === 'number' ? ` (grace ${state.graceLeft}d left)` : ''}.</span> Settle your invoice to avoid suspension.</p>
+        <Link href="/billing/invoices" className="shrink-0 inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition">Pay now</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      <p className="text-sm text-red-800 dark:text-red-200"><span className="font-semibold">{state.label || 'Subscription needs attention.'}</span></p>
+      <Link href="/billing/invoices" className="shrink-0 inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition">Renew now</Link>
+    </div>
+  );
+}
+
 function DashboardPageContent() {
   const queryClient = useQueryClient();
   const [hardRefreshing, setHardRefreshing] = useState(false);
@@ -266,6 +374,9 @@ function DashboardPageContent() {
           </button>
         </div>
       </div>
+
+      {/* Membership banner (above metric cards) */}
+      <MembershipBanner />
 
       {/* Metric Cards + Outlets (metrics group) */}
       {metrics && outlets ? (

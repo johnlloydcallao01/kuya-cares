@@ -17,13 +17,15 @@ export const MembershipPlans: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'price', 'billing_interval', 'status', 'display_order'],
     group: 'Membership',
-    description: 'Vendor membership plan catalog (admin CRUD, vendors read active only)',
+    description: 'Vendor membership plan catalog (admin CRUD, public reads active only)',
   },
   access: {
+    // Price data is public (pricing page, signup plan picker): anyone — including
+    // anonymous visitors — may read ACTIVE plans only. Hidden/disabled/archived
+    // stay invisible. Writes remain service/admin-only.
     read: ({ req: { user } }) => {
       if (isServiceOrAdmin(user)) return true
-      if (user?.role === 'vendor') return { status: { equals: 'active' } }
-      return false
+      return { status: { equals: 'active' } }
     },
     create: ({ req: { user } }) => isServiceOrAdmin(user),
     update: ({ req: { user } }) => isServiceOrAdmin(user),

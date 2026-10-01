@@ -51,6 +51,30 @@ export async function POST(request: NextRequest) {
     }
     if (!current) return NextResponse.json({ error: 'No active subscription', code: 'SUBSCRIPTION_REQUIRED' }, { status: 402 })
 
+    // Retry-safety: an already-cancelled state returns current state instead of
+    // writing duplicate audit rows (cancel has no idempotencyKey field by design).
+    const currentStatus = String(current.status ?? '')
+    if (cancelAtPeriodEnd && (current.cancelAtPeriodEnd === true || currentStatus === 'cancelled')) {
+      return NextResponse.json(
+        {
+          status: currentStatus,
+          effectiveAt: current.cancel_at ?? current.cancelAt ?? null,
+          deduplicated: true,
+        },
+        { status: 200 },
+      )
+    }
+    if (!cancelAtPeriodEnd && currentStatus === 'cancelled') {
+      return NextResponse.json(
+        {
+          status: currentStatus,
+          effectiveAt: current.cancelled_at ?? current.cancelledAt ?? null,
+          deduplicated: true,
+        },
+        { status: 200 },
+      )
+    }
+
     const periodEnd = String(current.current_period_end ?? current.currentPeriodEnd ?? new Date().toISOString())
     let patch: Record<string, any>
     let effectiveAt: string

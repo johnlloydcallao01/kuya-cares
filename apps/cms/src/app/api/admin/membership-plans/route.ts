@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(
         {
-          docs: (res.docs as any[]).map(sanitizePlan),
+          docs: (res.docs as any[]).map((d) => sanitizePlan(d, { internal: true })),
           pagination: {
             page: (res as any).page, limit: (res as any).limit,
             totalDocs: (res as any).totalDocs, totalPages: (res as any).totalPages,
@@ -55,64 +55,77 @@ export async function GET(request: NextRequest) {
   })
 }
 
+const PLAN_INTERVALS = ['month', 'year', 'one_time'] as const
+const PLAN_STATUSES = ['active', 'hidden', 'disabled', 'archived'] as const
+
 export async function POST(request: NextRequest) {
-  try {
-    const payload = await getPayload({ config: configPromise })
-    const admin = await authenticateAdmin(payload, request)
-    if (!admin) return NextResponse.json({ error: 'Unauthorized: admin authentication required' }, { status: 401 })
-
-    let body: Record<string, any>
+  return withAdminRequestSlot(async () => {
     try {
-      body = await request.json()
-    } catch {
-      return badRequest('Invalid JSON body')
+      const payload = await getPayload({ config: configPromise })
+      const admin = await authenticateAdmin(payload, request)
+      if (!admin) return NextResponse.json({ error: 'Unauthorized: admin authentication required' }, { status: 401 })
+
+      let body: Record<string, any>
+      try {
+        body = await request.json()
+      } catch {
+        return badRequest('Invalid JSON body')
+      }
+      const name = typeof body.name === 'string' ? body.name.trim() : ''
+      const price = Number(body.price)
+      if (!name) return badRequest('name is required')
+      if (!Number.isFinite(price) || price < 0) return badRequest('price must be >= 0')
+      const billingInterval = body.billing_interval ?? body.billingInterval ?? 'month'
+      if (!PLAN_INTERVALS.includes(billingInterval)) {
+        return badRequest('billing_interval must be month|year|one_time')
+      }
+      const status = body.status ?? 'active'
+      if (!PLAN_STATUSES.includes(status)) {
+        return badRequest('status must be active|hidden|disabled|archived')
+      }
+
+      const slug =
+        typeof body.slug === 'string' && body.slug.trim()
+          ? body.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          : name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
+      // Slug uniqueness guard
+      const dup = await payload.find({
+        collection: 'membership-plans' as any,
+        where: { slug: { equals: slug } },
+        limit: 1, depth: 0, overrideAccess: true,
+      })
+      if ((dup?.docs?.length ?? 0) > 0) {
+        return NextResponse.json({ error: 'Plan slug already exists', code: 'DUPLICATE_SLUG' }, { status: 409 })
+      }
+
+      const doc = await payload.create({
+        collection: 'membership-plans' as any,
+        data: {
+          name,
+          slug,
+          description: body.description ?? null,
+          price,
+          currency: 'PHP',
+          billing_interval: billingInterval,
+          trial_days: body.trial_days ?? body.trialDays ?? 0,
+          grace_days: body.grace_days ?? body.graceDays ?? 7,
+          commission_percent: body.commission_percent ?? body.commissionPercent ?? 0,
+          transaction_fee: body.transaction_fee ?? body.transactionFee ?? 0,
+          limits: body.limits ?? null,
+          capabilities: body.capabilities ?? null,
+          status,
+          display_order: body.display_order ?? body.displayOrder ?? 0,
+          is_fallback_basic: body.is_fallback_basic ?? false,
+          version: 1,
+        } as any,
+        overrideAccess: true,
+      })
+
+      return NextResponse.json({ doc: sanitizePlan(doc as any, { internal: true }) }, { status: 201 })
+    } catch (err: any) {
+      console.error('[admin/membership-plans] POST error:', err)
+      return NextResponse.json({ error: err?.message || 'Internal Server Error' }, { status: 500 })
     }
-    const name = typeof body.name === 'string' ? body.name.trim() : ''
-    const price = Number(body.price)
-    if (!name) return badRequest('name is required')
-    if (!Number.isFinite(price) || price < 0) return badRequest('price must be >= 0')
-
-    const slug =
-      typeof body.slug === 'string' && body.slug.trim()
-        ? body.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
-        : name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-
-    // Slug uniqueness guard
-    const dup = await payload.find({
-      collection: 'membership-plans' as any,
-      where: { slug: { equals: slug } },
-      limit: 1, depth: 0, overrideAccess: true,
-    })
-    if ((dup?.docs?.length ?? 0) > 0) {
-      return NextResponse.json({ error: 'Plan slug already exists', code: 'DUPLICATE_SLUG' }, { status: 409 })
-    }
-
-    const doc = await payload.create({
-      collection: 'membership-plans' as any,
-      data: {
-        name,
-        slug,
-        description: body.description ?? null,
-        price,
-        currency: 'PHP',
-        billing_interval: body.billing_interval ?? body.billingInterval ?? 'month',
-        trial_days: body.trial_days ?? body.trialDays ?? 0,
-        grace_days: body.grace_days ?? body.graceDays ?? 7,
-        commission_percent: body.commission_percent ?? body.commissionPercent ?? 0,
-        transaction_fee: body.transaction_fee ?? body.transactionFee ?? 0,
-        limits: body.limits ?? null,
-        capabilities: body.capabilities ?? null,
-        status: body.status ?? 'active',
-        display_order: body.display_order ?? body.displayOrder ?? 0,
-        is_fallback_basic: body.is_fallback_basic ?? false,
-        version: 1,
-      } as any,
-      overrideAccess: true,
-    })
-
-    return NextResponse.json({ doc: sanitizePlan(doc as any) }, { status: 201 })
-  } catch (err: any) {
-    console.error('[admin/membership-plans] POST error:', err)
-    return NextResponse.json({ error: err?.message || 'Internal Server Error' }, { status: 500 })
-  }
+  })
 }

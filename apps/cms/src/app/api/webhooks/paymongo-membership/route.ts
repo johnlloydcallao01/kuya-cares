@@ -9,14 +9,28 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { checkRateLimit, clientIp, verifyPaymongoMembershipSignature, isDuplicateEvent, audit, loadOptionalBillingService } from '@/utils/membershipApi'
 
+async function findMembershipInvoice(payload: any, paymentRef: string): Promise<any | null> {
+  const ref = String(paymentRef ?? '')
+  if (!ref) return null
+  for (const field of ['reference_number', 'provider_payment_intent', 'paymongo_link_id']) {
+    try {
+      const res = await payload.find({
+        collection: 'subscription-invoices' as any,
+        where: { [field]: { equals: ref } },
+        limit: 1, depth: 0, overrideAccess: true,
+      })
+      const doc = res?.docs?.[0]
+      if (doc) return doc
+    } catch {
+      // Best effort per key.
+    }
+  }
+  return null
+}
+
 async function handlePaidInline(payload: any, paymentRef: string, eventId: string): Promise<boolean> {
   try {
-    const inv = await payload.find({
-      collection: 'subscription-invoices' as any,
-      where: { provider_payment_intent: { equals: paymentRef } },
-      limit: 1, depth: 0, overrideAccess: true,
-    })
-    const invoice = inv?.docs?.[0] as any
+    const invoice = (await findMembershipInvoice(payload, paymentRef)) as any
     if (!invoice) return false
     if (String(invoice.status) === 'paid') return true
     await payload.update({
@@ -42,12 +56,7 @@ async function handlePaidInline(payload: any, paymentRef: string, eventId: strin
 
 async function handleFailedInline(payload: any, paymentRef: string, eventId: string): Promise<boolean> {
   try {
-    const inv = await payload.find({
-      collection: 'subscription-invoices' as any,
-      where: { provider_payment_intent: { equals: paymentRef } },
-      limit: 1, depth: 0, overrideAccess: true,
-    })
-    const invoice = inv?.docs?.[0] as any
+    const invoice = (await findMembershipInvoice(payload, paymentRef)) as any
     if (!invoice) return false
     await payload.update({
       collection: 'subscription-invoices' as any, id: invoice.id,
@@ -86,12 +95,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
 
-    const secret = process.env.PAYMONGO_MEMBERSHIP_WEBHOOK_SECRET || process.env.PAYMONGO_WEBHOOK_SECRET || ''
+    // Live and test secrets are independent: accept a live-signed event under a
+    // live secret (li slot) or a test-signed event under a sandbox secret (te
+    // slot). Fail-closed when neither verifies.
+    const liveSecret =
+      process.env.PAYMONGO_MEMBERSHIP_WEBHOOK_SECRET || process.env.PAYMONGO_WEBHOOK_SECRET || ''
+    const testSecret = process.env.PAYMONGO_SANDBOX_WEBHOOK_SECRET || ''
     const signature = request.headers.get('paymongo-signature')
-    if (secret) {
-      if (!verifyPaymongoMembershipSignature(rawBody, signature, secret)) {
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-      }
+    const verified =
+      (liveSecret && verifyPaymongoMembershipSignature(rawBody, signature, liveSecret, 'li')) ||
+      (testSecret && verifyPaymongoMembershipSignature(rawBody, signature, testSecret, 'te'))
+    if (!verified) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -107,7 +122,15 @@ export async function POST(request: NextRequest) {
     const attrs = body?.data?.attributes
     const type = String(attrs?.type || '')
     const resource = attrs?.data
-    const paymentRef: string = String(resource?.attributes?.payment_intent_id || resource?.id || '')
+    const resourceAttrs = resource?.attributes ?? {}
+    const paymentRef: string = String(
+      resourceAttrs?.metadata?.pm_reference_number ??
+        resourceAttrs?.external_reference_number ??
+        resourceAttrs?.reference_number ??
+        resourceAttrs?.payment_intent_id ??
+        resource?.id ??
+        '',
+    )
     const eventId: string = String(body?.data?.id || `${type}:${paymentRef}`)
     if (!paymentRef) return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 })
 
@@ -115,10 +138,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'duplicate' }, { status: 200 })
     }
 
-    // Prefer BillingService when present
+    // Prefer BillingService when present. link.payment.paid is the Links success
+    // event (there is no link.payment.failed — failures arrive as payment.failed).
+    const isPaidEvent = type === 'payment.paid' || type === 'link.payment.paid'
     try {
       const svc = await loadOptionalBillingService()
-      if (type === 'payment.paid' && typeof svc?.handlePaid === 'function') {
+      if (isPaidEvent && typeof svc?.handlePaid === 'function') {
         await svc.handlePaid(paymentRef, eventId)
         return NextResponse.json({ status: 'received' }, { status: 200 })
       }
@@ -130,7 +155,7 @@ export async function POST(request: NextRequest) {
       // fall through to inline
     }
 
-    if (type === 'payment.paid') await handlePaidInline(payload, paymentRef, eventId)
+    if (isPaidEvent) await handlePaidInline(payload, paymentRef, eventId)
     else if (type === 'payment.failed') await handleFailedInline(payload, paymentRef, eventId)
     else await audit(payload, { action: 'sync', eventId, reason: `unhandled membership event ${type}`, metadata: { type } })
 
