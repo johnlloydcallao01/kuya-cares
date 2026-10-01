@@ -10,7 +10,6 @@ import {
   BadgeCheck,
   Building2,
   Check,
-  CheckCircle,
   ChevronRight,
   CreditCard,
   Eye,
@@ -24,6 +23,7 @@ import {
   User,
 } from '@/components/ui/IconWrapper';
 import { useAuth } from '@/hooks/useAuth';
+import PlanCarousel from '@/components/billing/PlanCarousel';
 
 // Exact CMS enum (apps/cms register route BUSINESS_TYPES). Values must match
 // 'restaurant'|'fast_food'|'grocery'|'pharmacy'|'convenience'|'bakery'|'coffee_shop'|'other'.
@@ -79,48 +79,6 @@ function planPriceOf(p: MembershipPlan): number {
 
 function fmtPeso(v: number): string {
   return `₱${Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function limitText(v: number | null | undefined, unit: string): string | null {
-  if (v == null) return null;
-  if (v === -1) return `Unlimited ${unit}`;
-  return `${v} ${unit}`;
-}
-
-// Feature rows built ONLY from real plan fields — never invented.
-function planFeatures(p: MembershipPlan): string[] {
-  const out: string[] = [];
-  const limits = p.limits ?? {};
-  const caps = p.capabilities ?? {};
-  const outlets = limitText(limits.max_merchants as number | null | undefined, 'outlets');
-  if (outlets) out.push(outlets);
-  const products = limitText(limits.max_products as number | null | undefined, 'products');
-  if (products) out.push(products);
-  out.push(`${Number(p.commission_percent ?? 0)}% commission per order`);
-  if (Number(p.transaction_fee ?? 0) > 0) out.push(`${fmtPeso(Number(p.transaction_fee))} per-order fee`);
-  if (Number(p.trial_days ?? 0) > 0) out.push(`${p.trial_days}-day free trial`);
-  const seats = Number(limits.staff_seats ?? 1);
-  if (Number.isFinite(seats) && seats > 1) out.push(`${seats} staff seats`);
-  const flag = (label: string, key: string) => {
-    if (caps[key] === true) out.push(label);
-  };
-  flag('Online storefront', 'microstore');
-  flag('Coupons & promos', 'promos');
-  flag('Sales analytics', 'analytics');
-  flag('Sponsored ads', 'ads');
-  flag('API access', 'api_access');
-  flag('Custom shipping rates', 'custom_shipping');
-  flag('Multi-user access', 'multi_user');
-  const boost = Number(caps.visibility_boost ?? 0);
-  if (Number.isFinite(boost) && boost > 0) out.push(`Boosted listings +${boost}%`);
-  const sla = String(caps.support_sla ?? 'email');
-  out.push(sla === 'dedicated' ? 'Dedicated support' : sla === 'priority' ? 'Priority support' : sla === 'none' ? 'Community support' : 'Email support');
-  return out;
-}
-
-// Growth Monthly is the best-value middle tier → highlighted recommendation.
-function isPopularPlan(p: MembershipPlan): boolean {
-  return planSlugOf(p) === 'growth-monthly';
 }
 
 const inputCls =
@@ -532,7 +490,7 @@ export default function SignUpForm({
   const stepTitles = ['Your account', 'Your business', 'Pick your plan', 'Review & pay'] as const;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] px-4 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] px-1 pt-10 pb-2">
       <div className="mx-auto w-full max-w-3xl">
         <div className="text-center mb-6">
           <Image
@@ -733,80 +691,14 @@ export default function SignUpForm({
                     <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">No membership plans are published right now. Please try again later.</p>
                   </div>
                 )}
-                {!plansLoading && plans.map((plan) => {
-                  const slug = planSlugOf(plan);
-                  const selected = selectedPlanSlug !== '' && selectedPlanSlug === slug;
-                  const popular = isPopularPlan(plan);
-                  const price = planPriceOf(plan);
-                  const interval = normalizeInterval(
-                    (plan as unknown as Record<string, unknown>).billing_interval,
-                  );
-                  const monthlyEquiv = interval === 'year' ? price / 12 : price;
-                  const trial = Number(plan.trial_days ?? 0);
-                  const features = planFeatures(plan);
-                  return (
-                    <article
-                      key={slug || plan.name}
-                      className={`relative overflow-hidden rounded-xl border p-6 transition-all ${selected ? 'border-[#239459] ring-2 ring-[#239459]/30 bg-emerald-50/40 dark:bg-emerald-900/10' : popular ? 'border-[#239459]/60 bg-white dark:bg-[#171717]' : 'border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717]'}`}
-                    >
-                      {popular && (
-                        <span className="absolute top-4 right-4 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#239459] text-white">
-                          Most Popular
-                        </span>
-                      )}
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
-                          {plan.description ? (
-                            <p className="text-sm text-gray-500 dark:text-[#a1a1aa] max-w-xl">{plan.description}</p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-col items-start gap-1 md:items-end md:pr-24">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-bold text-gray-900 dark:text-white">{fmtPeso(price)}</span>
-                            <span className="text-sm text-gray-500 dark:text-[#a1a1aa]">
-                              /{interval === 'year' ? 'year' : 'month'}
-                            </span>
-                          </div>
-                          {interval === 'year' && price > 0 ? (
-                            <span className="text-xs text-gray-500 dark:text-[#a1a1aa]">
-                              {fmtPeso(monthlyEquiv)}/mo billed yearly
-                            </span>
-                          ) : null}
-                          {trial > 0 ? (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                              {trial}-day free trial
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="mt-5 grid gap-x-6 gap-y-2 md:grid-cols-2">
-                        {features.map((f) => (
-                          <div key={f} className="flex items-center gap-2">
-                            <Check className="h-4 w-4 text-[#239459] flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-[#a1a1aa]">{f}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-5 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPlanSlug(selected ? '' : slug)}
-                          disabled={busy}
-                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition border ${selected ? 'bg-[#239459] border-[#239459] text-white' : 'bg-white dark:bg-[#0a0a0a] border-gray-300 dark:border-[#262626] text-gray-700 dark:text-[#ededed] hover:border-[#239459]'}`}
-                        >
-                          {selected ? (
-                            <>
-                              <CheckCircle className="w-4 h-4" /> Selected
-                            </>
-                          ) : (
-                            'Select plan'
-                          )}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                {!plansLoading && plans.length > 0 && (
+                  <PlanCarousel
+                    plans={plans}
+                    selectedPlanSlug={selectedPlanSlug}
+                    onSelect={setSelectedPlanSlug}
+                    disabled={busy}
+                  />
+                )}
                 {fieldErrors.plan && <p className={fieldErrorCls}>{fieldErrors.plan}</p>}
               </div>
             </section>

@@ -285,7 +285,16 @@ function LoginForm() {
 
               {/* Footer */}
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-400 dark:text-[#a1a1aa]">
+                <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">
+                  Don&apos;t have an account yet?{' '}
+                  <Link
+                    href="/signup"
+                    className="text-[#239459] hover:text-[#215035] font-medium transition-colors"
+                  >
+                    Sign up
+                  </Link>
+                </p>
+                <p className="text-sm text-gray-400 dark:text-[#a1a1aa] mt-2">
                   Need help? Contact your administrator
                 </p>
               </div>
