@@ -84,13 +84,19 @@ export const LocationBasedProductCategoriesCarousel = ({
         return;
       }
       const cats = await getLocationBasedMerchantCategories({ customerId: cid, includeInactive, limit: limit });
-      let mapped = cats || [];
+      // Keep the 'Uncategorized' pseudo-pill out of sort/slice so it is
+      // never cut off or buried — it always renders last when orphans exist.
+      const isPseudo = (c: MerchantCategoryDisplay) =>
+        String((c as any)?.id ?? '').toLowerCase() === 'uncategorized' ||
+        String(c?.slug ?? '').toLowerCase() === 'uncategorized';
+      const pseudo = (cats || []).filter(isPseudo);
+      let mapped = (cats || []).filter((c) => !isPseudo(c));
       if (sortBy === 'name') {
         mapped = mapped.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       } else if (sortBy === 'productCount') {
         mapped = mapped.slice().sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
       }
-      setCategories(mapped.slice(0, limit));
+      setCategories([...mapped.slice(0, limit), ...pseudo]);
     } catch (err) {
       setError('Failed to load categories');
       setCategories([]);

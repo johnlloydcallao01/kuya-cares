@@ -15,7 +15,16 @@ import { merchantLocationBasedProductCategoriesHandler } from './endpoints/merch
 import { effectiveModifiersHandler } from './endpoints/effectiveModifiers'
 import { merchantProductDetailHandler } from './endpoints/merchantProductDetail'
 import { sendOrderHelp } from './endpoints/sendOrderHelp'
+import {
+  createSupportTicketHandler,
+  getSupportTicketThreadHandler,
+  listSupportTicketsHandler,
+  replySupportTicketHandler,
+  updateSupportTicketStatusHandler,
+} from './endpoints/supportTickets'
 import { paymongoWebhook } from './endpoints/paymongoWebhook'
+import { paymongoMembershipWebhook } from './endpoints/paymongoMembershipWebhook'
+import { stripeMembershipWebhook } from './endpoints/stripeMembershipWebhook'
 import { deliveryQuoteHandler } from './endpoints/deliveryQuote'
 import { deliveryBookHandler } from './endpoints/deliveryBook'
 import { deliveryCancelHandler } from './endpoints/deliveryCancel'
@@ -79,6 +88,14 @@ import { Achievements } from './collections/Achievements'
 import { UserAchievements } from './collections/UserAchievements'
 import { CouponRedemptions } from './collections/CouponRedemptions'
 import { Reviews } from './collections/Reviews'
+import { SupportTickets } from './collections/SupportTickets'
+import { SupportTicketMessages } from './collections/SupportTicketMessages'
+import { MembershipPlans } from './collections/MembershipPlans'
+import { VendorSubscriptions } from './collections/VendorSubscriptions'
+import { SubscriptionInvoices } from './collections/SubscriptionInvoices'
+import { CommissionRules } from './collections/CommissionRules'
+import { VendorEntitlements } from './collections/VendorEntitlements'
+import { MembershipAuditLog } from './collections/MembershipAuditLog'
 
 // Product Management Collections
 import { ProdAttributes } from './collections/ProdAttributes'
@@ -192,6 +209,18 @@ export default buildConfig({
     TagGroupMemberships,
     RecentViews,
     Wishlists,
+
+    // Support System
+    SupportTickets,
+    SupportTicketMessages,
+
+    // Membership System (Phase 0 — scaffolding, no enforcement)
+    MembershipPlans,
+    VendorSubscriptions,
+    SubscriptionInvoices,
+    CommissionRules,
+    VendorEntitlements,
+    MembershipAuditLog,
   ],
   globals: [
     SystemSettings,
@@ -1134,6 +1163,18 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
     },
 
     {
+      path: '/paymongo-membership/webhook',
+      method: 'post',
+      handler: paymongoMembershipWebhook,
+    },
+
+    {
+      path: '/stripe-membership/webhook',
+      method: 'post',
+      handler: stripeMembershipWebhook,
+    },
+
+    {
       path: '/delivery/quote',
       method: 'post',
       handler: deliveryQuoteHandler,
@@ -1343,6 +1384,36 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
       path: '/support/order-help',
       method: 'post',
       handler: sendOrderHelp,
+    },
+
+    {
+      path: '/support/tickets',
+      method: 'get',
+      handler: listSupportTicketsHandler,
+    },
+
+    {
+      path: '/support/tickets',
+      method: 'post',
+      handler: createSupportTicketHandler,
+    },
+
+    {
+      path: '/support/tickets/thread',
+      method: 'get',
+      handler: getSupportTicketThreadHandler,
+    },
+
+    {
+      path: '/support/tickets/reply',
+      method: 'post',
+      handler: replySupportTicketHandler,
+    },
+
+    {
+      path: '/support/tickets/status',
+      method: 'patch',
+      handler: updateSupportTicketStatusHandler,
     },
 
     {

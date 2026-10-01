@@ -210,12 +210,12 @@ export default function SearchResultsPage() {
         const list = showAll
           ? await getBrowsingMerchants({
               customerId: customerId ?? undefined,
-              limit: 24,
+              limit: 9999,
               categoryId: String(matchedCategory.id),
             })
           : await getLocationBasedMerchants({
               customerId: customerId as string,
-              limit: 24,
+              limit: 9999,
               categoryId: String(matchedCategory.id),
             });
         if (cancel) return;
@@ -427,7 +427,7 @@ export default function SearchResultsPage() {
             ))}
           </div>
         ) : results.length === 0 ? (
-          <div className="text-gray-500 text-sm">No matching merchants found.</div>
+          <div className="text-gray-500 text-sm">No results found for &quot;{query.trim()}&quot;</div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {results.map(merchant => (

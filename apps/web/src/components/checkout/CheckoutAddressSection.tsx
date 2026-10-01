@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import { emitAddressChange } from '@/hooks/useAddressChange';
 import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
+import DeleteAddressDialog from '@/components/addresses/DeleteAddressDialog';
 
 interface CheckoutAddressSectionProps {
   className?: string;
@@ -78,9 +79,18 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
     }
   }, [user?.id, loadUserAddresses]);
 
+  // Pending id for the professional confirm dialog (DeleteAddressDialog).
+  // This replaces window.confirm — the delete sequence below is untouched.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const handleDeleteAddress = async (addressId: string) => {
-    const confirmed = window.confirm('Are you sure you want to delete this address? This action cannot be undone.');
-    if (!confirmed) return;
+    setPendingDeleteId(addressId);
+  };
+
+  const confirmDeleteAddress = async () => {
+    const addressId = pendingDeleteId;
+    if (!addressId) return;
+    setPendingDeleteId(null);
 
     setDeletingAddressId(addressId);
     try {
@@ -311,6 +321,19 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
           </div>
         </div>
       )}
+
+      {/* Professional delete confirmation (replaces window.confirm) */}
+      <DeleteAddressDialog
+        open={!!pendingDeleteId}
+        addressText={
+          userAddresses.find((a) => a.id === pendingDeleteId)?.formatted_address
+        }
+        deleting={!!deletingAddressId}
+        onCancel={() => {
+          if (!deletingAddressId) setPendingDeleteId(null);
+        }}
+        onConfirm={confirmDeleteAddress}
+      />
     </div>
   );
 }

@@ -221,6 +221,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
 
+    // Membership gate (membership.md §5): early 402 before payload.create
+    try {
+      const { requireActiveMembership } = await import('@/utils/membershipGuard')
+      await requireActiveMembership(payload, String(vendor.id), { fn: 'vendor/outlets POST' })
+    } catch (e: any) {
+      if (e?.status === 402 || e?.statusCode === 402 || e?.code === 'MEMBERSHIP_REQUIRED') {
+        const d = (typeof e?.toJSON === 'function' ? e.toJSON() : (e?.data ?? {})) as Record<string, any>
+        return NextResponse.json({ error: 'Active membership required to sell', code: d.code ?? 'MEMBERSHIP_REQUIRED', vendorId: String(vendor.id), subscriptionStatus: d.subscriptionStatus ?? 'none', requiredPlan: d.requiredPlan ?? 'Basic', status: 402 }, { status: 402 })
+      }
+    }
+
     const outletName = typeof body.outletName === 'string' ? body.outletName.trim() : ''
     if (!outletName || outletName.length < 2) {
       return badRequest('outletName is required and must be at least 2 characters')

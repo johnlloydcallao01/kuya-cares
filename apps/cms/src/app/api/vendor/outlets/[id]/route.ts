@@ -242,6 +242,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     } catch {
       return badRequest('Invalid JSON body')
     }
+    // Membership gate (membership.md §5): early 402 when enabling (going-online). Going-offline always allowed.
+    try {
+      const enabling = body?.isActive === true || body?.isAcceptingOrders === true || body?.operationalStatus === 'open'
+      if (enabling) {
+        const { requireActiveMembership } = await import('@/utils/membershipGuard')
+        const mVendor = (merchant as Record<string, any>)?.vendor
+        const vendorId = mVendor == null ? null : typeof mVendor === 'object' ? String((mVendor as any).id) : String(mVendor)
+        if (vendorId) await requireActiveMembership(payload, vendorId, { fn: 'vendor/outlets/[id] PATCH' })
+      }
+    } catch (e: any) {
+      if (e?.status === 402 || e?.statusCode === 402 || e?.code === 'MEMBERSHIP_REQUIRED') {
+        const d = (typeof e?.toJSON === 'function' ? e.toJSON() : (e?.data ?? {})) as Record<string, any>
+        return NextResponse.json({ error: 'Active membership required to sell', code: d.code ?? 'MEMBERSHIP_REQUIRED', vendorId: d.vendorId, subscriptionStatus: d.subscriptionStatus ?? 'none', requiredPlan: d.requiredPlan ?? 'Basic', status: 402 }, { status: 402 })
+      }
+    }
     try { Object.assign(body, validateStoreHoursFields(body)) } catch (error) { return badRequest(error instanceof Error ? error.message : 'Invalid store hours') }
 
     console.log(`[vendor/outlets/[id]] PATCH:${requestId} body`, JSON.stringify(body).slice(0, 2000))

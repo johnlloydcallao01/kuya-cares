@@ -152,6 +152,13 @@ export function OverlaySidebar({ isOpen, onClose }: OverlaySidebarProps) {
                 href="/wallets" 
                 onClick={onClose}
               />
+            </div>
+
+            <hr className="my-3 border-gray-200" />
+
+            {/* General section */}
+            <div className="space-y-1">
+              <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>
               <SidebarItem 
                 icon="settings" 
                 label="Settings" 
@@ -160,16 +167,9 @@ export function OverlaySidebar({ isOpen, onClose }: OverlaySidebarProps) {
                 href="/settings" 
                 onClick={onClose}
               />
-            </div>
-
-            <hr className="my-3 border-gray-200" />
-
-            {/* General section */}
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>
               <SidebarItem
                 icon="terms"
-                label="Terms and Conditions"
+                label="General Terms and Conditions"
                 href="/terms"
                 active={pathname === '/terms'}
               />
@@ -178,6 +178,18 @@ export function OverlaySidebar({ isOpen, onClose }: OverlaySidebarProps) {
                 label="Privacy Policy"
                 href="/privacy"
                 active={pathname === '/privacy'}
+              />
+              <SidebarItem
+                icon="cookie"
+                label="Cookie Policy"
+                href="/cookies"
+                active={pathname === '/cookies'}
+              />
+              <SidebarItem
+                icon="help"
+                label="Support"
+                href="/support"
+                active={pathname === '/support'}
               />
               <SidebarItem
                 icon="logout"

@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
+import { useGoogleMapsApiReady } from '@/lib/google-maps-api';
 import { AddressSearchInput } from '@/components/shared/AddressSearchInput';
 import { LABEL_CHIPS, type AddressUI } from '@/types/address';
 import type { AddressInput } from '@/lib/client-services/address-book-service';
@@ -39,7 +40,7 @@ export default function AddressFormModal({
   const [resolving, setResolving] = useState(false);
   const geocoderRef = useRef<any>(null);
 
-  const { isLoaded } = useJsApiLoader({ id: 'address-form-map', googleMapsApiKey: MAPS_KEY });
+  const isLoaded = useGoogleMapsApiReady();
 
   useEffect(() => {
     if (isOpen) {

@@ -85,13 +85,6 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
               collapsed={!isOpen} 
               href="/wallets" 
             />
-            <SidebarItem 
-              icon="settings" 
-              label="Settings" 
-              active={pathname === '/settings'}
-              collapsed={!isOpen} 
-              href="/settings" 
-            />
           </div>
 
           {isOpen && <hr className="my-3 border-gray-200" />}
@@ -120,9 +113,16 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
           {/* General section */}
           <div className="space-y-1">
             {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>}
+            <SidebarItem 
+              icon="settings" 
+              label="Settings" 
+              active={pathname === '/settings'}
+              collapsed={!isOpen} 
+              href="/settings" 
+            />
             <SidebarItem
               icon="terms"
-              label="Terms and Conditions"
+              label="General Terms and Conditions"
               href="/terms"
               active={pathname === '/terms'}
               collapsed={!isOpen}
@@ -132,6 +132,20 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
               label="Privacy Policy"
               href="/privacy"
               active={pathname === '/privacy'}
+              collapsed={!isOpen}
+            />
+            <SidebarItem
+              icon="cookie"
+              label="Cookie Policy"
+              href="/cookies"
+              active={pathname === '/cookies'}
+              collapsed={!isOpen}
+            />
+            <SidebarItem
+              icon="help"
+              label="Support"
+              href="/support"
+              active={pathname === '/support'}
               collapsed={!isOpen}
             />
             <SidebarItem

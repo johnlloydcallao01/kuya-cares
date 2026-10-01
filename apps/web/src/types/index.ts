@@ -77,6 +77,7 @@ export type IconName =
   | 'invite'
   | 'terms'
   | 'privacy'
+  | 'cookie'
   | 'logout';
 
 // Category icon mapping type

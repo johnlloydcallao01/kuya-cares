@@ -1,4 +1,4 @@
-import { CollectionConfig } from 'payload'
+import { APIError, CollectionConfig } from 'payload'
 import { ModifierResolverService } from '../services/ModifierResolverService'
 
 export const MerchantProducts: CollectionConfig = {
@@ -14,6 +14,27 @@ export const MerchantProducts: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
+      // Membership enforcement (membership.md §5): block publish (is_active && is_available) without membership.
+      (async ({ data, req, operation }: any) => {
+        try {
+          const d = data as Record<string, any> | undefined
+          const publishing = d?.is_active === true && d?.is_available === true
+          if (publishing && (operation === 'create' || operation === 'update')) {
+            const payload = (req as any)?.payload
+            const mRaw = d?.merchant_id
+            const merchantId = mRaw == null ? null : typeof mRaw === 'object' ? String((mRaw as any).id) : String(mRaw)
+            if (merchantId) {
+              const mod = await import('@/utils/membershipGuard')
+              const vendorId = await mod.resolveVendorIdFromMerchant(payload, merchantId)
+              if (vendorId) await mod.requireActiveMembership(payload, vendorId, { fn: 'merchant-products.beforeChange' })
+            }
+          }
+        } catch (e) {
+          const ee = e as unknown as { status?: number; code?: string }
+          if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+        }
+        return data
+      }) as never,
       async ({ data, req, operation }) => {
         if (operation === 'create' || operation === 'update') {
           try {

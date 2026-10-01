@@ -56,8 +56,15 @@ export class LocationBasedMerchantService {
    * Fetch location-based merchants from CMS (Client-side) with caching
    * Uses NEXT_PUBLIC_PAYLOAD_API_KEY for client-side access
    */
+  static isUncategorizedId(value: unknown): boolean {
+    return String(value ?? '').toLowerCase() === 'uncategorized';
+  }
+
   static async getLocationBasedMerchants(options: LocationBasedMerchantServiceOptions): Promise<LocationBasedMerchant[]> {
     const { customerId, limit = 10, categoryId } = options;
+    // Backend parses categoryId as int — 'uncategorized' would silently
+    // become "no filter". Handle the pseudo-category client-side instead.
+    const wantUncategorized = LocationBasedMerchantService.isUncategorizedId(categoryId);
 
     if (!customerId) {
       console.warn('❌ Customer ID is required for location-based merchants');
@@ -103,7 +110,7 @@ export class LocationBasedMerchantService {
         params.append('limit', limit.toString());
       }
 
-      if (categoryId) {
+      if (categoryId && !wantUncategorized) {
         params.append('categoryId', categoryId.toString());
       }
 
@@ -153,8 +160,21 @@ export class LocationBasedMerchantService {
 
       // Guarantee consistent `by <owner>` rendering: PostGIS rows from older
       // CMS deploys omit vendor.user. Backfill from depth=2 before caching.
-      const enriched =
+      let enriched =
         await LocationBasedMerchantService.backfillMissingVendorOwners(merchants);
+
+      // 'Uncategorized' pseudo-category: keep merchants with zero categories
+      // (same principle as getBrowsingMerchants + product grids).
+      if (wantUncategorized) {
+        enriched = enriched
+          .filter((m: any) => {
+            const raw = (m as any).merchant_categories;
+            if (!raw) return true;
+            if (Array.isArray(raw)) return raw.length === 0;
+            return false;
+          })
+          .slice(0, limit);
+      }
 
       // Cache the result
       dataCache.set(cacheKey, enriched, CACHE_TTL.MERCHANTS);
@@ -426,8 +446,18 @@ export class LocationBasedMerchantService {
       ),
     );
     if (ids.length === 0) {
-      dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
-      return [];
+      const only =
+        hasUncategorized
+          ? [
+              {
+                id: 'uncategorized',
+                name: 'Uncategorized',
+                slug: 'uncategorized',
+              } as MerchantCategoryDisplay,
+            ]
+          : [];
+      dataCache.set(cacheKey, only, CACHE_TTL.MERCHANTS);
+      return only;
     }
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -487,6 +517,17 @@ export class LocationBasedMerchantService {
     const cached = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
     if (cached) return cached;
     const list = await LocationBasedMerchantService.getLocationBasedMerchants({ customerId, limit: 9999 });
+    // Same "Uncategorized" principle as browsing + product grids: the pseudo
+    // id isolates merchants with zero categories instead of dropping them.
+    const hasUncategorized = (list || []).some((m: any) => {
+      const raw = (m as any).merchant_categories;
+      return !raw || (Array.isArray(raw) && raw.length === 0);
+    });
+    const uncategorizedPseudo = {
+      id: 'uncategorized',
+      name: 'Uncategorized',
+      slug: 'uncategorized',
+    } as MerchantCategoryDisplay;
     const ids = Array.from(new Set(
       (list || []).flatMap((m: any) => {
         const raw = (m as any).merchant_categories;
@@ -499,7 +540,11 @@ export class LocationBasedMerchantService {
         return [] as number[];
       })
     ));
-    if (ids.length === 0) { dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS); return []; }
+    if (ids.length === 0) {
+      const only = hasUncategorized ? [uncategorizedPseudo] : [];
+      dataCache.set(cacheKey, only, CACHE_TTL.MERCHANTS);
+      return only;
+    }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     
     // Use class-level constants to ensure cross-platform compatibility (supports EXPO_PUBLIC_)
@@ -529,6 +574,11 @@ export class LocationBasedMerchantService {
       createdAt: c.createdAt,
     }));
     if (typeof limit === 'number') mapped = mapped.slice(0, limit);
+    // Pseudo-category for untagged merchants: appended after slicing so it
+    // is never cut off, and only while orphans exist (browsing parity).
+    if (hasUncategorized) {
+      mapped = [...mapped, uncategorizedPseudo];
+    }
     dataCache.set(cacheKey, mapped, CACHE_TTL.MERCHANTS);
     return mapped;
   }

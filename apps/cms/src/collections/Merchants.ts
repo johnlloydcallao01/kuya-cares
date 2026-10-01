@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 import { getStoreHoursStatus, validateStoreHoursFields } from '@/utils/storeHours'
 import { createAdminNotificationFanout } from '../utils/notificationFanout'
 
@@ -576,6 +577,21 @@ export const Merchants: CollectionConfig = {
         description: 'IANA timezone identifier (e.g., Asia/Manila, Asia/Singapore, America/New_York)',
       },
     },
+
+    // === MEMBERSHIP BOOST (§2.7 — service-layer enforcement only) ===
+    {
+      name: 'isFeatured',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { description: 'Requires vendor visibility_boost > 0 (checked in service layer)' },
+    },
+    {
+      name: 'listingBoost',
+      type: 'number',
+      min: 0,
+      max: 100,
+      defaultValue: 0,
+    },
   ],
   indexes: [
     {
@@ -631,6 +647,27 @@ export const Merchants: CollectionConfig = {
       ({ data }) => data ? validateStoreHoursFields(data as Record<string, unknown>) : data,
     ],
     beforeChange: [
+      // Membership enforcement (membership.md §5): block going-online without membership.
+      // Going-offline (isActive/isAcceptingOrders false, operationalStatus != open) always allowed.
+      (async ({ data, req, operation }: any) => {
+        try {
+          const goingOnline =
+            data?.isActive === true || data?.isAcceptingOrders === true || data?.operationalStatus === 'open'
+          if (goingOnline && (operation === 'create' || operation === 'update')) {
+            const raw = (data as Record<string, any>)?.vendor
+            const vendorId = raw == null ? null : typeof raw === 'object' && 'id' in (raw as any) ? String((raw as any).id) : String(raw)
+            if (vendorId) {
+              const mod = await import('@/utils/membershipGuard')
+              await mod.requireActiveMembership(req?.payload ?? (req as any)?.payload, vendorId, { fn: 'merchants.beforeChange' })
+            }
+          }
+        } catch (e) {
+          const ee = e as unknown as { status?: number; code?: string }
+          if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+          // Guard module missing or enforcement off → allow (fail-open for seeds/tests)
+        }
+        return data
+      }) as never,
       ({ data }) => {
         // Auto-generate outletCode if not provided
         if (!data.outletCode && data.outletName) {

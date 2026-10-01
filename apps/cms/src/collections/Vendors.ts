@@ -290,6 +290,111 @@ export const Vendors: CollectionConfig = {
     },
 
 
+    // === MEMBERSHIP EXTENSION (Phase 0, §2.7 — appended, existing hooks untouched) ===
+    {
+      name: 'currentSubscription',
+      type: 'relationship',
+      relationTo: 'vendor-subscriptions',
+      admin: {
+        position: 'sidebar',
+        description: 'Denormalized by subscription afterChange',
+      },
+    },
+    {
+      name: 'subscriptionStatus',
+      type: 'select',
+      defaultValue: 'none',
+      options: [
+        { label: 'none', value: 'none' },
+        { label: 'pending', value: 'pending' },
+        { label: 'trialing', value: 'trialing' },
+        { label: 'active', value: 'active' },
+        { label: 'past_due', value: 'past_due' },
+        { label: 'grace', value: 'grace' },
+        { label: 'suspended', value: 'suspended' },
+        { label: 'cancelled', value: 'cancelled' },
+        { label: 'expired', value: 'expired' },
+      ],
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'subscriptionExpiresAt',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'graceEndsAt',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'trialEndsAt',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'waivedUntil',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'waiveReason',
+      type: 'textarea',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'suspendedReason',
+      type: 'text',
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'grandfatheredBasic',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { position: 'sidebar' },
+    },
+    {
+      name: 'grandfatheredAt',
+      type: 'date',
+      admin: { position: 'sidebar', readOnly: true },
+    },
+    {
+      name: 'commissionOverride',
+      type: 'group',
+      fields: [
+        { name: 'commission_percent', type: 'number', min: 0, max: 100 },
+        { name: 'transaction_fee', type: 'number', min: 0, defaultValue: 0 },
+        { name: 'rule', type: 'relationship', relationTo: 'commission-rules' },
+      ],
+      admin: { description: 'Vendor-level override (highest priority)' },
+    },
+    {
+      name: 'kycDocs',
+      type: 'array',
+      fields: [
+        {
+          name: 'docType',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'dti', value: 'dti' },
+            { label: 'sec', value: 'sec' },
+            { label: 'bir', value: 'bir' },
+            { label: 'id_front', value: 'id_front' },
+            { label: 'id_back', value: 'id_back' },
+            { label: 'selfie', value: 'selfie' },
+            { label: 'other', value: 'other' },
+          ],
+        },
+        { name: 'media', type: 'upload', relationTo: 'media', required: true },
+      ],
+      admin: { description: 'KYB documents (verification is manual for now)' },
+    },
+    {
+      name: 'lastEntitlementSync',
+      type: 'date',
+      admin: { position: 'sidebar', readOnly: true },
+    },
   ],
   hooks: {
     afterChange: [

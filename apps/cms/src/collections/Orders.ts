@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 import { createAdminNotificationFanout, createMerchantNotificationFanout, createNotificationFanout, getOrderStatusLabel } from '../utils/notificationFanout'
 
 function resolveId(value: unknown): string | null {
@@ -19,6 +20,32 @@ export const Orders: CollectionConfig = {
     description: 'Central entity for all transactions',
   },
   hooks: {
+    beforeChange: [
+      // Membership enforcement (membership.md §5): block pending→accepted/preparing without membership.
+      // Allow create(pending) — customer checkout still creates pending; kitchen acceptance is gated.
+      (async ({ data, req, operation, originalDoc }: any) => {
+        try {
+          if (operation === 'update') {
+            const next = (data as Record<string, any> | undefined)?.status
+            const prev = (originalDoc as Record<string, any> | undefined)?.status
+            if (prev === 'pending' && (next === 'accepted' || next === 'preparing')) {
+              const payload = (req as any)?.payload
+              const mRaw = (data as Record<string, any>)?.merchant ?? (originalDoc as Record<string, any>)?.merchant
+              const merchantId = mRaw == null ? null : typeof mRaw === 'object' ? String((mRaw as any).id) : String(mRaw)
+              if (merchantId) {
+                const mod = await import('@/utils/membershipGuard')
+                const vendorId = await mod.resolveVendorIdFromMerchant(payload, merchantId)
+                if (vendorId) await mod.requireActiveMembership(payload, vendorId, { fn: 'orders.beforeChange' })
+              }
+            }
+          }
+        } catch (e) {
+          const ee = e as unknown as { status?: number; code?: string }
+          if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+        }
+        return data
+      }) as never,
+    ],
     beforeValidate: [
       ({ data, operation }) => {
         if (!data || typeof data !== 'object') return data

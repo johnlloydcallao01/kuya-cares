@@ -75,6 +75,9 @@ import * as migration_20260928_014901 from './20260928_014901';
 import * as migration_20260928_021136 from './20260928_021136';
 import * as migration_20260928_044323 from './20260928_044323';
 import * as migration_20260929_060000_enable_postgis from './20260929_060000_enable_postgis';
+import * as migration_20260930_111554 from './20260930_111554';
+import * as migration_20261001_061959 from './20261001_061959';
+import * as migration_20261001_063000_membership_disabled_setting from './20261001_063000_membership_disabled_setting';
 
 export const migrations = [
   {
@@ -455,11 +458,26 @@ export const migrations = [
   {
     up: migration_20260928_044323.up,
     down: migration_20260928_044323.down,
-    name: '20260928_044323'
+    name: '20260928_044323',
   },
   {
     up: migration_20260929_060000_enable_postgis.up,
     down: migration_20260929_060000_enable_postgis.down,
     name: '20260929_060000_enable_postgis',
+  },
+  {
+    up: migration_20260930_111554.up,
+    down: migration_20260930_111554.down,
+    name: '20260930_111554',
+  },
+  {
+    up: migration_20261001_061959.up,
+    down: migration_20261001_061959.down,
+    name: '20261001_061959'
+  },
+  {
+    up: migration_20261001_063000_membership_disabled_setting.up,
+    down: migration_20261001_063000_membership_disabled_setting.down,
+    name: '20261001_063000_membership_disabled_setting'
   },
 ];

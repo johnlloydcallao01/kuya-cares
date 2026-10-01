@@ -48,6 +48,96 @@ export const SystemSettings: GlobalConfig = {
       },
     },
     {
+      name: 'membership',
+      label: 'Membership',
+      type: 'group',
+      admin: {
+        description: 'Vendor membership kill-switch + billing defaults (Phase 0)',
+      },
+      fields: [
+        {
+          name: 'membershipEnabled',
+          label: 'Membership Enabled',
+          type: 'checkbox',
+          defaultValue: false,
+        },
+        {
+          name: 'membershipEnforced',
+          label: 'Membership Enforced',
+          type: 'checkbox',
+          defaultValue: false,
+        },
+        {
+          name: 'grandfatherBasicEnabled',
+          label: 'Grandfather Basic Enabled',
+          type: 'checkbox',
+          defaultValue: true,
+        },
+        {
+          name: 'trialDaysDefault',
+          label: 'Trial Days Default',
+          type: 'number',
+          defaultValue: 7,
+          min: 0,
+        },
+        {
+          name: 'graceDaysDefault',
+          label: 'Grace Days Default',
+          type: 'number',
+          defaultValue: 7,
+          min: 0,
+        },
+        {
+          name: 'dunningMaxRetries',
+          label: 'Dunning Max Retries',
+          type: 'number',
+          defaultValue: 8,
+          min: 0,
+        },
+        {
+          name: 'dunningSchedule',
+          label: 'Dunning Schedule',
+          type: 'json',
+          defaultValue: ['1h', '4h', '12h', '1d', '2d', '3d', '5d', '7d'],
+        },
+        {
+          name: 'fallbackBasicPlanSlug',
+          label: 'Fallback Basic Plan Slug',
+          type: 'text',
+          defaultValue: 'basic',
+        },
+        {
+          name: 'commissionDefaultPct',
+          label: 'Commission Default %',
+          type: 'number',
+          defaultValue: 8,
+          min: 0,
+          max: 30,
+        },
+        {
+          name: 'payProviderDefault',
+          label: 'Pay Provider Default',
+          type: 'select',
+          defaultValue: 'paymongo',
+          options: [
+            { label: 'PayMongo', value: 'paymongo' },
+            { label: 'Stripe', value: 'stripe' },
+            { label: 'Manual', value: 'manual' },
+          ],
+        },
+        {
+          name: 'paymongoMembershipDisabled',
+          label: 'PayMongo Membership Alias Disabled',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description:
+              'When on, the Next alias POST /api/webhooks/paymongo-membership returns 410 so all traffic uses the canonical Payload endpoint /api/paymongo-membership/webhook.',
+          },
+        },
+      ],
+    },
+    {
       type: 'tabs',
       tabs: [
         {

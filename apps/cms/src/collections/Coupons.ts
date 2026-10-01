@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 
 export const COUPON_CODE_PATTERN = /^[A-Z0-9][A-Z0-9\-_&$@]*$/
 export const COUPON_CODE_MIN = 3
@@ -136,6 +137,59 @@ export const Coupons: CollectionConfig = {
     { fields: ['code'] },
   ],
   hooks: {
+    beforeChange: [
+      // Membership enforcement (membership.md §5): vendor coupons require membership;
+      // Basic blocks all vendor coupons, Growth caps at 5 active.
+      (async ({ data, req, operation }: any) => {
+        try {
+          const d = data as Record<string, any> | undefined
+          if ((operation === 'create' || operation === 'update') && d?.vendor != null) {
+            const payload = (req as any)?.payload
+            const raw = d.vendor
+            const vendorId = typeof raw === 'object' && raw !== null && 'id' in (raw as any) ? String((raw as any).id) : String(raw)
+            const mod = await import('@/utils/membershipGuard')
+            const check = await mod.requireActiveMembership(payload, vendorId, { fn: 'coupons.beforeChange' })
+            // Entitlement count: resolve plan name from the subscription snapshot (MembershipCheck shape).
+            const snap = (check as unknown as { subscription?: Record<string, any> })?.subscription
+            const planName = String(snap?.plan_snapshot?.name ?? snap?.plan?.name ?? (snap as Record<string, any> | undefined)?.planSlug ?? '').toLowerCase()
+            const statusStr = String((check as unknown as { status?: string })?.status ?? 'active')
+            if (/basic/.test(planName)) {
+              throw new APIError('Active membership required to sell', 402, {
+                code: 'MEMBERSHIP_REQUIRED',
+                requiredPlan: 'Growth',
+                subscriptionStatus: statusStr,
+                vendorId,
+              } as unknown as Record<string, unknown>, true)
+            }
+            if (/growth/.test(planName)) {
+              try {
+                const existing = await payload.count({
+                  collection: 'coupons',
+                  where: { and: [{ vendor: { equals: vendorId } }, { status: { equals: 'published' } }] },
+                  overrideAccess: true,
+                })
+                const n = typeof existing === 'number' ? existing : (existing as any)?.totalDocs ?? 0
+                if (Number(n) >= 5 && operation === 'create') {
+                  throw new APIError('Active membership required to sell', 402, {
+                    code: 'MEMBERSHIP_REQUIRED',
+                    requiredPlan: 'Pro',
+                    subscriptionStatus: statusStr,
+                    vendorId,
+                  } as unknown as Record<string, unknown>, true)
+                }
+              } catch (e) {
+                const ee = e as unknown as { status?: number; code?: string }
+                if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+              }
+            }
+          }
+        } catch (e) {
+          const ee = e as unknown as { status?: number; code?: string }
+          if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+        }
+        return data
+      }) as never,
+    ],
     beforeValidate: [
       ({ data }) => {
         if (!data || typeof data !== 'object') return data
@@ -275,7 +329,17 @@ export const Coupons: CollectionConfig = {
         { label: 'Food subtotal', value: 'food_subtotal' },
         { label: 'Delivery fee', value: 'delivery_fee' },
         { label: 'Both', value: 'both' },
+        { label: 'Membership', value: 'membership' },
       ],
+    },
+    {
+      name: 'membershipPlanWhitelist',
+      type: 'relationship',
+      relationTo: 'membership-plans',
+      hasMany: true,
+      admin: {
+        description: 'Only these membership plans qualify for membership coupons. Empty = all plans.',
+      },
     },
     {
       name: 'free_delivery',

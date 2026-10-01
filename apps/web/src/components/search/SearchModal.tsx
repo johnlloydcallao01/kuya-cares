@@ -344,8 +344,8 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
       setIsCategoryLoading(true);
       try {
         const list = showAll
-          ? await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 24, categoryId: String(matchedCategory.id) })
-          : await getLocationBasedMerchants({ customerId: customerId as string, limit: 24, categoryId: String(matchedCategory.id) });
+          ? await getBrowsingMerchants({ customerId: customerId ?? undefined, limit: 9999, categoryId: String(matchedCategory.id) })
+          : await getLocationBasedMerchants({ customerId: customerId as string, limit: 9999, categoryId: String(matchedCategory.id) });
         if (cancel) return;
         setCategoryMerchants(list || []);
       } catch (e: any) {

@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
+import { useGoogleMapsApiReady } from '@/lib/google-maps-api';
 import Image from '@/components/ui/ImageWrapper';
 import OrderHeader from '@/components/orders/OrderHeader';
 import { TrackingPageSkeleton } from '@/components/skeletons/OrdersSkeleton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '00ffd535-f53d-44d0-b86d-945c90be2729';
-const MAPS_API_KEY = process.env.NEXT_PUBLIC_MAPS_BACKEND_KEY || '';
 
 // Mock Coordinates
 const MOCK_COORDINATES = {
@@ -101,10 +101,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
   const [data, setData] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: MAPS_API_KEY,
-  });
+  const isLoaded = useGoogleMapsApiReady();
 
   useEffect(() => {
     let active = true;

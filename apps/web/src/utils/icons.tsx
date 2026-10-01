@@ -176,6 +176,11 @@ export const getIcon = (iconName: IconName): any => {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
       </svg>
     ),
+    cookie: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21a9 9 0 009-9c0-1.2-.24-2.34-.67-3.39-.43-1.06-1.5-1.61-2.61-1.61h-.72a2 2 0 01-2-2v-.72c0-1.11-.55-2.18-1.61-2.61A8.96 8.96 0 0012 3a9 9 0 000 18zm-3.5-9.5h.01M8 15.5h.01M12 13.5h.01M14.5 16h.01" />
+      </svg>
+    ),
   };
 
   return iconMap[iconName] || iconMap.home;

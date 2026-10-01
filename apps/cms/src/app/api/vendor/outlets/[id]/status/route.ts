@@ -55,6 +55,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Membership gate (membership.md §5): early 402 when enabling only. Going-offline always allowed.
+    try {
+      const enabling = operationalStatus === 'open' || isAcceptingOrders === true || isActive === true
+      if (enabling) {
+        const { requireActiveMembership } = await import('@/utils/membershipGuard')
+        await requireActiveMembership(payload, String(vendor.id), { fn: 'vendor/outlets/[id]/status PATCH' })
+      }
+    } catch (e: any) {
+      if (e?.status === 402 || e?.statusCode === 402 || e?.code === 'MEMBERSHIP_REQUIRED') {
+        const d = (typeof e?.toJSON === 'function' ? e.toJSON() : (e?.data ?? {})) as Record<string, any>
+        return NextResponse.json({ error: 'Active membership required to sell', code: d.code ?? 'MEMBERSHIP_REQUIRED', vendorId: String(vendor.id), subscriptionStatus: d.subscriptionStatus ?? 'none', requiredPlan: d.requiredPlan ?? 'Basic', status: 402 }, { status: 402 })
+      }
+    }
+
     const patch: Record<string, any> = {}
     if (operationalStatus !== undefined) patch.operationalStatus = operationalStatus
     if (typeof isAcceptingOrders === 'boolean') patch.isAcceptingOrders = isAcceptingOrders

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -305,6 +306,35 @@ export const Products: CollectionConfig = {
       },
     ],
     beforeChange: [
+      // Membership enforcement (membership.md §5): block publish without membership.
+      (async ({ data, req, operation }: any) => {
+        try {
+          const d = data as Record<string, any> | undefined
+          const publishing = d?.isActive === true && (d?.catalogVisibility ?? 'visible') !== 'hidden'
+          if (publishing && (operation === 'create' || operation === 'update')) {
+            const payload = (req as any)?.payload
+            let vendorId: string | null = null
+            const cbv = d?.createdByVendor
+            vendorId = cbv == null ? null : typeof cbv === 'object' && cbv !== null && 'id' in (cbv as any) ? String((cbv as any).id) : String(cbv)
+            if (!vendorId && d?.createdByMerchant != null) {
+              const mod0 = await import('@/utils/membershipGuard')
+              vendorId = await mod0.resolveVendorIdFromMerchant(payload, (typeof d.createdByMerchant === 'object' ? (d.createdByMerchant as any).id : d.createdByMerchant) as string)
+            }
+            if (!vendorId && (req as any)?.user?.id != null) {
+              const mod0 = await import('@/utils/membershipGuard')
+              vendorId = await mod0.vendorIdForVendorUser(payload, String((req as any).user.id))
+            }
+            if (vendorId) {
+              const mod = await import('@/utils/membershipGuard')
+              await mod.requireActiveMembership(payload, vendorId, { fn: 'products.beforeChange' })
+            }
+          }
+        } catch (e) {
+          const ee = e as unknown as { status?: number; code?: string }
+          if (ee?.status === 402 || ee?.code === 'MEMBERSHIP_REQUIRED') throw e
+        }
+        return data
+      }) as never,
       async ({ data, req, operation: _operation }) => {
         console.log('🚀 PRODUCTS BEFORECHANGE HOOK TRIGGERED - Operation:', _operation);
         console.log('🚀 User role:', req.user?.role);

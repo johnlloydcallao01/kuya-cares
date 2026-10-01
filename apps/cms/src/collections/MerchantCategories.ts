@@ -57,6 +57,15 @@ export const MerchantCategories: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
     },
+    {
+      name: 'commissionOverridePct',
+      type: 'number',
+      min: 0,
+      max: 100,
+      admin: {
+        description: 'Category-level commission override (nullable, inherits when empty)',
+      },
+    },
   ],
   indexes: [
     { fields: ['slug'] },

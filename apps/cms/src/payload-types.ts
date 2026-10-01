@@ -131,6 +131,14 @@ export interface Config {
     'tag-group-memberships': TagGroupMembership;
     'recent-views': RecentView;
     wishlists: Wishlist;
+    'support-tickets': SupportTicket;
+    'support-ticket-messages': SupportTicketMessage;
+    'membership-plans': MembershipPlan;
+    'vendor-subscriptions': VendorSubscription;
+    'subscription-invoices': SubscriptionInvoice;
+    'commission-rules': CommissionRule;
+    'vendor-entitlements': VendorEntitlement;
+    'membership-audit-log': MembershipAuditLog;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -201,6 +209,14 @@ export interface Config {
     'tag-group-memberships': TagGroupMembershipsSelect<false> | TagGroupMembershipsSelect<true>;
     'recent-views': RecentViewsSelect<false> | RecentViewsSelect<true>;
     wishlists: WishlistsSelect<false> | WishlistsSelect<true>;
+    'support-tickets': SupportTicketsSelect<false> | SupportTicketsSelect<true>;
+    'support-ticket-messages': SupportTicketMessagesSelect<false> | SupportTicketMessagesSelect<true>;
+    'membership-plans': MembershipPlansSelect<false> | MembershipPlansSelect<true>;
+    'vendor-subscriptions': VendorSubscriptionsSelect<false> | VendorSubscriptionsSelect<true>;
+    'subscription-invoices': SubscriptionInvoicesSelect<false> | SubscriptionInvoicesSelect<true>;
+    'commission-rules': CommissionRulesSelect<false> | CommissionRulesSelect<true>;
+    'vendor-entitlements': VendorEntitlementsSelect<false> | VendorEntitlementsSelect<true>;
+    'membership-audit-log': MembershipAuditLogSelect<false> | MembershipAuditLogSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -1222,6 +1238,332 @@ export interface Vendor {
     twitter?: string | null;
     website?: string | null;
   };
+  /**
+   * Denormalized by subscription afterChange
+   */
+  currentSubscription?: (number | null) | VendorSubscription;
+  subscriptionStatus?:
+    | ('none' | 'pending' | 'trialing' | 'active' | 'past_due' | 'grace' | 'suspended' | 'cancelled' | 'expired')
+    | null;
+  subscriptionExpiresAt?: string | null;
+  graceEndsAt?: string | null;
+  trialEndsAt?: string | null;
+  waivedUntil?: string | null;
+  waiveReason?: string | null;
+  suspendedReason?: string | null;
+  grandfatheredBasic?: boolean | null;
+  grandfatheredAt?: string | null;
+  /**
+   * Vendor-level override (highest priority)
+   */
+  commissionOverride?: {
+    commission_percent?: number | null;
+    transaction_fee?: number | null;
+    rule?: (number | null) | CommissionRule;
+  };
+  /**
+   * KYB documents (verification is manual for now)
+   */
+  kycDocs?:
+    | {
+        docType: 'dti' | 'sec' | 'bir' | 'id_front' | 'id_back' | 'selfie' | 'other';
+        media: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  lastEntitlementSync?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * One active + full history per vendor (writes service/admin only)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-subscriptions".
+ */
+export interface VendorSubscription {
+  id: number;
+  vendor: number | Vendor;
+  plan: number | MembershipPlan;
+  plan_version: number;
+  plan_snapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'trialing' | 'active' | 'past_due' | 'grace' | 'suspended' | 'cancelled' | 'expired';
+  billing_interval?: ('month' | 'year' | 'one_time') | null;
+  current_period_start?: string | null;
+  current_period_end?: string | null;
+  trial_ends_at?: string | null;
+  grace_ends_at?: string | null;
+  cancel_at?: string | null;
+  cancelled_at?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  scheduledPlan?: (number | null) | MembershipPlan;
+  scheduledEffectiveAt?: string | null;
+  auto_renew?: boolean | null;
+  payment_provider?: ('paymongo' | 'stripe' | 'manual') | null;
+  provider_customer_id?: string | null;
+  provider_subscription_id?: string | null;
+  idempotencyKey: string;
+  retryCount?: number | null;
+  lastRetryAt?: string | null;
+  waivedUntil?: string | null;
+  waiveReason?: string | null;
+  suspendReason?: string | null;
+  usage?: {
+    products_used?: number | null;
+    merchants_used?: number | null;
+    storage_mb_used?: number | null;
+    gmv_current_period?: number | null;
+    orders_current_period?: number | null;
+    last_reset_at?: string | null;
+  };
+  grandfathered?: boolean | null;
+  grandfather_notes?: string | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Vendor membership plan catalog (admin CRUD, vendors read active only)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "membership-plans".
+ */
+export interface MembershipPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  price: number;
+  currency: string;
+  billing_interval: 'month' | 'year' | 'one_time';
+  trial_days?: number | null;
+  grace_days?: number | null;
+  commission_percent?: number | null;
+  transaction_fee?: number | null;
+  limits?: {
+    max_products?: number | null;
+    max_merchants?: number | null;
+    max_images?: number | null;
+    storage_mb?: number | null;
+    staff_seats?: number | null;
+    monthly_gmv_cap?: number | null;
+    order_cap?: number | null;
+  };
+  /**
+   * Empty = all categories
+   */
+  allowed_categories?: (number | ProductCategory)[] | null;
+  allowed_business_types?:
+    | ('restaurant' | 'fast_food' | 'grocery' | 'pharmacy' | 'convenience' | 'bakery' | 'coffee_shop' | 'other')[]
+    | null;
+  capabilities?: {
+    microstore?: boolean | null;
+    ads?: boolean | null;
+    analytics?: boolean | null;
+    api_access?: boolean | null;
+    promos?: boolean | null;
+    custom_shipping?: boolean | null;
+    multi_user?: boolean | null;
+    visibility_boost?: number | null;
+    support_sla?: ('none' | 'email' | 'priority' | 'dedicated') | null;
+  };
+  /**
+   * hidden = assign-only (Enterprise)
+   */
+  status: 'active' | 'hidden' | 'disabled' | 'archived';
+  display_order?: number | null;
+  is_fallback_basic?: boolean | null;
+  stripe_product_id?: string | null;
+  stripe_price_id?: string | null;
+  /**
+   * Local ref (PayMongo has no product object)
+   */
+  paymongo_plan_ref?: string | null;
+  version: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Organize products into hierarchical categories for easy browsing
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-categories".
+ */
+export interface ProductCategory {
+  id: number;
+  /**
+   * Category name (e.g., "Main Dishes", "Beverages", "Desserts")
+   */
+  name: string;
+  /**
+   * URL-friendly version of the name (auto-generated if empty)
+   */
+  slug: string;
+  /**
+   * Category description for customers
+   */
+  description?: string | null;
+  /**
+   * Parent category (leave empty for top-level categories)
+   */
+  parentCategory?: (number | null) | ProductCategory;
+  /**
+   * Hierarchy level (1 = top level, 2 = subcategory, etc.)
+   */
+  categoryLevel?: number | null;
+  /**
+   * Materialized path for efficient queries (auto-generated)
+   */
+  categoryPath?: string | null;
+  /**
+   * Order for displaying categories (lower numbers appear first)
+   */
+  displayOrder?: number | null;
+  /**
+   * Whether the category is currently active
+   */
+  isActive?: boolean | null;
+  /**
+   * Whether to feature this category prominently
+   */
+  isFeatured?: boolean | null;
+  /**
+   * Visual elements for the category
+   */
+  media?: {
+    /**
+     * Category icon (SVG preferred)
+     */
+    icon?: (number | null) | Media;
+    /**
+     * Banner image for category pages
+     */
+    bannerImage?: (number | null) | Media;
+    /**
+     * Thumbnail for category listings
+     */
+    thumbnailImage?: (number | null) | Media;
+  };
+  /**
+   * Category-specific attributes and restrictions
+   */
+  attributes?: {
+    /**
+     * Type of products in this category
+     */
+    categoryType?:
+      | (
+          | 'food'
+          | 'beverages'
+          | 'desserts'
+          | 'snacks'
+          | 'groceries'
+          | 'pharmacy'
+          | 'personal_care'
+          | 'household'
+          | 'other'
+        )
+      | null;
+    /**
+     * Dietary attributes commonly found in this category (JSON array of strings)
+     */
+    dietaryTags?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Age restriction for products in this category
+     */
+    ageRestriction?: ('none' | '18_plus' | '21_plus') | null;
+    /**
+     * Whether products in this category require prescription
+     */
+    requiresPrescription?: boolean | null;
+  };
+  /**
+   * SEO optimization settings
+   */
+  seo?: {
+    /**
+     * SEO meta title
+     */
+    metaTitle?: string | null;
+    /**
+     * SEO meta description
+     */
+    metaDescription?: string | null;
+    /**
+     * SEO keywords for this category (JSON array of strings)
+     */
+    keywords?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Canonical URL for SEO
+     */
+    canonicalUrl?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Vendor debit resolution (never mutates order total)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commission-rules".
+ */
+export interface CommissionRule {
+  id: number;
+  name: string;
+  scope: 'global' | 'plan' | 'category' | 'vendor';
+  /**
+   * Higher wins (vendor 100 > category 50 > plan 10 > global 0)
+   */
+  priority: number;
+  /**
+   * Only when scope === 'plan'
+   */
+  plan?: (number | null) | MembershipPlan;
+  /**
+   * Only when scope === 'category'
+   */
+  category?: (number | null) | ProductCategory;
+  /**
+   * Only when scope === 'vendor'
+   */
+  vendor?: (number | null) | Vendor;
+  commission_percent: number;
+  transaction_fee?: number | null;
+  effective_from?: string | null;
+  effective_to?: string | null;
+  is_active?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1576,6 +1918,11 @@ export interface Merchant {
    * IANA timezone identifier (e.g., Asia/Manila, Asia/Singapore, America/New_York)
    */
   timezone: string;
+  /**
+   * Requires vendor visibility_boost > 0 (checked in service layer)
+   */
+  isFeatured?: boolean | null;
+  listingBoost?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1592,6 +1939,10 @@ export interface MerchantCategory {
   isActive?: boolean | null;
   isFeatured?: boolean | null;
   icon?: (number | null) | Media;
+  /**
+   * Category-level commission override (nullable, inherits when empty)
+   */
+  commissionOverridePct?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1637,140 +1988,6 @@ export interface Driver {
   activeAddress?: (number | null) | Address;
   driving_license_image?: (number | null) | Media;
   vehicle_registration_image?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Organize products into hierarchical categories for easy browsing
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "product-categories".
- */
-export interface ProductCategory {
-  id: number;
-  /**
-   * Category name (e.g., "Main Dishes", "Beverages", "Desserts")
-   */
-  name: string;
-  /**
-   * URL-friendly version of the name (auto-generated if empty)
-   */
-  slug: string;
-  /**
-   * Category description for customers
-   */
-  description?: string | null;
-  /**
-   * Parent category (leave empty for top-level categories)
-   */
-  parentCategory?: (number | null) | ProductCategory;
-  /**
-   * Hierarchy level (1 = top level, 2 = subcategory, etc.)
-   */
-  categoryLevel?: number | null;
-  /**
-   * Materialized path for efficient queries (auto-generated)
-   */
-  categoryPath?: string | null;
-  /**
-   * Order for displaying categories (lower numbers appear first)
-   */
-  displayOrder?: number | null;
-  /**
-   * Whether the category is currently active
-   */
-  isActive?: boolean | null;
-  /**
-   * Whether to feature this category prominently
-   */
-  isFeatured?: boolean | null;
-  /**
-   * Visual elements for the category
-   */
-  media?: {
-    /**
-     * Category icon (SVG preferred)
-     */
-    icon?: (number | null) | Media;
-    /**
-     * Banner image for category pages
-     */
-    bannerImage?: (number | null) | Media;
-    /**
-     * Thumbnail for category listings
-     */
-    thumbnailImage?: (number | null) | Media;
-  };
-  /**
-   * Category-specific attributes and restrictions
-   */
-  attributes?: {
-    /**
-     * Type of products in this category
-     */
-    categoryType?:
-      | (
-          | 'food'
-          | 'beverages'
-          | 'desserts'
-          | 'snacks'
-          | 'groceries'
-          | 'pharmacy'
-          | 'personal_care'
-          | 'household'
-          | 'other'
-        )
-      | null;
-    /**
-     * Dietary attributes commonly found in this category (JSON array of strings)
-     */
-    dietaryTags?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    /**
-     * Age restriction for products in this category
-     */
-    ageRestriction?: ('none' | '18_plus' | '21_plus') | null;
-    /**
-     * Whether products in this category require prescription
-     */
-    requiresPrescription?: boolean | null;
-  };
-  /**
-   * SEO optimization settings
-   */
-  seo?: {
-    /**
-     * SEO meta title
-     */
-    metaTitle?: string | null;
-    /**
-     * SEO meta description
-     */
-    metaDescription?: string | null;
-    /**
-     * SEO keywords for this category (JSON array of strings)
-     */
-    keywords?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    /**
-     * Canonical URL for SEO
-     */
-    canonicalUrl?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -2679,7 +2896,11 @@ export interface Coupon {
    * Cap for percentage coupons, e.g. 20% off up to ₱100.
    */
   max_discount_amount?: number | null;
-  applies_to: 'food_subtotal' | 'delivery_fee' | 'both';
+  applies_to: 'food_subtotal' | 'delivery_fee' | 'both' | 'membership';
+  /**
+   * Only these membership plans qualify for membership coupons. Empty = all plans.
+   */
+  membershipPlanWhitelist?: (number | MembershipPlan)[] | null;
   /**
    * Zero out the delivery fee leg (capped below when set).
    */
@@ -3774,6 +3995,201 @@ export interface Wishlist {
   createdAt: string;
 }
 /**
+ * Support tickets submitted by customers, vendors, and drivers
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-tickets".
+ */
+export interface SupportTicket {
+  id: number;
+  subject: string;
+  status: 'open' | 'in_progress' | 'waiting_for_user' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  category: 'order_issue' | 'delivery' | 'payment_refund' | 'product' | 'account' | 'technical' | 'general';
+  /**
+   * The user who created the ticket (customer, vendor, or driver)
+   */
+  user: number | User;
+  /**
+   * Related order, when the ticket is about a specific order
+   */
+  order?: (number | null) | Order;
+  /**
+   * Related merchant outlet, when the ticket concerns a store
+   */
+  merchant?: (number | null) | Merchant;
+  /**
+   * Related product, when the ticket concerns a catalog item
+   */
+  product?: (number | null) | Product;
+  /**
+   * Support staff assigned to this ticket
+   */
+  assignedTo?: (number | null) | User;
+  attachments?: (number | Media)[] | null;
+  lastMessageAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Messages exchanged in support tickets
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-ticket-messages".
+ */
+export interface SupportTicketMessage {
+  id: number;
+  ticket: number | SupportTicket;
+  sender: number | User;
+  message: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  attachments?: (number | Media)[] | null;
+  isInternal?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Per-cycle membership invoice + provider ref + idempotency
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-invoices".
+ */
+export interface SubscriptionInvoice {
+  id: number;
+  subscription: number | VendorSubscription;
+  vendor: number | Vendor;
+  plan: number | MembershipPlan;
+  invoice_number: string;
+  amount: number;
+  currency?: string | null;
+  commission_due?: number | null;
+  status?: ('pending' | 'paid' | 'failed' | 'past_due' | 'void' | 'refunded') | null;
+  billingReason?: ('initial' | 'upgrade' | 'downgrade' | 'renewal' | 'proration' | 'manual') | null;
+  prorationDelta?: number | null;
+  discount_amount?: number | null;
+  couponCode?: string | null;
+  payment_provider?: ('paymongo' | 'stripe' | 'manual') | null;
+  provider_payment_intent?: string | null;
+  payment_link_url?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  due_at: string;
+  paid_at?: string | null;
+  receipt?: (number | null) | Media;
+  retry_count?: number | null;
+  failure_reason?: string | null;
+  idempotencyKey: string;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Materialized entitlement snapshot (one doc per vendor; gating reads this)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-entitlements".
+ */
+export interface VendorEntitlement {
+  id: number;
+  vendor: number | Vendor;
+  subscription?: (number | null) | VendorSubscription;
+  plan?: (number | null) | MembershipPlan;
+  capabilities?: {
+    microstore?: boolean | null;
+    ads?: boolean | null;
+    analytics?: boolean | null;
+    api_access?: boolean | null;
+    promos?: boolean | null;
+    custom_shipping?: boolean | null;
+    multi_user?: boolean | null;
+    visibility_boost?: number | null;
+    support_sla?: ('none' | 'email' | 'priority' | 'dedicated') | null;
+  };
+  limits_snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  granted_at?: string | null;
+  expires_at?: string | null;
+  reason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Immutable membership audit log (no update/delete)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "membership-audit-log".
+ */
+export interface MembershipAuditLog {
+  id: number;
+  vendor?: (number | null) | Vendor;
+  subscription?: (number | null) | VendorSubscription;
+  invoice?: (number | null) | SubscriptionInvoice;
+  action?:
+    | (
+        | 'grant'
+        | 'deny'
+        | 'upgrade'
+        | 'downgrade'
+        | 'renew'
+        | 'cancel'
+        | 'grace'
+        | 'override'
+        | 'entitlement_check'
+        | 'sync'
+        | 'vendor_registered'
+        | 'admin_approve'
+        | 'admin_waive'
+        | 'webhook_paid'
+        | 'webhook_failed'
+      )
+    | null;
+  plan_version?: number | null;
+  previous_plan?: (number | null) | MembershipPlan;
+  next_plan?: (number | null) | MembershipPlan;
+  reason?: string | null;
+  actor?: (number | null) | User;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  eventId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
@@ -4035,6 +4451,38 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'wishlists';
         value: number | Wishlist;
+      } | null)
+    | ({
+        relationTo: 'support-tickets';
+        value: number | SupportTicket;
+      } | null)
+    | ({
+        relationTo: 'support-ticket-messages';
+        value: number | SupportTicketMessage;
+      } | null)
+    | ({
+        relationTo: 'membership-plans';
+        value: number | MembershipPlan;
+      } | null)
+    | ({
+        relationTo: 'vendor-subscriptions';
+        value: number | VendorSubscription;
+      } | null)
+    | ({
+        relationTo: 'subscription-invoices';
+        value: number | SubscriptionInvoice;
+      } | null)
+    | ({
+        relationTo: 'commission-rules';
+        value: number | CommissionRule;
+      } | null)
+    | ({
+        relationTo: 'vendor-entitlements';
+        value: number | VendorEntitlement;
+      } | null)
+    | ({
+        relationTo: 'membership-audit-log';
+        value: number | MembershipAuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4460,6 +4908,31 @@ export interface VendorsSelect<T extends boolean = true> {
         twitter?: T;
         website?: T;
       };
+  currentSubscription?: T;
+  subscriptionStatus?: T;
+  subscriptionExpiresAt?: T;
+  graceEndsAt?: T;
+  trialEndsAt?: T;
+  waivedUntil?: T;
+  waiveReason?: T;
+  suspendedReason?: T;
+  grandfatheredBasic?: T;
+  grandfatheredAt?: T;
+  commissionOverride?:
+    | T
+    | {
+        commission_percent?: T;
+        transaction_fee?: T;
+        rule?: T;
+      };
+  kycDocs?:
+    | T
+    | {
+        docType?: T;
+        media?: T;
+        id?: T;
+      };
+  lastEntitlementSync?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4532,6 +5005,8 @@ export interface MerchantsSelect<T extends boolean = true> {
   is_currently_delivering?: T;
   next_available_slot?: T;
   timezone?: T;
+  isFeatured?: T;
+  listingBoost?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4575,6 +5050,7 @@ export interface MerchantCategoriesSelect<T extends boolean = true> {
   isActive?: T;
   isFeatured?: T;
   icon?: T;
+  commissionOverridePct?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4923,6 +5399,7 @@ export interface CouponsSelect<T extends boolean = true> {
   amount?: T;
   max_discount_amount?: T;
   applies_to?: T;
+  membershipPlanWhitelist?: T;
   free_delivery?: T;
   delivery_discount_cap?: T;
   vendor?: T;
@@ -5435,6 +5912,233 @@ export interface WishlistsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-tickets_select".
+ */
+export interface SupportTicketsSelect<T extends boolean = true> {
+  subject?: T;
+  status?: T;
+  priority?: T;
+  category?: T;
+  user?: T;
+  order?: T;
+  merchant?: T;
+  product?: T;
+  assignedTo?: T;
+  attachments?: T;
+  lastMessageAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-ticket-messages_select".
+ */
+export interface SupportTicketMessagesSelect<T extends boolean = true> {
+  ticket?: T;
+  sender?: T;
+  message?: T;
+  attachments?: T;
+  isInternal?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "membership-plans_select".
+ */
+export interface MembershipPlansSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  price?: T;
+  currency?: T;
+  billing_interval?: T;
+  trial_days?: T;
+  grace_days?: T;
+  commission_percent?: T;
+  transaction_fee?: T;
+  limits?:
+    | T
+    | {
+        max_products?: T;
+        max_merchants?: T;
+        max_images?: T;
+        storage_mb?: T;
+        staff_seats?: T;
+        monthly_gmv_cap?: T;
+        order_cap?: T;
+      };
+  allowed_categories?: T;
+  allowed_business_types?: T;
+  capabilities?:
+    | T
+    | {
+        microstore?: T;
+        ads?: T;
+        analytics?: T;
+        api_access?: T;
+        promos?: T;
+        custom_shipping?: T;
+        multi_user?: T;
+        visibility_boost?: T;
+        support_sla?: T;
+      };
+  status?: T;
+  display_order?: T;
+  is_fallback_basic?: T;
+  stripe_product_id?: T;
+  stripe_price_id?: T;
+  paymongo_plan_ref?: T;
+  version?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-subscriptions_select".
+ */
+export interface VendorSubscriptionsSelect<T extends boolean = true> {
+  vendor?: T;
+  plan?: T;
+  plan_version?: T;
+  plan_snapshot?: T;
+  status?: T;
+  billing_interval?: T;
+  current_period_start?: T;
+  current_period_end?: T;
+  trial_ends_at?: T;
+  grace_ends_at?: T;
+  cancel_at?: T;
+  cancelled_at?: T;
+  cancelAtPeriodEnd?: T;
+  scheduledPlan?: T;
+  scheduledEffectiveAt?: T;
+  auto_renew?: T;
+  payment_provider?: T;
+  provider_customer_id?: T;
+  provider_subscription_id?: T;
+  idempotencyKey?: T;
+  retryCount?: T;
+  lastRetryAt?: T;
+  waivedUntil?: T;
+  waiveReason?: T;
+  suspendReason?: T;
+  usage?:
+    | T
+    | {
+        products_used?: T;
+        merchants_used?: T;
+        storage_mb_used?: T;
+        gmv_current_period?: T;
+        orders_current_period?: T;
+        last_reset_at?: T;
+      };
+  grandfathered?: T;
+  grandfather_notes?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-invoices_select".
+ */
+export interface SubscriptionInvoicesSelect<T extends boolean = true> {
+  subscription?: T;
+  vendor?: T;
+  plan?: T;
+  invoice_number?: T;
+  amount?: T;
+  currency?: T;
+  commission_due?: T;
+  status?: T;
+  billingReason?: T;
+  prorationDelta?: T;
+  discount_amount?: T;
+  couponCode?: T;
+  payment_provider?: T;
+  provider_payment_intent?: T;
+  payment_link_url?: T;
+  period_start?: T;
+  period_end?: T;
+  due_at?: T;
+  paid_at?: T;
+  receipt?: T;
+  retry_count?: T;
+  failure_reason?: T;
+  idempotencyKey?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "commission-rules_select".
+ */
+export interface CommissionRulesSelect<T extends boolean = true> {
+  name?: T;
+  scope?: T;
+  priority?: T;
+  plan?: T;
+  category?: T;
+  vendor?: T;
+  commission_percent?: T;
+  transaction_fee?: T;
+  effective_from?: T;
+  effective_to?: T;
+  is_active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-entitlements_select".
+ */
+export interface VendorEntitlementsSelect<T extends boolean = true> {
+  vendor?: T;
+  subscription?: T;
+  plan?: T;
+  capabilities?:
+    | T
+    | {
+        microstore?: T;
+        ads?: T;
+        analytics?: T;
+        api_access?: T;
+        promos?: T;
+        custom_shipping?: T;
+        multi_user?: T;
+        visibility_boost?: T;
+        support_sla?: T;
+      };
+  limits_snapshot?: T;
+  granted_at?: T;
+  expires_at?: T;
+  reason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "membership-audit-log_select".
+ */
+export interface MembershipAuditLogSelect<T extends boolean = true> {
+  vendor?: T;
+  subscription?: T;
+  invoice?: T;
+  action?: T;
+  plan_version?: T;
+  previous_plan?: T;
+  next_plan?: T;
+  reason?: T;
+  actor?: T;
+  metadata?: T;
+  eventId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -5488,6 +6192,33 @@ export interface SystemSetting {
    */
   pointsExpiryDays?: number | null;
   /**
+   * Vendor membership kill-switch + billing defaults (Phase 0)
+   */
+  membership?: {
+    membershipEnabled?: boolean | null;
+    membershipEnforced?: boolean | null;
+    grandfatherBasicEnabled?: boolean | null;
+    trialDaysDefault?: number | null;
+    graceDaysDefault?: number | null;
+    dunningMaxRetries?: number | null;
+    dunningSchedule?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    fallbackBasicPlanSlug?: string | null;
+    commissionDefaultPct?: number | null;
+    payProviderDefault?: ('paymongo' | 'stripe' | 'manual') | null;
+    /**
+     * When on, the Next alias POST /api/webhooks/paymongo-membership returns 410 so all traffic uses the canonical Payload endpoint /api/paymongo-membership/webhook.
+     */
+    paymongoMembershipDisabled?: boolean | null;
+  };
+  /**
    * Select which delivery provider to use for order bookings.
    */
   deliveryProvider: 'lalamove' | 'native';
@@ -5527,6 +6258,21 @@ export interface SystemSettingsSelect<T extends boolean = true> {
   couponsEnabled?: T;
   pointsEnabled?: T;
   pointsExpiryDays?: T;
+  membership?:
+    | T
+    | {
+        membershipEnabled?: T;
+        membershipEnforced?: T;
+        grandfatherBasicEnabled?: T;
+        trialDaysDefault?: T;
+        graceDaysDefault?: T;
+        dunningMaxRetries?: T;
+        dunningSchedule?: T;
+        fallbackBasicPlanSlug?: T;
+        commissionDefaultPct?: T;
+        payProviderDefault?: T;
+        paymongoMembershipDisabled?: T;
+      };
   deliveryProvider?: T;
   lalamove?:
     | T

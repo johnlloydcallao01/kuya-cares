@@ -104,6 +104,31 @@ type MerchantWithServiceArea = Merchant & {
 }
 
 /**
+ * Membership helper (membership.md §5): true when a vendor doc is sellable.
+ * Post-filter only — never throws, fail-open when fields are absent (pre-migration).
+ * Enforcement off (no BILLING_ENFORCE_MEMBERSHIP) → always true.
+ */
+export function isVendorSellable(vendorDoc: unknown): boolean {
+  try {
+    if (process.env.BILLING_ENFORCE_MEMBERSHIP === 'false') return true
+    if (!vendorDoc || typeof vendorDoc !== 'object') return true
+    const v = vendorDoc as Record<string, any>
+    const status = String(v.subscriptionStatus ?? v.subscription_status ?? v.membershipStatus ?? '')
+    if (status === 'active' || status === 'trialing') return true
+    const waived = v.waivedUntil ?? v.waived_until
+    if (waived && new Date(waived).getTime() > Date.now()) return true
+    if (process.env.BILLING_GRANDFATHER_BASIC !== 'false' && (v.grandfatheredBasic === true || v.grandfathered_basic === true)) return true
+    // Fail-open when membership fields are absent (pre-migration docs)
+    if (!status && waived === undefined) return true
+    return false
+  } catch {
+    return true
+  }
+}
+
+export const isVendorSellableLocal = isVendorSellable
+
+/**
  * Enhanced GeospatialService with Google Maps API integration
  * Provides high-performance geospatial operations for merchant location queries
  * Uses Google Maps motorcycle driving mode for accurate delivery distance calculations
@@ -197,6 +222,13 @@ export class GeospatialService {
           // Vendor kill-switch
           const vendor = merchant.vendor as unknown as { isActive?: boolean }
           if (vendor && vendor.isActive === false) return false
+          // Membership hide-listings filter (membership.md §5): post-filter docs where vendor membership inactive.
+          // Avoid breaking PostGIS SQL — this is a soft in-memory filter, never a 402.
+          try {
+            if (vendor && !isVendorSellable(vendor)) return false
+          } catch {
+            /* fail-open */
+          }
           // BusinessZone kill-switch
           const bz = (merchant as unknown as { businessZone?: { isActive?: boolean } }).businessZone
           if (bz && typeof bz === 'object' && bz.isActive === false) return false
@@ -369,6 +401,13 @@ export class GeospatialService {
           if (!merchant.merchant_latitude || !merchant.merchant_longitude) return false
           const vendor = merchant.vendor as unknown as { isActive?: boolean }
           if (vendor && vendor.isActive === false) return false
+          // Membership hide-listings filter (membership.md §5): post-filter docs where vendor membership inactive.
+          // Avoid breaking PostGIS SQL — this is a soft in-memory filter, never a 402.
+          try {
+            if (vendor && !isVendorSellable(vendor)) return false
+          } catch {
+            /* fail-open */
+          }
           const bz = (merchant as unknown as { businessZone?: { isActive?: boolean } }).businessZone
           if (bz && typeof bz === 'object' && bz.isActive === false) return false
           return true
@@ -537,6 +576,13 @@ export class GeospatialService {
           if (!merchant.merchant_latitude || !merchant.merchant_longitude) return false
           const vendor = merchant.vendor as unknown as { isActive?: boolean }
           if (vendor && vendor.isActive === false) return false
+          // Membership hide-listings filter (membership.md §5): post-filter docs where vendor membership inactive.
+          // Avoid breaking PostGIS SQL — this is a soft in-memory filter, never a 402.
+          try {
+            if (vendor && !isVendorSellable(vendor)) return false
+          } catch {
+            /* fail-open */
+          }
           const bz = (merchant as unknown as { businessZone?: { isActive?: boolean } }).businessZone
           if (bz && typeof bz === 'object' && bz.isActive === false) return false
           return true
@@ -927,6 +973,16 @@ export class GeospatialService {
         } as MerchantWithDistance
       })
 
+      // Membership hide-listings post-filter (membership.md §5): drop rows whose vendor is not sellable.
+      // Fail-open for bare-id vendors (no membership fields to judge → isVendorSellable returns true).
+      const visibleMerchants = merchantsWithDistance.filter((m) => {
+        try {
+          return isVendorSellableLocal((m as MerchantWithDistance).vendor)
+        } catch {
+          return true
+        }
+      })
+
       // Get total count for pagination
       const countResult = await this.payload.db.drizzle.execute(`
         SELECT COUNT(*) as total_count
@@ -962,7 +1018,7 @@ export class GeospatialService {
       const queryTime = endTime - startTime
 
       return {
-        merchants: merchantsWithDistance,
+        merchants: visibleMerchants,
         totalCount,
         pagination: {
           totalDocs: totalCount,
@@ -978,9 +1034,9 @@ export class GeospatialService {
         performance: {
           queryTimeMs: queryTime,
           searchRadius: radiusMeters,
-          withinSearchRadius: merchantsWithDistance.length,
-          proximityScore: merchantsWithDistance.length > 0 
-            ? merchantsWithDistance.reduce((sum, m) => sum + (1 / (m.distanceKm + 1)), 0) / merchantsWithDistance.length 
+          withinSearchRadius: visibleMerchants.length,
+          proximityScore: visibleMerchants.length > 0
+            ? visibleMerchants.reduce((sum, m) => sum + (1 / (m.distanceKm + 1)), 0) / visibleMerchants.length
             : 0,
           optimizationUsed: 'postgis_spatial_index'
         }

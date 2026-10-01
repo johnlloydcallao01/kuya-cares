@@ -1,62 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  ensureGoogleMapsLoaded,
+  isGoogleMapsApiReadySync,
+} from '@/lib/google-maps-api';
 
-// Global Google Maps loader with singleton pattern and async loading
-let googleMapsPromise: Promise<void> | null = null;
-let isGoogleMapsLoaded = false;
-
-const loadGoogleMaps = (): Promise<void> => {
-  // If already loaded, return resolved promise
-  if (isGoogleMapsLoaded && window.google && window.google.maps && window.google.maps.places) {
-    return Promise.resolve();
-  }
-
-  // If loading is in progress, return the existing promise
-  if (googleMapsPromise) {
-    return googleMapsPromise;
-  }
-
-  // Check if script already exists
-  const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-  if (existingScript) {
-    // Script exists, wait for it to load
-    googleMapsPromise = new Promise((resolve) => {
-      const checkLoaded = () => {
-        if (window.google && window.google.maps && window.google.maps.places) {
-          isGoogleMapsLoaded = true;
-          resolve();
-        } else {
-          setTimeout(checkLoaded, 100);
-        }
-      };
-      checkLoaded();
-    });
-    return googleMapsPromise;
-  }
-
-  // Create new loading promise with proper async loading
-  googleMapsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_MAPS_BACKEND_KEY}&libraries=places&loading=async`;
-    script.async = true;
-    script.defer = true;
-    
-    script.onload = () => {
-      isGoogleMapsLoaded = true;
-      resolve();
-    };
-
-    script.onerror = () => {
-      googleMapsPromise = null; // Reset on error so it can be retried
-      reject(new Error('Failed to load Google Maps API'));
-    };
-
-    document.head.appendChild(script);
-  });
-
-  return googleMapsPromise;
-};
+// Single shared bootstrap lives in @/lib/google-maps-api — this hook only
+// consumes it (previously it injected its own script, colliding with maps).
+const loadGoogleMaps = (): Promise<void> => ensureGoogleMapsLoaded();
 
 export interface UseGoogleMapsPlacesOptions {
   debounceMs?: number;
@@ -77,8 +29,12 @@ export interface UseGoogleMapsPlacesReturn {
 
 export function useGoogleMapsPlaces(options: UseGoogleMapsPlacesOptions = {}): UseGoogleMapsPlacesReturn {
   const {
-    debounceMs = 300
+    debounceMs = 350
   } = options;
+
+  // tap2go parity: one session token object reused across autocomplete +
+  // details, refreshed after each details call (Places billing sessions).
+  const sessionTokenRef = useRef<any>(null);
 
   // Memoize locationBias to prevent infinite re-renders
   const locationBias = useMemo(() => ({
@@ -90,9 +46,7 @@ export function useGoogleMapsPlaces(options: UseGoogleMapsPlacesOptions = {}): U
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // Initialize isMapsReady based on whether Google Maps is already loaded to prevent flash
-  const [isMapsReady, setIsMapsReady] = useState<boolean>(() => {
-    return !!(isGoogleMapsLoaded && typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places);
-  });
+  const [isMapsReady, setIsMapsReady] = useState<boolean>(() => isGoogleMapsApiReadySync());
 
   // Load Google Maps API
   useEffect(() => {
@@ -107,18 +61,27 @@ export function useGoogleMapsPlaces(options: UseGoogleMapsPlacesOptions = {}): U
 
   // Handle search input changes with AutocompleteSuggestion API
   useEffect(() => {
-    if (!searchQuery.trim() || !isMapsReady) {
+    // tap2go parity: <2 chars clears without a request
+    if (searchQuery.trim().length < 2 || !isMapsReady) {
       setPredictions([]);
       return;
     }
 
     const timeoutId = setTimeout(async () => {
       try {
-        // Use the new AutocompleteSuggestion API
+        if (!sessionTokenRef.current && typeof (google.maps.places as any).AutocompleteSessionToken === 'function') {
+          sessionTokenRef.current = new (google.maps.places as any).AutocompleteSessionToken();
+        }
+        // Use the new AutocompleteSuggestion API (tap2go parity: en + PH scope)
         const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: searchQuery,
-          locationBias
-        });
+          locationBias,
+          language: 'en',
+          includedRegionCodes: ['ph'],
+          ...(sessionTokenRef.current
+            ? { sessionToken: sessionTokenRef.current as any }
+            : {}),
+        } as any);
 
         // Convert suggestions to the expected format
         const convertedPredictions: google.maps.places.AutocompletePrediction[] = suggestions.map(suggestion => ({
@@ -166,6 +129,9 @@ export function useGoogleMapsPlaces(options: UseGoogleMapsPlacesOptions = {}): U
       await place.fetchFields({
         fields: ['displayName', 'formattedAddress', 'location', 'id'],
       });
+
+      // tap2go parity: refresh the billing session after each details call
+      sessionTokenRef.current = null;
 
       // Convert to the expected PlaceResult format for backward compatibility
       const placeResult: google.maps.places.PlaceResult = {
