@@ -11,6 +11,7 @@ interface CacheEntry<T> {
 
 class DataCache {
   private cache = new Map<string, CacheEntry<any>>();
+  private inflight = new Map<string, Promise<any>>();
   
   /**
    * Set data in cache with TTL
@@ -66,6 +67,7 @@ class DataCache {
    */
   clear(): void {
     this.cache.clear();
+    this.inflight.clear();
   }
   
   /**
@@ -82,6 +84,23 @@ class DataCache {
     }
   }
   
+  /**
+   * Singleflight coalescing (§docs/performance.md herd + §24 mobile-home port).
+   * Concurrent callers with the same key share one promise instead of
+   * firing N identical network requests (homepage mounts merchants 9999
+   * from 3+ sections + header search index on the same tick).
+   * Rejected promises are evicted so a later retry can proceed.
+   */
+  dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const running = this.inflight.get(key);
+    if (running) return running as Promise<T>;
+    const p = fn().finally(() => {
+      if (this.inflight.get(key) === p) this.inflight.delete(key);
+    });
+    this.inflight.set(key, p);
+    return p;
+  }
+
   /**
    * Get cache statistics
    */

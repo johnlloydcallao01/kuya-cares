@@ -21,6 +21,8 @@ import { getShowAll, useShowAll } from '@/lib/show-all';
 
 interface HomeMarketplaceProductsProps {
   limit?: number;
+  /** undefined = identity still resolving (wait, no fetch); string|null = resolved. */
+  customerId?: string | null;
 }
 
 const PAGE_STEP_MOBILE = 8;
@@ -154,7 +156,13 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
     <LinkComponent href={product.href} className="bg-white rounded-lg shadow-sm overflow-hidden block hover:shadow-md transition-shadow group">
       <div className="relative aspect-square bg-gray-100">
         {product.imageUrl ? (
-          <Image src={product.imageUrl} alt={product.name} fill className="object-cover group-hover:scale-[1.02] transition-transform duration-200" />
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, (max-width: 1536px) 20vw, 240px"
+            className="object-cover group-hover:scale-[1.02] transition-transform duration-200"
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 gap-1">
             <i className="fas fa-image text-2xl" />
@@ -233,7 +241,7 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
  * products exist. Pill switching filters client-side from a single pool,
  * so "All" always contains every product including uncategorized ones.
  */
-export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsProps) {
+export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp }: HomeMarketplaceProductsProps) {
   const [categories, setCategories] = useState<MarketplaceProductCategory[]>([]);
   const [allProducts, setAllProducts] = useState<MarketplaceProduct[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -302,11 +310,13 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
     fetchCategories();
   }, [fetchCategories]);
 
-  // Initial load + Show-All toggle: resolve customer, then fetch pool.
+  // Initial load + Show-All toggle: single-resolution (§docs/performance.md
+  // §24) — page owns identity; undefined = waiting, never re-resolve here.
   useEffect(() => {
+    if (customerIdProp === undefined) return;
     let cancelled = false;
     (async () => {
-      const cid = await getCurrentCustomerId().catch(() => null);
+      const cid = customerIdProp;
       if (cancelled) return;
       setCustomerId(cid);
       fetchPool(cid);
@@ -314,7 +324,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
     return () => {
       cancelled = true;
     };
-  }, [fetchPool, showAll]);
+  }, [fetchPool, showAll, customerIdProp]);
 
   // Delivery address change → clear + refetch location-aware pool.
   useAddressChange(
@@ -660,7 +670,7 @@ export function HomeMarketplaceProducts({ limit = 48 }: HomeMarketplaceProductsP
             </div>
           )}
 
-          {isLoading ? (
+          {isLoading && allProducts.length === 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {Array.from({ length: 12 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />

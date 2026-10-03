@@ -95,6 +95,11 @@ export class LocationBasedMerchantService {
       return enrichedCached;
     }
 
+    // Singleflight (§docs/performance.md herd): concurrent homepage sections
+    // + header search index requesting the same key share one fetch.
+    return dataCache.dedupe<LocationBasedMerchant[]>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<LocationBasedMerchant[]>(cacheKey);
+      if (rechecked) return rechecked;
     try {
       // Build headers
       const headers: Record<string, string> = {
@@ -184,6 +189,7 @@ export class LocationBasedMerchantService {
       console.error('❌ Error fetching location-based merchants:', error);
       return []; // Graceful fallback
     }
+    });
   }
 
   /**
@@ -214,6 +220,9 @@ export class LocationBasedMerchantService {
     const cached = dataCache.get<LocationBasedMerchant[]>(cacheKey);
     if (cached) return cached;
 
+    return dataCache.dedupe<LocationBasedMerchant[]>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<LocationBasedMerchant[]>(cacheKey);
+      if (rechecked) return rechecked;
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const apiKey = LocationBasedMerchantService.PAYLOAD_API_KEY;
@@ -261,6 +270,7 @@ export class LocationBasedMerchantService {
       console.error('❌ Error fetching browsing merchants:', error);
       return [];
     }
+    });
   }
 
   private static mapMerchantToLocationBased(d: any): LocationBasedMerchant {
@@ -516,6 +526,9 @@ export class LocationBasedMerchantService {
     const cacheKey = `${CACHE_KEYS.MERCHANTS}-location-categories-${customerId}-${includeInactive ? 'all' : 'active'}-${limit ?? 'all'}`;
     const cached = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
     if (cached) return cached;
+    return dataCache.dedupe<MerchantCategoryDisplay[]>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
+      if (rechecked) return rechecked;
     const list = await LocationBasedMerchantService.getLocationBasedMerchants({ customerId, limit: 9999 });
     // Same "Uncategorized" principle as browsing + product grids: the pseudo
     // id isolates merchants with zero categories instead of dropping them.
@@ -581,6 +594,7 @@ export class LocationBasedMerchantService {
     }
     dataCache.set(cacheKey, mapped, CACHE_TTL.MERCHANTS);
     return mapped;
+    });
   }
 
   static sortByRecentlyUpdated(list: LocationBasedMerchant[]): LocationBasedMerchant[] {
@@ -668,11 +682,13 @@ export class LocationBasedMerchantService {
    * Returns null silently for guests or unauthenticated users.
    */
   static async getCurrentCustomerId(): Promise<string | null> {
+    const cachedCustomerId = dataCache.get<string>('current-customer-id');
+    if (cachedCustomerId) return cachedCustomerId;
+    // Singleflight: page + 3 homepage sections + header resolve concurrently.
+    return dataCache.dedupe<string | null>('inflight:current-customer-id', async () => {
+      const rechecked = dataCache.get<string>('current-customer-id');
+      if (rechecked) return rechecked;
     try {
-      const cachedCustomerId = dataCache.get<string>('current-customer-id');
-      if (cachedCustomerId) {
-        return cachedCustomerId;
-      }
 
       try {
         const url = `${this.API_BASE}/customer/me`;
@@ -708,6 +724,7 @@ export class LocationBasedMerchantService {
     } catch {
       return null;
     }
+    });
   }
 
   /**

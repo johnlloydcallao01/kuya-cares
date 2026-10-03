@@ -24,6 +24,7 @@ import { toast } from 'react-hot-toast';
 interface LocationBasedMerchantsProps {
   limit?: number;
   categoryId?: string | null;
+  /** undefined = identity still resolving (wait, no fetch); string|null = resolved. */
   customerId?: string | null;
 }
 
@@ -103,6 +104,7 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
               src={thumbnailImageUrl}
               alt={altText}
               fill
+              sizes="(max-width: 650px) 75vw, (max-width: 1024px) 30vw, (max-width: 1280px) 25vw, 320px"
               className="object-cover rounded-lg"
               onError={(e) => {
                 e.currentTarget.src = '/placeholder-merchant.jpg';
@@ -115,6 +117,7 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
               src="/placeholder-merchant.jpg"
               alt="Merchant placeholder"
               fill
+              sizes="(max-width: 650px) 75vw, (max-width: 1024px) 30vw, (max-width: 1280px) 25vw, 320px"
               className="object-cover rounded-lg"
             />
           </div>
@@ -144,21 +147,13 @@ function LocationMerchantCardLegacy({ merchant, isWishlisted = false, onToggleWi
 
         {/* Vendor Logo Overlay - Professional delivery platform style */}
         {vendorLogoUrl && (
-          <div className="absolute -bottom-4 left-0 w-12 h-12 bg-white rounded-full shadow-lg border-2 border-white">
-            { }
-            <img
+          <div className="absolute -bottom-4 left-0 w-12 h-12 bg-white rounded-full shadow-lg border-2 border-white overflow-hidden">
+            <Image
               src={vendorLogoUrl}
               alt={`${merchant.vendor?.businessName || 'Vendor'} logo`}
-              className="w-full h-full object-contain rounded-full"
-              loading="lazy"
-              onError={(e) => {
-                // Hide logo on error
-                const target = e.target as HTMLImageElement;
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.style.display = 'none';
-                }
-              }}
+              fill
+              sizes="48px"
+              className="object-contain rounded-full"
             />
           </div>
         )}
@@ -473,10 +468,13 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
   // Resolve customer (prop wins, else session) then location fetch.
   // Delivery address change clears + refetches (tap2go parity).
   // Show-All toggle refetches under the new scope.
+  // Single-resolution (§docs/performance.md §24): page resolves identity
+  // once; undefined prop means "still waiting" — skip, don't re-resolve.
   useEffect(() => {
+    if (customerIdProp === undefined) return;
     let active = true;
     (async () => {
-      const cid = customerIdProp ?? await getCurrentCustomerId().catch(() => null);
+      const cid = customerIdProp;
       if (!active) return;
       setResolvedCustomerId(cid);
       fetchLocationBasedMerchants(cid);
@@ -535,7 +533,9 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
     }
   }, [isDragging, handleMove, handleEnd]);
 
-  if (isLoading) {
+  // Skeleton only on true first paint (§docs/performance.md §24): background
+  // revalidations (address change / show-all toggle) keep rows, no flash.
+  if (isLoading && merchants.length === 0) {
     return (
       <section className="py-4 bg-white">
         <div className="w-full px-2.5">

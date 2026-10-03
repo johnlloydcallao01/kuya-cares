@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useUser, useLogout } from '@/hooks/useAuth';
 
 // ========================================
@@ -273,7 +274,13 @@ interface UserDropdownProps {
 
 export function UserDropdown({ className = '' }: UserDropdownProps) {
   const { user, displayName } = useUser();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleNavigate = (path: string) => {
+    setIsOpen(false);
+    router.push(path as any);
+  };
 
   if (!user) {
     return null;
@@ -317,17 +324,29 @@ export function UserDropdown({ className = '' }: UserDropdownProps) {
             </div>
             
             <div className="p-2">
-              <button className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
+              <button
+                onClick={() => handleNavigate('/settings?tab=profile')}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
                 <i className="fa fa-user mr-3 text-gray-400"></i>
                 Profile Settings
               </button>
-              <button className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
+              <button
+                onClick={() => handleNavigate('/settings?tab=security')}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
                 <i className="fa fa-cog mr-3 text-gray-400"></i>
                 Account Settings
               </button>
-              <button className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
+              <button
+                onClick={() => handleNavigate('/notifications')}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
                 <i className="fa fa-bell mr-3 text-gray-400"></i>
                 Notifications
+              </button>
+              <button
+                onClick={() => handleNavigate('/support')}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
+                <i className="fa fa-life-ring mr-3 text-gray-400"></i>
+                Help & Support
               </button>
             </div>
             

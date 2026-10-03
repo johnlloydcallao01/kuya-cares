@@ -153,6 +153,7 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
                     src={listImageUrl}
                     alt={listImageAlt}
                     fill
+                    sizes="80px"
                     className={vendorLogoUrl ? "object-contain bg-white" : "object-cover"}
                   />
                   {distanceText && (
@@ -214,11 +215,23 @@ export default function LocationMerchantCard({ merchant, isWishlisted = false, o
             <div className="relative aspect-[2/1] bg-gray-100 rounded-lg overflow-visible mb-6 group-hover:shadow-lg transition-shadow duration-200">
               {thumbnailImageUrl ? (
                 <div className="relative w-full h-full">
-                  <Image src={thumbnailImageUrl} alt={altText} fill className="object-cover rounded-lg" />
+                  <Image
+                    src={thumbnailImageUrl}
+                    alt={altText}
+                    fill
+                    sizes="(max-width: 650px) 75vw, (max-width: 1024px) 30vw, (max-width: 1280px) 25vw, 320px"
+                    className="object-cover rounded-lg"
+                  />
                 </div>
               ) : (
                 <div className="relative w-full h-full">
-                  <Image src="/placeholder-merchant.jpg" alt="Merchant placeholder" fill className="object-cover rounded-lg" />
+                  <Image
+                    src="/placeholder-merchant.jpg"
+                    alt="Merchant placeholder"
+                    fill
+                    sizes="(max-width: 650px) 75vw, (max-width: 1024px) 30vw, (max-width: 1280px) 25vw, 320px"
+                    className="object-cover rounded-lg"
+                  />
                 </div>
               )}
               {distanceText && (

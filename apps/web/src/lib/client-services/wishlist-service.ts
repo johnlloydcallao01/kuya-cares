@@ -27,9 +27,37 @@ function buildHeaders(): Record<string, string> {
   return headers;
 }
 
+// Heart-state cache (§docs/performance.md §24 wishlist split): header +
+// homepage sections mount concurrently and each asked for the same 200
+// depth-0 IDs. Coalesce onto one promise + 5-min TTL instead of N fetches.
+const WISHLIST_IDS_TTL_MS = 5 * 60 * 1000;
+const wishlistIdsCache = new Map<string, { data: string[]; ts: number }>();
+const wishlistIdsInflight = new Map<string, Promise<string[]>>();
+
+function getCachedWishlistIds(userId: string): string[] | null {
+  const e = wishlistIdsCache.get(String(userId));
+  if (!e) return null;
+  if (Date.now() - e.ts > WISHLIST_IDS_TTL_MS) {
+    wishlistIdsCache.delete(String(userId));
+    return null;
+  }
+  return e.data;
+}
+
+function bustWishlistIds(userId: string | number | null): void {
+  if (userId == null) return;
+  wishlistIdsCache.delete(String(userId));
+}
+
 export async function getWishlistMerchantIdsForCurrentUser(): Promise<string[]> {
   const currentUserId = getCurrentUserIdFromStorage();
   if (currentUserId == null) return [];
+  const key = String(currentUserId);
+  const hit = getCachedWishlistIds(key);
+  if (hit) return hit;
+  const running = wishlistIdsInflight.get(key);
+  if (running) return running;
+  const p = (async (): Promise<string[]> => {
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(currentUserId));
@@ -51,10 +79,17 @@ export async function getWishlistMerchantIdsForCurrentUser(): Promise<string[]> 
         return mid ? String(mid) : null;
       })
       .filter((v): v is string => typeof v === "string" && v.length > 0);
-    return Array.from(new Set(ids));
+    const out = Array.from(new Set(ids));
+    wishlistIdsCache.set(key, { data: out, ts: Date.now() });
+    return out;
   } catch {
     return [];
+  } finally {
+    wishlistIdsInflight.delete(key);
   }
+  })();
+  wishlistIdsInflight.set(key, p);
+  return p;
 }
 
 export async function getWishlistMerchantProductIdsForCurrentUser(): Promise<string[]> {
@@ -93,6 +128,7 @@ export async function addMerchantToWishlist(merchantId: string | number): Promis
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustWishlistIds(userId);
   const headers = buildHeaders();
   const body = JSON.stringify({
     user: userId,
@@ -154,6 +190,7 @@ export async function removeMerchantFromWishlist(merchantId: string | number): P
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustWishlistIds(userId);
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(userId));

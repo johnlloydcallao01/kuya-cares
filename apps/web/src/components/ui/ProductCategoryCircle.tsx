@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from '@/components/ui/ImageWrapper';
 import type { ProductCategory } from '@/server';
 
 // Component props interface
@@ -38,12 +39,13 @@ export function ProductCategoryCircle({
         }`}
       >
         {category.media?.icon && (category.media.icon.cloudinaryURL || category.media.icon.url) ? (
-           
-          <img
-             src={category.media.icon.cloudinaryURL || category.media.icon.url}
-             alt={category.media.icon.alt || category.name}
-             className="absolute inset-0 w-full h-full object-cover rounded-full"
-           />
+          <Image
+            src={category.media.icon.cloudinaryURL || category.media.icon.url || ''}
+            alt={category.media.icon.alt || category.name}
+            fill
+            sizes="(max-width: 1500px) 64px, 80px"
+            className="absolute inset-0 w-full h-full object-cover rounded-full"
+          />
         ) : isUncategorized ? (
           <div
             className="absolute inset-0 w-full h-full rounded-full flex items-center justify-center bg-gray-200"

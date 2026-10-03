@@ -190,7 +190,10 @@ export class MarketplaceProductService {
     const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
-
+    // Singleflight: homepage products + flash-deals + header search share one pool build.
+    return dataCache.dedupe<MarketplaceProduct[]>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<MarketplaceProduct[]>(cacheKey);
+      if (rechecked) return rechecked;
     try {
       // HARD RULE (unless Show-All scope): products are ONLY ever the
       // products of location-qualified merchants — the exact same gate as
@@ -377,6 +380,7 @@ export class MarketplaceProductService {
       console.error('Error fetching marketplace products:', err);
       return [];
     }
+    });
   }
 
   /** Top discounted products for a Shopee-style "Flash Deals" rail. */

@@ -108,10 +108,12 @@ export const LocationBasedProductCategoriesCarousel = ({
   // Resolve customer (prop wins, else session) then location fetch.
   // Delivery address change clears + refetches (tap2go parity).
   // Show-All toggle refetches under the new scope.
+  // Single-resolution (§docs/performance.md §24): undefined prop = waiting.
   useEffect(() => {
+    if (customerIdProp === undefined) return;
     let active = true;
     (async () => {
-      const cid = customerIdProp ?? await getCurrentCustomerId().catch(() => null);
+      const cid = customerIdProp;
       if (!active) return;
       fetchMerchantCategories(cid);
     })();
@@ -344,8 +346,8 @@ export const LocationBasedProductCategoriesCarousel = ({
 
   return (
     <div className="relative">
-      {/* Loading state - show skeleton while fetching data - identical to ProductCategoryCarousel */}
-      {loading ? (
+      {/* Loading state — skeleton only on true first paint (§24): revalidations keep rows. */}
+      {loading && categories.length === 0 ? (
         <div className="overflow-hidden px-2.5">
           <div className="flex py-2.5" style={{ gap: '48px' }}>
             {Array.from({ length: 6 }).map((_, index) => (
