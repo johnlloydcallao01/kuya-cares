@@ -28,14 +28,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Line clamp utility */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+/* NOTE: no custom .line-clamp-2 here on purpose — Tailwind v3.3+ ships it
+   as a core utility and a duplicate unlayered rule would silently override
+   it in the cascade. Single source of truth: the framework utility. */
 
 /* Mobile footer safe area */
 .h-safe-area-inset-bottom {

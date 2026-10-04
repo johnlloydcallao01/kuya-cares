@@ -221,11 +221,11 @@ export default function CartPage() {
           {merchantGroups.map((group) => (
             <div
               key={group.merchantId}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden min-w-0"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {group.merchantLogoUrl ? (
                       <ImageWrapper
                         src={group.merchantLogoUrl}
@@ -238,8 +238,8 @@ export default function CartPage() {
                       <i className="fas fa-store text-gray-500 text-sm"></i>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <h2 className="font-semibold text-gray-900 text-sm leading-snug whitespace-normal break-words">
                       {group.merchantName}
                     </h2>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
@@ -253,7 +253,7 @@ export default function CartPage() {
                 </div>
                 <button
                   type="button"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 flex-shrink-0"
                   aria-label="More options"
                   onClick={() => setActiveMerchantId(group.merchantId)}
                 >
@@ -261,8 +261,8 @@ export default function CartPage() {
                 </button>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
                   {group.items.map((item) => (
                     <div
                       key={item.id}
