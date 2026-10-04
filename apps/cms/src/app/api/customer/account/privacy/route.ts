@@ -27,6 +27,9 @@ export async function POST(request: NextRequest) {
 
     if (body.action === 'clear_history') {
       const cleared: Record<string, number> = {}
+      // Collections run sequentially (isolated failure accounting per
+      // collection), but per-doc deletes run in a bounded pool — the old
+      // serial loop made worst-case 15000 sequential round-trips.
       for (const collection of CLEARABLE) {
         try {
           const found = await payload.find({
@@ -37,10 +40,16 @@ export async function POST(request: NextRequest) {
             depth: 0,
             overrideAccess: true,
           })
+          const ids = ((found.docs || []) as any[]).map((d: any) => d.id)
           let n = 0
-          for (const doc of (found.docs || []) as any[]) {
-            await payload.delete({ collection: collection as any, id: doc.id, overrideAccess: true }).catch(() => {})
-            n += 1
+          const POOL = 10
+          for (let i = 0; i < ids.length; i += POOL) {
+            const results = await Promise.allSettled(
+              ids.slice(i, i + POOL).map((id) =>
+                payload.delete({ collection: collection as any, id, overrideAccess: true }),
+              ),
+            )
+            n += results.filter((r) => r.status === 'fulfilled').length
           }
           cleared[collection] = n
         } catch {
@@ -51,42 +60,45 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.action === 'export') {
-      const user = await payload.findByID({
-        collection: 'users',
-        id: Number(authUser.id),
-        depth: 1,
-        overrideAccess: true,
-      })
-      const { docs: customers } = await payload.find({
-        collection: 'customers',
-        where: { user: { equals: Number(authUser.id) } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const addresses = await payload.find({
-        collection: 'addresses',
-        where: { user: { equals: Number(authUser.id) } },
-        pagination: false,
-        limit: 500,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const methods = await payload.find({
-        collection: 'payment-methods',
-        where: { user: { equals: Number(authUser.id) } },
-        pagination: false,
-        limit: 50,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const prefs = await payload.find({
-        collection: 'notification-preferences',
-        where: { user: { equals: Number(authUser.id) } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
+      // Independent reads — one batch, not six sequential round-trips.
+      const [user, { docs: customers }, addresses, methods, prefs] = await Promise.all([
+        payload.findByID({
+          collection: 'users',
+          id: Number(authUser.id),
+          depth: 1,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'customers',
+          where: { user: { equals: Number(authUser.id) } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'addresses',
+          where: { user: { equals: Number(authUser.id) } },
+          pagination: false,
+          limit: 500,
+          depth: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'payment-methods',
+          where: { user: { equals: Number(authUser.id) } },
+          pagination: false,
+          limit: 50,
+          depth: 0,
+          overrideAccess: true,
+        }),
+        payload.find({
+          collection: 'notification-preferences',
+          where: { user: { equals: Number(authUser.id) } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        }),
+      ])
       return NextResponse.json({
         data: {
           exportedAt: new Date().toISOString(),

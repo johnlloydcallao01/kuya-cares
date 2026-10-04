@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import type { AchievementUI } from '@/types/loyalty';
 
 interface AchievementCardProps {
   achievement: AchievementUI;
   claimingId?: string | number | null;
+  /** Global mutation lock — see RewardCard. */
+  mutating?: boolean;
   onClaim: (achievement: AchievementUI) => void;
 }
 
@@ -16,7 +18,7 @@ const ICONS: Record<string, string> = {
   crown: 'fas fa-crown',
 };
 
-export default function AchievementCard({ achievement, claimingId, onClaim }: AchievementCardProps) {
+export default memo(function AchievementCard({ achievement, claimingId, mutating = false, onClaim }: AchievementCardProps) {
   const busy = claimingId != null && String(claimingId) === String(achievement.id);
   const pct = Math.min(100, achievement.progressPct);
 
@@ -68,7 +70,7 @@ export default function AchievementCard({ achievement, claimingId, onClaim }: Ac
         <button
           type="button"
           onClick={() => onClaim(achievement)}
-          disabled={busy}
+          disabled={busy || mutating}
           className="mt-3 w-full py-2.5 text-white rounded-xl font-bold text-[13px] hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60"
           style={{ backgroundColor: '#239459' }}
         >
@@ -81,4 +83,4 @@ export default function AchievementCard({ achievement, claimingId, onClaim }: Ac
       )}
     </article>
   );
-}
+})

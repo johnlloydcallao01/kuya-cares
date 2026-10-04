@@ -66,37 +66,44 @@ function VouchersContent() {
         else setLoading(true);
       }
       setError(null);
-      const [claimable, available, used, expired] = await Promise.all([
+      // Two calls, not four (§4 single query): mine?filter=all returns all
+      // three buckets in one claims scan; the page splits by computedStatus.
+      const [claimable, mineAll] = await Promise.all([
         fetchClaimableVouchers({ limit: 50 }),
-        fetchMyVouchers('available'),
-        fetchMyVouchers('used'),
-        fetchMyVouchers('expired'),
+        fetchMyVouchers('all'),
       ]);
-      const byCode = new Map<string, WalletEntry>();
+      const available = mineAll.filter((m) => m.computedStatus === 'available');
+      const used = mineAll.filter((m) => m.computedStatus === 'used');
+      const expired = mineAll.filter((m) => m.computedStatus === 'expired');
+      const byKey = new Map<string, WalletEntry>();
       const push = (v: VoucherUI | MyVoucher, state: WalletEntry['state']) => {
-        const key = v.code.toUpperCase();
-        const prev = byCode.get(key);
+        // Merge by coupon id, not code: platform codes may repeat across
+        // vendors ((code,vendor) unique), and code-keying collapsed distinct
+        // coupons into one card, silently dropping terms.
+        const key = `${String(v.code).toUpperCase()}::${String((v as any).id)}`;
+        const prev = byKey.get(key);
         // Best state wins: available > to_claim > used > expired display priority
         // is handled at render; here claimed rows enrich pool rows.
         if (!prev) {
-          byCode.set(key, { voucher: { ...v, claimed: state !== 'to_claim', used: state === 'used' }, state });
+          byKey.set(key, { voucher: { ...v, claimed: state !== 'to_claim', used: state === 'used' }, state });
         } else if (prev.state === 'to_claim' && state !== 'to_claim') {
-          byCode.set(key, { voucher: { ...v, claimed: true, used: state === 'used' }, state });
+          byKey.set(key, { voucher: { ...v, claimed: true, used: state === 'used' }, state });
         }
       };
       for (const m of [...available, ...used, ...expired]) {
         push(m, m.computedStatus === 'available' ? 'available' : m.computedStatus);
       }
       for (const v of claimable) {
-        if (!byCode.has(v.code.toUpperCase())) push(v, 'to_claim');
+        const key = `${String(v.code).toUpperCase()}::${String((v as any).id)}`;
+        if (!byKey.has(key)) push(v, 'to_claim');
         else if (v.featured) {
           // Keep featured flag on the merged card.
-          const e = byCode.get(v.code.toUpperCase())!;
+          const e = byKey.get(key)!;
           e.voucher = { ...e.voucher, featured: true, imageUrl: e.voucher.imageUrl ?? v.imageUrl };
         }
       }
       const rank: Record<WalletEntry['state'], number> = { available: 0, to_claim: 1, used: 2, expired: 3 };
-      const merged = [...byCode.values()].sort((a, b) => {
+      const merged = [...byKey.values()].sort((a, b) => {
         if (Number(b.voucher.featured) !== Number(a.voucher.featured)) {
           return Number(b.voucher.featured) - Number(a.voucher.featured);
         }
@@ -105,6 +112,7 @@ function VouchersContent() {
       setEntries(merged);
     } catch (e: any) {
       if (!opts.silent) setError(e?.message || 'Failed to load vouchers');
+      else toast.error(e?.message || 'Refresh failed — showing saved list');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -126,6 +134,9 @@ function VouchersContent() {
     try {
       await claimVoucher({ couponId: v.id });
       toast.success(`${v.code} claimed to your wallet`);
+      // Instant local patch for feedback, then a silent reload to reconcile
+      // usesLeftForUser/expiry-derived state (an exhausted voucher must not
+      // sit green as "available" until the next manual refresh).
       setEntries((prev) =>
         prev.map((e) =>
           String(e.voucher.id) === String(v.id)
@@ -136,6 +147,7 @@ function VouchersContent() {
       setDetail((d) =>
         d && String(d.id) === String(v.id) ? { ...d, claimed: true, claimStatus: 'claimed' } : d,
       );
+      await loadRef.current({ silent: true });
     } catch (e: any) {
       toast.error(e?.message || 'Claim failed');
     } finally {

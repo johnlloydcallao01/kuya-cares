@@ -40,15 +40,28 @@ const BRAND = '#239459';
 
 // ---------- helpers (web-admin /profile pattern) ----------
 
+// Hoisted (§4b item 1): shared formatters instead of a fresh
+// toLocaleString options-object per activity row per render.
+const dateFormatter = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString('en-PH', {
-      timeZone: 'Asia/Manila',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return dateFormatter.format(new Date(iso));
   } catch {
     return iso;
   }
@@ -57,14 +70,7 @@ function formatDate(iso?: string | null): string {
 function formatDateTime(iso?: string | null): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('en-PH', {
-      timeZone: 'Asia/Manila',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return dateTimeFormatter.format(new Date(iso));
   } catch {
     return iso;
   }
@@ -119,6 +125,8 @@ const TABS: Array<{ id: TabId; label: string; icon: string; desc: string }> = [
   { id: 'activity', label: 'Activity', icon: 'fas fa-list', desc: 'Audit log' },
 ];
 
+const TAB_IDS = TABS.map((t) => t.id) as string[];
+
 export default function SettingsPage() {
   return (
     <Suspense fallback={<SettingsPageSkeleton />}>
@@ -136,7 +144,7 @@ function SettingsContent() {
 
   const tabParam = searchParams?.get('tab') as TabId | null;
   const activeTab: TabId =
-    tabParam && (TABS.map((t) => t.id) as string[]).includes(tabParam) ? tabParam : 'overview';
+    tabParam && TAB_IDS.includes(tabParam) ? tabParam : 'overview';
 
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,6 +161,7 @@ function SettingsContent() {
   const [pmOpen, setPmOpen] = useState(false);
   const [pmBusy, setPmBusy] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [removingMethodId, setRemovingMethodId] = useState<string | null>(null);
   const [dangerTarget, setDangerTarget] = useState<'deactivate' | 'delete' | null>(null);
   const [dangerPassword, setDangerPassword] = useState('');
   const [dangerBusy, setDangerBusy] = useState(false);
@@ -163,6 +172,15 @@ function SettingsContent() {
   const [privacyBusy, setPrivacyBusy] = useState<string | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  // The cover card and the profile tab each render a hidden file input;
+  // sharing one ref breaks same-file reselect (last mount wins the ref).
+  const avatarInputRefSecondary = useRef<HTMLInputElement>(null);
+  // Monotonic save guard: overlapping profile saves must not let a stale
+  // response reconcile over (or roll back) a newer one.
+  const saveSeqRef = useRef(0);
+  // Last-known-good preferences per key: rollback restores only the failed
+  // key instead of clobbering a concurrently toggled sibling.
+  const lastGoodPrefsRef = useRef<Record<string, boolean> | null>(null);
 
   const load = useCallback(async (opts: { silent?: boolean; reset?: boolean } = {}) => {
     try {
@@ -173,6 +191,7 @@ function SettingsContent() {
       setError(null);
       const s = await fetchAccountSummary();
       setSummary(s);
+      lastGoodPrefsRef.current = s.preferences ? { ...(s.preferences as unknown as Record<string, boolean>) } : null;
       setActivity(s.recentActivity);
       setActivityPage(1);
       setActivityMore(s.recentActivity.length >= 10);
@@ -238,21 +257,41 @@ function SettingsContent() {
 
   const handleProfileSubmit = useCallback(
     async (input: Record<string, unknown>) => {
+      // Optimistic (address-modal pattern): close + patch instantly so a
+      // gender-only edit feels <100ms; reconcile with server after.
+      const seq = ++saveSeqRef.current;
+      const isStale = () => seq !== saveSeqRef.current;
+      const prevUser = summary?.user ?? null;
+      if (prevUser) {
+        const optimistic = { ...prevUser, ...input } as AccountSummary['user'];
+        setSummary((s) => (s ? { ...s, user: optimistic } : s));
+        syncHeader(optimistic);
+      }
+      setProfileOpen(false);
       setProfileBusy(true);
       try {
         const u = await saveProfile(input);
-        toast.success('Profile updated');
-        setProfileOpen(false);
-        syncHeader(u);
-        // Perf: patch local state — no full summary reload on save.
+        if (isStale()) return;
         setSummary((s) => (s ? { ...s, user: u } : s));
+        syncHeader(u);
+        toast.success('Profile updated');
       } catch (e: any) {
+        if (isStale()) return;
+        // Roll back optimistic patch on failure.
+        if (prevUser) {
+          setSummary((s) => (s ? { ...s, user: prevUser } : s));
+          try {
+            syncHeader(prevUser);
+          } catch {
+            /* best-effort */
+          }
+        }
         toast.error(e?.message || 'Update failed');
       } finally {
-        setProfileBusy(false);
+        if (!isStale()) setProfileBusy(false);
       }
     },
-    [syncHeader],
+    [syncHeader, summary?.user],
   );
 
   const handleAvatarFile = useCallback(
@@ -273,6 +312,7 @@ function SettingsContent() {
       } finally {
         setAvatarBusy(false);
         if (avatarInputRef.current) avatarInputRef.current.value = '';
+        if (avatarInputRefSecondary.current) avatarInputRefSecondary.current.value = '';
       }
     },
     [syncHeader],
@@ -326,22 +366,28 @@ function SettingsContent() {
   const handleToggle = useCallback(
     async (key: string, value: boolean) => {
       setToggling(key);
-      const prev = summary?.preferences;
       setSummary((s) =>
         s && s.preferences ? { ...s, preferences: { ...s.preferences, [key]: value } } : s,
       );
       try {
         const prefs = await savePreferences({ [key]: value });
+        lastGoodPrefsRef.current = { ...(prefs as unknown as Record<string, boolean>) };
         setSummary((s) => (s ? { ...s, preferences: prefs } : s));
         toast.success('Preference saved');
       } catch (e: any) {
-        if (prev) setSummary((s) => (s ? { ...s, preferences: prev } : s));
+        // Restore only the failed key from last-known-good — a concurrent
+        // sibling toggle keeps its optimistic value.
+        const lastGood = lastGoodPrefsRef.current?.[key];
+        setSummary((s) => {
+          if (!s || !s.preferences || lastGood === undefined) return s;
+          return { ...s, preferences: { ...s.preferences, [key]: lastGood } };
+        });
         toast.error(e?.message || 'Save failed');
       } finally {
         setToggling(null);
       }
     },
-    [summary?.preferences],
+    [],
   );
 
   const handleVault = useCallback(async (input: Parameters<typeof savePaymentMethod>[0]) => {
@@ -369,6 +415,9 @@ function SettingsContent() {
   }, []);
 
   const handleRemoveMethod = useCallback(async (id: string | number) => {
+    const idStr = String(id);
+    if (removingMethodId != null) return;
+    setRemovingMethodId(idStr);
     try {
       const { promotedId } = await deletePaymentMethod(id);
       toast.success('Payment method removed');
@@ -377,15 +426,17 @@ function SettingsContent() {
           ? {
               ...s,
               paymentMethods: s.paymentMethods
-                .filter((m) => String(m.id) !== String(id))
+                .filter((m) => String(m.id) !== idStr)
                 .map((m) => (promotedId && String(m.id) === String(promotedId) ? { ...m, isDefault: true } : m)),
             }
           : s,
       );
     } catch (e: any) {
       toast.error(e?.message || 'Remove failed');
+    } finally {
+      setRemovingMethodId(null);
     }
-  }, []);
+  }, [removingMethodId]);
 
   const handleMoreActivity = useCallback(async () => {
     setActivityLoadingMore(true);
@@ -433,8 +484,11 @@ function SettingsContent() {
     }
   }, []);
 
+  const dangerSubmittedRef = useRef(false);
+
   const handleDanger = useCallback(async () => {
-    if (!dangerTarget || !dangerPassword) return;
+    if (!dangerTarget || !dangerPassword || dangerBusy || dangerSubmittedRef.current) return;
+    dangerSubmittedRef.current = true;
     setDangerBusy(true);
     try {
       const msg =
@@ -450,8 +504,9 @@ function SettingsContent() {
     } finally {
       setDangerBusy(false);
       setDangerPassword('');
+      dangerSubmittedRef.current = false;
     }
-  }, [dangerTarget, dangerPassword, logout, router]);
+  }, [dangerTarget, dangerPassword, dangerBusy, logout, router]);
 
   const accountAge = useMemo(() => {
     const created = summary?.user.createdAt;
@@ -461,6 +516,70 @@ function SettingsContent() {
     if (d < 365) return `${Math.floor(d / 30)} mo`;
     return `${Math.floor(d / 365)} yr ${Math.floor((d % 365) / 30)} mo`;
   }, [summary?.user.createdAt]);
+
+  // Header derivations + row renderers (§4b: memoize BEFORE the early
+  // returns below — hooks after conditional returns break hook order).
+  // They read summary?.user so first paint (summary null) is safe.
+  const displayName = useMemo(
+    () => `${summary?.user.firstName ?? ''} ${summary?.user.lastName ?? ''}`.trim(),
+    [summary?.user.firstName, summary?.user.lastName],
+  );
+  const initials = useMemo(() => {
+    const u = summary?.user;
+    return `${u?.firstName?.[0] || ''}${u?.lastName?.[0] || ''}`.toUpperCase() || '??';
+  }, [summary?.user.firstName, summary?.user.lastName]);
+  const avatarUrl = summary?.user.profilePicture?.url || null;
+  const pc = useMemo(() => completeness(summary?.user ?? null), [summary?.user]);
+
+  const toggleRow = useCallback(
+    (key: string, title: string, desc: string) => {
+      const prefs = summary?.preferences;
+      return (
+        <div key={key} className="flex items-center justify-between gap-3 py-3 border-b border-gray-100 last:border-0">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900">{title}</p>
+            <p className="text-xs text-gray-500">{desc}</p>
+          </div>
+          <button
+            type="button"
+            disabled={toggling === key || !prefs}
+            onClick={() => prefs && handleToggle(key, !(prefs as any)[key])}
+            aria-label={title}
+            className={`w-11 h-6 rounded-full flex-shrink-0 transition-colors relative disabled:opacity-60 ${
+              prefs && (prefs as any)[key] ? '' : 'bg-gray-300'
+            }`}
+            style={prefs && (prefs as any)[key] ? { backgroundColor: BRAND } : {}}
+          >
+            <span
+              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
+                prefs && (prefs as any)[key] ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+            {toggling === key && (
+              <i className="fas fa-spinner fa-spin absolute inset-0 m-auto w-3 h-3 text-white" />
+            )}
+          </button>
+        </div>
+      );
+    },
+    [handleToggle, summary?.preferences, toggling],
+  );
+
+  const activityRow = useCallback((a: ActivityEvent) => {
+    const meta = eventLabel(a.eventType);
+    return (
+      <div key={a.id} className="px-5 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+        <div className="w-8 h-8 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i className={`${meta.icon} text-xs`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 capitalize">{meta.label}</p>
+          <p className="text-xs text-gray-500 truncate">{a.createdAt ? formatDateTime(a.createdAt) : ''}</p>
+        </div>
+        <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">{relativeTime(a.createdAt)}</span>
+      </div>
+    );
+  }, []);
 
   if (loading) return <SettingsPageSkeleton />;
 
@@ -501,54 +620,6 @@ function SettingsContent() {
 
   const u = summary.user;
   const prefs = summary.preferences;
-  const displayName = `${u.firstName} ${u.lastName}`.trim();
-  const initials = `${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase() || '??';
-  const avatarUrl = u.profilePicture?.url || null;
-  const pc = completeness(u);
-
-  const toggleRow = (key: string, title: string, desc: string) => (
-    <div key={key} className="flex items-center justify-between gap-3 py-3 border-b border-gray-100 last:border-0">
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-gray-900">{title}</p>
-        <p className="text-xs text-gray-500">{desc}</p>
-      </div>
-      <button
-        type="button"
-        disabled={toggling === key || !prefs}
-        onClick={() => prefs && handleToggle(key, !(prefs as any)[key])}
-        aria-label={title}
-        className={`w-11 h-6 rounded-full flex-shrink-0 transition-colors relative disabled:opacity-60 ${
-          prefs && (prefs as any)[key] ? '' : 'bg-gray-300'
-        }`}
-        style={prefs && (prefs as any)[key] ? { backgroundColor: BRAND } : {}}
-      >
-        <span
-          className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
-            prefs && (prefs as any)[key] ? 'left-[22px]' : 'left-0.5'
-          }`}
-        />
-        {toggling === key && (
-          <i className="fas fa-spinner fa-spin absolute inset-0 m-auto w-3 h-3 text-white" />
-        )}
-      </button>
-    </div>
-  );
-
-  const activityRow = (a: ActivityEvent) => {
-    const meta = eventLabel(a.eventType);
-    return (
-      <div key={a.id} className="px-5 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors">
-        <div className="w-8 h-8 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <i className={`${meta.icon} text-xs`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 capitalize">{meta.label}</p>
-          <p className="text-xs text-gray-500 truncate">{a.createdAt ? formatDateTime(a.createdAt) : ''}</p>
-        </div>
-        <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap">{relativeTime(a.createdAt)}</span>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -603,7 +674,7 @@ function SettingsContent() {
                       )}
                     </div>
                     <button
-                      onClick={() => avatarInputRef.current?.click()}
+                      onClick={() => avatarInputRefSecondary.current?.click()}
                       disabled={avatarBusy}
                       className="absolute -bottom-2 -right-2 w-9 h-9 text-white rounded-xl shadow-lg border-2 border-white flex items-center justify-center disabled:opacity-60 transition-colors hover:opacity-90"
                       style={{ backgroundColor: BRAND }}
@@ -613,7 +684,7 @@ function SettingsContent() {
                     </button>
                   </div>
                   <input
-                    ref={avatarInputRef}
+                    ref={avatarInputRefSecondary}
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                     className="hidden"
@@ -686,7 +757,8 @@ function SettingsContent() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setProfileOpen(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity"
+                      disabled={profileBusy}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity disabled:opacity-60"
                       style={{ backgroundColor: BRAND }}
                     >
                       <i className="fas fa-pen text-xs" /> Edit profile
@@ -765,7 +837,7 @@ function SettingsContent() {
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       <i className="fas fa-user text-xs text-gray-400" /> Account snapshot
                     </h3>
-                    <button onClick={() => setProfileOpen(true)} className="text-xs font-bold hover:opacity-80" style={{ color: BRAND }}>
+                    <button onClick={() => setProfileOpen(true)} disabled={profileBusy} className="text-xs font-bold hover:opacity-80 disabled:opacity-60" style={{ color: BRAND }}>
                       Edit →
                     </button>
                   </div>
@@ -927,7 +999,8 @@ function SettingsContent() {
               </dl>
               <button
                 onClick={() => setProfileOpen(true)}
-                className="mt-4 w-full sm:w-auto px-6 py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+                disabled={profileBusy}
+                className="mt-4 w-full sm:w-auto px-6 py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-60"
                 style={{ backgroundColor: BRAND }}
               >
                 Edit profile
@@ -981,7 +1054,18 @@ function SettingsContent() {
             <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
               <h2 className="text-base font-extrabold text-gray-900 mb-1">Notifications</h2>
               <p className="text-xs text-gray-500 mb-2">Choose how you hear from us. In-app alerts always stay on.</p>
-              {!prefs && <p className="text-sm text-gray-400 py-3">Loading preferences…</p>}
+              {!prefs && (
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <p className="text-sm text-gray-400">Loading preferences…</p>
+                  <button
+                    onClick={() => loadRef.current({ reset: true })}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700"
+                  >
+                    <i className="fas fa-redo mr-1.5" />
+                    Reload
+                  </button>
+                </div>
+              )}
               {prefs && (
                 <>
                   <h3 className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mt-3">Orders</h3>
@@ -1032,8 +1116,8 @@ function SettingsContent() {
                       DEFAULT
                     </span>
                   )}
-                  <button onClick={() => handleRemoveMethod(m.id)} title="Remove" className="py-1.5 px-2.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 flex-shrink-0">
-                    <i className="fas fa-trash" />
+                  <button onClick={() => handleRemoveMethod(m.id)} disabled={removingMethodId != null} title="Remove" className="py-1.5 px-2.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 flex-shrink-0">
+                    {removingMethodId === String(m.id) ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-trash" />}
                   </button>
                 </div>
               ))}

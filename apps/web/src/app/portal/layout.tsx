@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Header, MobileFooter } from '@/components/layout'
-import { ProtectedRoute } from '@/components/auth'
+import { RoleProtectedRoute } from '@/components/auth'
 
 /**
  * Portal Layout - Custom layout for portal pages
@@ -68,7 +68,7 @@ export default function PortalLayout({
   }
 
   return (
-    <ProtectedRoute>
+    <RoleProtectedRoute allowedRoles={['customer']}>
       <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
         {/* Header - Same as main app for consistency */}
         <Header
@@ -98,7 +98,7 @@ export default function PortalLayout({
         {/* Mobile Footer - Same as main app */}
         <MobileFooter />
       </div>
-    </ProtectedRoute>
+    </RoleProtectedRoute>
   )
 }
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getServerToken, getServerUser } from '@/app/actions/auth';
+import { getServerToken, getServerUserId } from '@/app/actions/auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 
@@ -85,10 +85,25 @@ function normalizeMessage(message: unknown, currentUserId: string | number | nul
   };
 }
 
-export async function fetchSupportTickets(): Promise<SupportTicketSummary[]> {
-  const user = await getServerUser();
+function extractLexicalText(node: unknown): string {
+  if (node == null) return '';
+  if (typeof node === 'string') return node;
+  if (Array.isArray(node)) return node.map(extractLexicalText).join('');
+  if (typeof node === 'object') {
+    const record = node as Record<string, unknown>;
+    if (typeof record.text === 'string') return record.text;
+    if (record.root) return extractLexicalText(record.root);
+    if (record.children) return extractLexicalText(record.children);
+  }
+  return '';
+}
 
-  if (!user) {
+export async function fetchSupportTickets(): Promise<SupportTicketSummary[]> {
+  // Depth-0 id check (§4b: the old getServerUser hydrated depth:2 for a
+  // null-check that only needs an id).
+  const userId = await getServerUserId();
+
+  if (!userId) {
     return [];
   }
 
@@ -130,9 +145,9 @@ export async function createSupportTicket(input: CreateSupportTicketInput): Prom
 }
 
 export async function fetchSupportThread(ticketId: string): Promise<SupportThreadData | null> {
-  const user = await getServerUser();
+  const userId = await getServerUserId();
 
-  if (!user) {
+  if (!userId) {
     return null;
   }
 
@@ -152,7 +167,6 @@ export async function fetchSupportThread(ticketId: string): Promise<SupportThrea
   }
 
   const data = await res.json();
-  const userId = (user as unknown as Record<string, unknown>).id as string | number | null;
 
   return {
     ticket: normalizeTicket(data?.data?.ticket),
@@ -175,17 +189,31 @@ export async function replyToSupportTicket(ticketId: string, message: string): P
     throw new Error(`Failed to send support reply: ${res.status} ${errorText}`);
   }
 
+  const data = await res.json().catch(() => ({}));
+  const raw = (data?.data?.message ?? {}) as Record<string, unknown>;
+  // Real server doc (no temp-* fabrication): the sender is always the JWT
+  // requester, so isMine is true by construction. plainText is extracted
+  // from the Lexical payload with the same walk the CMS thread uses.
+  // Falls back to the submitted text if the shape ever changes.
+  const senderRaw = raw.sender as Record<string, unknown> | string | number | undefined;
+  const senderId =
+    senderRaw != null && typeof senderRaw === 'object' && 'id' in senderRaw
+      ? String((senderRaw as Record<string, unknown>).id)
+      : senderRaw != null && (typeof senderRaw === 'string' || typeof senderRaw === 'number')
+        ? String(senderRaw)
+        : undefined;
+
   revalidatePath('/support');
   revalidatePath(`/support/${ticketId}`);
 
   return {
-    id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    plainText: message,
+    id: String(raw.id ?? `temp-${Date.now()}`),
+    plainText: extractLexicalText(raw.message) || message,
     senderName: 'You',
     senderRole: 'customer',
-    senderId: undefined,
+    senderId,
     isMine: true,
-    createdAt: new Date().toISOString(),
+    createdAt: String(raw.createdAt ?? new Date().toISOString()),
   };
 }
 

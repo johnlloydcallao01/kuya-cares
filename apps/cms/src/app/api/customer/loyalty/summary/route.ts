@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { PointsService, TIERS } from '@/services/PointsService'
-import { resolveCustomer } from '../_shared'
+import { resolveCustomer, tierProgressPct } from '../_shared'
 
 export async function GET(request: NextRequest) {
   try {
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
                 minOrders: nextTier.minOrders,
                 multiplier: nextTier.multiplier,
                 ordersToNext: Math.max(0, nextTier.minOrders - tier.deliveredOrders),
-                progressPct: Math.min(100, Math.round((tier.deliveredOrders / Math.max(1, nextTier.minOrders)) * 100)),
+                progressPct: tierProgressPct(tier.deliveredOrders, tier.minOrders, nextTier.minOrders),
               }
             : null,
         },

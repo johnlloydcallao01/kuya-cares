@@ -3,12 +3,22 @@
 import React, { useEffect, useState, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from '@/components/ui/ImageWrapper';
+import { toast } from 'react-hot-toast';
 import { OrderDetailSkeleton } from '@/components/skeletons/OrdersSkeleton';
 import OrderHelpModal from '@/components/modals/OrderHelpModal';
 import OrderHeader from '@/components/orders/OrderHeader';
+import RateOrderModal from '@/components/orders/RateOrderModal';
+import { useCart } from '@/contexts/CartContext';
+import { getCurrentUserIdFromStorage } from '@/lib/client-services/wishlist-service';
+import {
+  fetchOrderHead,
+  resolveCustomerId,
+  submitOrderReview,
+} from '@/lib/client-services/order-service';
+import { formatOrderDateTime, orderNumberOf } from '@/types/order';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '00ffd535-f53d-44d0-b86d-945c90be2729';
+const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
 
 type OrderStatus =
   | 'pending'
@@ -27,6 +37,8 @@ interface OrderItem {
   options: { name: string; price: number }[];
   totalPrice: number;
   image: string;
+  productId?: string | number | null;
+  merchantProductId?: string | number | null;
 }
 
 interface OrderDetail {
@@ -36,6 +48,7 @@ interface OrderDetail {
   status: OrderStatus;
   restaurantName: string;
   merchantLogo?: string | null;
+  merchantId?: string | number | null;
   fulfillmentType: 'delivery' | 'pickup';
   items: OrderItem[];
   subtotal: number;
@@ -88,7 +101,13 @@ export default function OrderDetailPage({ params }: PageProps) {
   const router = useRouter();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [rateSubmitting, setRateSubmitting] = useState(false);
+  const { addToCart } = useCart();
 
   const [isDragging, setIsDragging] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
@@ -110,30 +129,40 @@ export default function OrderDetailPage({ params }: PageProps) {
     let active = true;
 
     const fetchOrder = async () => {
+      if (active) {
+        setLoading(true);
+        setLoadError(null);
+      }
       try {
         const headers = {
           Authorization: `users API-Key ${API_KEY}`,
           'Content-Type': 'application/json',
         };
 
-        const res = await fetch(`${API_URL}/orders/${orderId}?depth=3`, {
-          headers,
-        });
-
-        if (!res.ok) {
-          throw new Error(String(res.status));
-        }
-
-        const data = await res.json();
-
-        // Fetch Order Items
-        const itemsRes = await fetch(`${API_URL}/order-items?where[order][equals]=${orderId}&depth=2`, { headers });
-        const itemsData = await itemsRes.json();
+        // Parallel fan-out (§4): items + transaction only need orderId, not
+        // the order doc — the old code awaited all three sequentially (+2 RTT).
+        // The order head is shared + 60s-cached with the tracking screen.
+        const [data, itemsData, transData] = await Promise.all([
+          fetchOrderHead(orderId).then((d) => {
+            if (!d) throw new Error('404');
+            return d;
+          }),
+          fetch(`${API_URL}/order-items?where[order][equals]=${orderId}&depth=2`, {
+            headers,
+            cache: 'no-store',
+          }).then((r) => {
+            if (!r.ok) throw new Error(`items ${r.status}`);
+            return r.json();
+          }),
+          fetch(`${API_URL}/transactions?where[order][equals]=${orderId}&depth=0`, {
+            headers,
+            cache: 'no-store',
+          }).then((r) => {
+            if (!r.ok) throw new Error(`tx ${r.status}`);
+            return r.json();
+          }),
+        ]);
         const orderItems = itemsData.docs || [];
-
-        // Fetch Transaction
-        const transRes = await fetch(`${API_URL}/transactions?where[order][equals]=${orderId}&depth=0`, { headers });
-        const transData = await transRes.json();
         const transaction = transData.docs?.[0];
 
         let merchantLogo: string | null = null;
@@ -150,6 +179,16 @@ export default function OrderDetailPage({ params }: PageProps) {
 
         const mappedItems: OrderItem[] = orderItems.map((item: any) => {
              const product = item.product;
+             const mp = item.merchant_product;
+             const idOf = (v: unknown): string | number | null => {
+               if (v == null) return null;
+               if (typeof v === 'string' || typeof v === 'number') return v;
+               if (typeof v === 'object' && v !== null && 'id' in v) {
+                 const id = (v as { id: unknown }).id;
+                 if (typeof id === 'string' || typeof id === 'number') return id;
+               }
+               return null;
+             };
              let imageUrl: string | null = null;
              
              if (product && typeof product === 'object') {
@@ -182,24 +221,16 @@ export default function OrderDetailPage({ params }: PageProps) {
                  price: item.price_at_purchase,
                  options: item.options_snapshot || [],
                  totalPrice: item.total_price,
-                 image: finalImage
+                 image: finalImage,
+                 productId: idOf(product) ?? idOf(item.product),
+                 merchantProductId: idOf(mp) ?? idOf(item.merchant_product),
              };
         });
 
-        const placedAt = data.placed_at ? new Date(data.placed_at) : null;
-
         const mapped: OrderDetail = {
           id: String(data.id),
-          orderNumber: `#${String(data.id).padStart(5, '0')}`,
-          placedAt: placedAt
-            ? placedAt.toLocaleString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              })
-            : '',
+          orderNumber: orderNumberOf(data.id),
+          placedAt: data.placed_at ? formatOrderDateTime(data.placed_at) : '',
           status: data.status as OrderStatus,
           restaurantName: (() => {
             let name = 'Unknown Restaurant';
@@ -218,6 +249,13 @@ export default function OrderDetailPage({ params }: PageProps) {
             return name;
           })(),
           merchantLogo,
+          merchantId: (() => {
+            const m = data.merchant as any;
+            if (m == null) return null;
+            if (typeof m === 'string' || typeof m === 'number') return m;
+            if (typeof m.id === 'string' || typeof m.id === 'number') return m.id;
+            return null;
+          })(),
           fulfillmentType: data.fulfillment_type === 'pickup' ? 'pickup' : 'delivery',
           items: mappedItems,
           subtotal: data.subtotal,
@@ -229,10 +267,17 @@ export default function OrderDetailPage({ params }: PageProps) {
 
         if (active) {
           setOrder(mapped);
+          setLoadError(null);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (active) {
           setOrder(null);
+          const msg = String(err?.message ?? '');
+          setLoadError(
+            msg.includes('404')
+              ? 'Order not found. It may have been removed.'
+              : 'Couldn’t load this order. Check your connection and retry.',
+          );
         }
       } finally {
         if (active) {
@@ -246,7 +291,7 @@ export default function OrderDetailPage({ params }: PageProps) {
     return () => {
       active = false;
     };
-  }, [orderId]);
+  }, [orderId, reloadKey]);
 
   const getMaxTranslate = useCallback(() => {
     if (!timelineContainerRef.current || !timelineInnerRef.current) return 0;
@@ -388,15 +433,72 @@ export default function OrderDetailPage({ params }: PageProps) {
     setIsHelpModalOpen(true);
   };
 
-  const handleReorder = () => {
-    // TODO: Implement reorder logic
-    console.log('Order again');
-  };
+  const handleReorder = useCallback(async () => {
+    if (!order || order.items.length === 0 || order.merchantId == null) {
+      toast.error('No items to reorder');
+      return;
+    }
+    setReordering(true);
+    try {
+      // Concurrent fan-out (same pattern as the orders list): one slow item
+      // must not serialize the whole cart refill.
+      const results = await Promise.allSettled(
+        order.items.map(async (item) => {
+          if (item.productId == null || item.merchantProductId == null) {
+            throw new Error('missing ids');
+          }
+          await addToCart({
+            merchantId: Number(order.merchantId),
+            productId: Number(item.productId),
+            merchantProductId: Number(item.merchantProductId),
+            quantity: item.quantity,
+            priceAtAdd: item.price,
+          });
+        }),
+      );
+      const added = results.filter((r) => r.status === 'fulfilled').length;
+      if (added > 0) {
+        toast.success(`${added} item${added === 1 ? '' : 's'} added back to cart`);
+        router.push('/carts');
+      } else {
+        toast.error('Could not reorder — items may be unavailable');
+      }
+    } finally {
+      setReordering(false);
+    }
+  }, [order, addToCart, router]);
 
-  const handleRateOrder = () => {
-    // TODO: Implement rating logic
-    console.log('Rate order');
-  };
+  const handleRateOrder = useCallback(() => {
+    setRateOpen(true);
+  }, []);
+
+  const handleRateSubmit = useCallback(
+    async (rating: number, comment: string) => {
+      if (!order) return;
+      setRateSubmitting(true);
+      try {
+        const userId = getCurrentUserIdFromStorage();
+        if (!userId) throw new Error('Please sign in to rate');
+        const customerId = await resolveCustomerId(userId);
+        if (!customerId) throw new Error('Customer profile not found');
+        if (order.merchantId == null) throw new Error('Merchant not found');
+        await submitOrderReview({
+          orderId: order.id,
+          customerId,
+          merchantId: order.merchantId,
+          rating,
+          comment,
+        });
+        toast.success('Thanks for your rating!');
+        setRateOpen(false);
+      } catch (e: any) {
+        toast.error(e?.message || 'Rating failed');
+      } finally {
+        setRateSubmitting(false);
+      }
+    },
+    [order],
+  );
 
   useEffect(() => {
     const calculateBounds = () => {
@@ -452,8 +554,31 @@ export default function OrderDetailPage({ params }: PageProps) {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500 text-sm">Order not found.</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <i className="fas fa-receipt text-xl text-gray-400" />
+          </div>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Order unavailable</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            {loadError ?? 'Order not found.'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push('/orders')}
+              className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+            >
+              My orders
+            </button>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="flex-1 py-2.5 text-white rounded-xl text-sm font-bold hover:opacity-90"
+              style={{ backgroundColor: '#239459' }}
+            >
+              <i className="fas fa-redo mr-2" />Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -635,10 +760,15 @@ export default function OrderDetailPage({ params }: PageProps) {
             {['delivered', 'cancelled'].includes(order.status) && (
               <button
                 onClick={handleReorder}
-                className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                disabled={reordering}
+                className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <i className="fas fa-redo"></i>
-                Order Again
+                {reordering ? (
+                  <i className="fas fa-spinner fa-spin" />
+                ) : (
+                  <i className="fas fa-redo" />
+                )}
+                {reordering ? 'Adding to cart…' : 'Order Again'}
               </button>
             )}
             {order.status === 'delivered' && (
@@ -659,6 +789,17 @@ export default function OrderDetailPage({ params }: PageProps) {
           isOpen={isHelpModalOpen}
           onClose={() => setIsHelpModalOpen(false)}
           orderId={order.id}
+        />
+      )}
+
+      {rateOpen && order && (
+        <RateOrderModal
+          isOpen
+          restaurantName={order.restaurantName}
+          orderNumber={order.orderNumber}
+          submitting={rateSubmitting}
+          onClose={() => setRateOpen(false)}
+          onSubmit={handleRateSubmit}
         />
       )}
     </div>

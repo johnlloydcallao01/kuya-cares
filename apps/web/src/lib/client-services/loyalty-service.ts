@@ -36,13 +36,29 @@ export async function fetchMembership() {
   return getMembership();
 }
 
+// Pending redeem promises by reward — see redeemReward below.
+const redeemKeysInFlight = new Map<string, Promise<{ redemptionId: string | number; newBalance: number; claimId: string | number | null; cost: number }>>();
+
 export async function redeemReward(rewardId: string | number) {
-  // Per-click idempotency: safe retries never double-burn.
-  const key =
+  // Stable key per reward until settled (§4 idempotency): a fresh UUID per
+  // click defeats the server dup-check, so a double-tap burns twice. Reuse
+  // the pending key for the same reward; mint only when none is in flight.
+  const key = String(rewardId);
+  const pending = redeemKeysInFlight.get(key);
+  if (pending) return pending;
+  const idempotencyKey =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return redeemRewardAction(rewardId, key);
+  const p = (async () => {
+    try {
+      return await redeemRewardAction(rewardId, idempotencyKey);
+    } finally {
+      redeemKeysInFlight.delete(key);
+    }
+  })();
+  redeemKeysInFlight.set(key, p);
+  return p;
 }
 
 export async function claimAchievement(achievementId: string | number) {

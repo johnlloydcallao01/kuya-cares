@@ -443,6 +443,20 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
   const commitSearch = useCallback((val?: string) => {
     const v = (val ?? query).trim();
     if (!v) return;
+    // Optimistic prepend (Header parity): the modal's list otherwise never
+    // reflects the just-committed search until reopen.
+    setServerRecentQueries((prev) => {
+      const list = [v, ...prev];
+      const seen = new Set<string>();
+      const dedup: string[] = [];
+      for (const t of list) {
+        const k = String(t).trim().toLowerCase();
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        dedup.push(String(t).trim());
+      }
+      return dedup.slice(0, 10);
+    });
     (async () => {
       try {
         const userStr = typeof window !== 'undefined' ? localStorage.getItem('grandline_auth_user') : null;
@@ -464,7 +478,8 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
         const data = await getRes.json();
         const id = data?.docs?.[0]?.id;
         if (!id) return;
-        await fetch(`${API_BASE}/recent-searches/${id}`, { method: 'PATCH', headers, body: '{}' });
+        // Full body, not '{}' — see Header commitSearch note.
+        await fetch(`${API_BASE}/recent-searches/${id}`, { method: 'PATCH', headers, body });
       } catch { }
     })();
     router.push(`/results?search_query=${encodeURIComponent(v)}`);

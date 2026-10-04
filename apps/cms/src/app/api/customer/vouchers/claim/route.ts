@@ -91,11 +91,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const created = (await payload.create({
-      collection: 'coupon-claims',
-      data: { coupon: coupon.id, customer: customer.id, status: 'claimed' },
-      overrideAccess: true,
-    })) as any
+    let created: any
+    try {
+      created = (await payload.create({
+        collection: 'coupon-claims',
+        data: { coupon: coupon.id, customer: customer.id, status: 'claimed' },
+        overrideAccess: true,
+      })) as any
+    } catch (createErr: any) {
+      // Cross-tab/device race: two first-claims can both pass the check
+      // above (check-then-create is not atomic, unique index is). On any
+      // create failure, re-read — if the rival claim exists, return it as
+      // 200 instead of surfacing a 500 duplicate error.
+      const { docs: raced } = await payload.find({
+        collection: 'coupon-claims',
+        where: {
+          and: [{ coupon: { equals: coupon.id } }, { customer: { equals: customer.id } }, { status: { not_equals: 'cancelled' } }],
+        },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (raced[0]) {
+        return NextResponse.json({
+          data: sanitizeCoupon(coupon, {
+            usesLeft: null,
+            usesLeftForUser: null,
+            claimed: true,
+            claimStatus: (raced[0] as any).status,
+            used: (raced[0] as any).status === 'used',
+          }),
+        })
+      }
+      throw createErr
+    }
 
     return NextResponse.json(
       {

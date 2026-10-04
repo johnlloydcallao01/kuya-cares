@@ -30,6 +30,7 @@ import {
   emitAuthEvent,
   getStoredToken,
   getStoredUser,
+  persistSessionMirror,
 } from '@/lib/auth';
 import { getServerToken } from '@/app/actions/auth';
 import {
@@ -40,11 +41,13 @@ import {
   LocationBasedProductCategoriesService,
 } from '@encreasl/client-services';
 
-// Mirrored storage keys (kept in sync with lib/auth.ts)
+// Mirrored storage keys (kept in sync with lib/auth.ts persistSessionMirror)
 const USER_KEY = 'kuyacares_auth_user';
 const TOKEN_KEY = 'kuyacares_auth_token';
+const EXPIRES_KEY = 'kuyacares_auth_expires';
 const LEGACY_USER_KEY = 'grandline_auth_user';
 const LEGACY_TOKEN_KEY = 'grandline_auth_token';
+const LEGACY_EXPIRES_KEY = 'grandline_auth_expires';
 
 // ========================================
 // AUTHENTICATION REDUCER
@@ -182,15 +185,10 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function persistMirror(user: User, token: string): void {
-  try {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
-    localStorage.setItem(LEGACY_TOKEN_KEY, token);
-  } catch {
-    void 0;
-  }
+function persistMirror(user: User, token: string, exp?: number): void {
+  // Single writer (web-admin parity) — delegates to lib/auth so EXPIRES
+  // (from server exp, fallback +30d) stays in sync across login/refresh/seed.
+  persistSessionMirror(token, user, exp);
 }
 
 // ========================================
@@ -258,9 +256,16 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
       if (token && user) {
         persistMirror(user, token);
       } else if (!token) {
+        // No server cookie — purge full mirror (user+token+expiry, new+legacy)
+        // so a stale USER never renders as logged-in. getCurrentUser() already
+        // cleared on null; this covers the token-missing path.
         try {
           localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(EXPIRES_KEY);
+          localStorage.removeItem(USER_KEY);
           localStorage.removeItem(LEGACY_TOKEN_KEY);
+          localStorage.removeItem(LEGACY_EXPIRES_KEY);
+          localStorage.removeItem(LEGACY_USER_KEY);
         } catch {
           void 0;
         }
@@ -348,10 +353,14 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
   }, []);
 
   // ========================================
-  // SESSION MONITORING
+  // SESSION MONITORING (web-admin parity: manual-only refresh)
   // ========================================
 
-  // Session monitoring and management
+  // No auto-refresh polling wired here; only passive logout listeners.
+  // 30-day persistence = cookie maxAge 30d + CMS JWT 30d from login/refresh.
+  // Sliding renewal happens only when useSession().refreshSession() is called
+  // (re-sets cookie + mirror from server exp). startSessionMonitoring() /
+  // monitorSessionExpiration() in lib/auth remain opt-in, never auto-started.
   useEffect(() => {
     if (!state.isAuthenticated || !state.isInitialized) return;
 

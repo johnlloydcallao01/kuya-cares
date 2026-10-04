@@ -146,18 +146,26 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   },
 };
 
+const warnedUnknownStatuses = new Set<string>();
+
 export function getStatusMeta(status: string): StatusMeta {
-  return (
-    (ORDER_STATUS_META as Record<string, StatusMeta>)[status] ?? {
-      label: String(status).replace(/_/g, ' '),
-      shortLabel: String(status).replace(/_/g, ' '),
-      pill: 'bg-gray-100 text-gray-700 border border-gray-200',
-      dot: 'bg-gray-400',
-      icon: 'fas fa-receipt',
-      description: '',
-      group: 'active' as const,
-    }
-  );
+  const known = (ORDER_STATUS_META as Record<string, StatusMeta>)[status];
+  if (known) return known;
+  // Unknown statuses must NOT poll forever (§12b): the old 'active' fallback
+  // kept the 30s refetch loop (and amber pills) alive on data errors.
+  if (!warnedUnknownStatuses.has(status)) {
+    warnedUnknownStatuses.add(status);
+    console.warn(`[orders] unknown status "${status}" — treating as done`);
+  }
+  return {
+    label: String(status).replace(/_/g, ' '),
+    shortLabel: String(status).replace(/_/g, ' '),
+    pill: 'bg-gray-100 text-gray-700 border border-gray-200',
+    dot: 'bg-gray-400',
+    icon: 'fas fa-receipt',
+    description: '',
+    group: 'done' as const,
+  };
 }
 
 /** Legacy helpers kept for backward-compat with existing imports */

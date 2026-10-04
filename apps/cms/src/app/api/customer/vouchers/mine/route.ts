@@ -1,7 +1,10 @@
 /**
- * GET /api/customer/vouchers/mine?userId=&filter=available|used|expired
+ * GET /api/customer/vouchers/mine?userId=&filter=available|used|expired|all
  * Claimed voucher wallet with computed status. Expiry is computed from
  * coupons.expires_at (not stored) so it can never drift.
+ * filter=all returns all three buckets in one call (computedStatus on each
+ * row) so the wallet page pays one claims scan instead of three identical
+ * ones differing only by post-filter.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
@@ -17,8 +20,8 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
-    if (!['available', 'used', 'expired'].includes(filter)) {
-      return NextResponse.json({ error: 'filter must be available|used|expired' }, { status: 400 })
+    if (!['available', 'used', 'expired', 'all'].includes(filter)) {
+      return NextResponse.json({ error: 'filter must be available|used|expired|all' }, { status: 400 })
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
       }
 
       const status = used ? 'used' : isExpired ? 'expired' : 'available'
-      if (status !== filter) continue
+      if (filter !== 'all' && status !== filter) continue
 
       out.push({
         claimId: claim.id,

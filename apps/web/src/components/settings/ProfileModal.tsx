@@ -75,7 +75,11 @@ export default function ProfileModal({
   const handleSubmit = () => {
     if (!canSubmit) return;
     const opt = (v: string) => (v.trim() === '' ? null : v.trim());
-    onSubmit({
+    const norm = (v: unknown) => (v === undefined ? null : (v as string | null));
+    // Dirty-fields only: sending the full 12-field object forces a wide
+    // UPDATE + unique checks + audit diff even for a gender-only change.
+    // Diff against the loaded user so a Male-only edit is { gender: 'male' }.
+    const candidate: Record<string, unknown> = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       middleName: opt(middleName),
@@ -88,7 +92,31 @@ export default function ProfileModal({
       preferredLanguage: language,
       timezone: timezone.trim() || 'Asia/Manila',
       currency: currency.trim().toUpperCase() || 'PHP',
-    });
+    };
+    const prev: Record<string, unknown> = {
+      firstName: field(user, 'firstName'),
+      lastName: field(user, 'lastName'),
+      middleName: field(user, 'middleName') || null,
+      username: field(user, 'username') || null,
+      phone: field(user, 'phone') || null,
+      gender: field(user, 'gender') || null,
+      civilStatus: field(user, 'civilStatus') || null,
+      nationality: field(user, 'nationality') || null,
+      birthDate: field(user, 'birthDate') || null,
+      preferredLanguage: user?.preferredLanguage || 'en',
+      timezone: user?.timezone || 'Asia/Manila',
+      currency: user?.currency || 'PHP',
+    };
+    const diff: Record<string, unknown> = {};
+    for (const k of Object.keys(candidate)) {
+      if (norm(candidate[k]) !== norm(prev[k])) diff[k] = candidate[k];
+    }
+    // No-op (e.g. opened + saved without change): close without network.
+    if (Object.keys(diff).length === 0) {
+      onClose();
+      return;
+    }
+    onSubmit(diff);
   };
 
   const inputCls =

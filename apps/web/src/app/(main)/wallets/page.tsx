@@ -110,6 +110,32 @@ function WalletsContent() {
   const loadPageRef = useRef(loadPage);
   loadPageRef.current = loadPage;
   const filterFirstRun = useRef(true);
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
+  const statsRef = useRef(stats);
+  statsRef.current = stats;
+  const withdrawGuardRef = useRef(false);
+
+  // Balance-settle poll: top-up credit lands via async PayMongo webhook, so a
+  // single refresh after Done can still show the old balance. Poll silently
+  // until balance/totalDocs moves (max 6 × 10s), then stop. No interval when
+  // idle — write-settled polling only, never background polling.
+  const pollUntilSettled = useCallback(
+    async (baseline: { balance: number; totalDocs: number }) => {
+      for (let i = 0; i < 6; i++) {
+        await new Promise((r) => setTimeout(r, 10000));
+        if (typeof document !== 'undefined' && document.hidden) continue;
+        await loadPageRef.current(1, { silent: true });
+        const w = walletRef.current;
+        const s = statsRef.current;
+        if (w && (w.balance !== baseline.balance || s.totalDocs !== baseline.totalDocs)) {
+          toast.success('Wallet balance updated');
+          return;
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     loadPageRef.current(1);
@@ -131,18 +157,28 @@ function WalletsContent() {
     loadPageRef.current(1, { reset: true, type: typeFilter, q: searchQuery });
   }, [typeFilter, searchQuery]);
 
-  // Returning from PayMongo redirect → refresh once.
+  // Returning from PayMongo redirect → refresh once, then poll until the
+  // webhook credit lands (single 2.5s refresh showed stale balances).
   useEffect(() => {
     if (searchParams?.get('topup') === 'return' && !welcomedReturn && !loading) {
       setWelcomedReturn(true);
       toast.success('Payment return detected — refreshing balance');
-      const t = setTimeout(() => loadPage(1, { reset: true }), 2500);
+      const baseline = {
+        balance: walletRef.current?.balance ?? 0,
+        totalDocs: statsRef.current?.totalDocs ?? 0,
+      };
+      const t = setTimeout(() => {
+        loadPage(1, { reset: true });
+        void pollUntilSettled(baseline);
+      }, 2500);
       return () => clearTimeout(t);
     }
-  }, [searchParams, loading, welcomedReturn, loadPage]);
+  }, [searchParams, loading, welcomedReturn, loadPage, pollUntilSettled]);
 
   const handleWithdraw = useCallback(
     async (amount: number, destination: string) => {
+      if (withdrawGuardRef.current) return;
+      withdrawGuardRef.current = true;
       setWithdrawing(true);
       try {
         await requestWithdrawal({ amount, destination });
@@ -153,6 +189,7 @@ function WalletsContent() {
         toast.error(e?.message || 'Withdrawal failed');
       } finally {
         setWithdrawing(false);
+        withdrawGuardRef.current = false;
       }
     },
     [loadPage],
@@ -166,6 +203,17 @@ function WalletsContent() {
   const isFiltered = searchQuery !== '' || typeFilter !== 'all';
 
   const visible = useMemo(() => history, [history]);
+
+  // Static derivations memoized (§4b: rebuilt per render otherwise).
+  const statCards = useMemo(
+    () => [
+      { label: 'Topped up', value: formatPHP(stats.toppedUp), icon: 'fa-arrow-down', bg: 'bg-green-50', fg: 'text-green-700' },
+      { label: 'Spent', value: formatPHP(stats.spent), icon: 'fa-receipt', bg: 'bg-blue-50', fg: 'text-blue-700' },
+      { label: 'Cashback', value: formatPHP(stats.cashback), icon: 'fa-coins', bg: 'bg-amber-50', fg: 'text-amber-700' },
+      { label: 'Refunded', value: formatPHP(stats.refunded), icon: 'fa-undo', bg: 'bg-emerald-50', fg: 'text-emerald-700' },
+    ],
+    [stats],
+  );
 
   if (loading) return <WalletsPageSkeleton />;
 
@@ -293,12 +341,7 @@ function WalletsContent() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
-            {[
-              { label: 'Topped up', value: formatPHP(stats.toppedUp), icon: 'fa-arrow-down', bg: 'bg-green-50', fg: 'text-green-700' },
-              { label: 'Spent', value: formatPHP(stats.spent), icon: 'fa-receipt', bg: 'bg-blue-50', fg: 'text-blue-700' },
-              { label: 'Cashback', value: formatPHP(stats.cashback), icon: 'fa-coins', bg: 'bg-amber-50', fg: 'text-amber-700' },
-              { label: 'Refunded', value: formatPHP(stats.refunded), icon: 'fa-undo', bg: 'bg-emerald-50', fg: 'text-emerald-700' },
-            ].map((s) => (
+            {statCards.map((s) => (
               <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
                 <i className={`fas ${s.icon} ${s.fg}`} />
                 <div className="min-w-0">
@@ -476,7 +519,15 @@ function WalletsContent() {
         customerEmail={user?.email || ''}
         onClose={(refresh) => {
           setTopupOpen(false);
-          if (refresh) loadPage(1, { reset: true });
+          if (refresh) {
+            const baseline = {
+              balance: walletRef.current?.balance ?? 0,
+              totalDocs: statsRef.current?.totalDocs ?? 0,
+            };
+            loadPage(1, { reset: true });
+            // Credit is async — keep polling silently until it lands.
+            void pollUntilSettled(baseline);
+          }
         }}
       />
       <WithdrawModal

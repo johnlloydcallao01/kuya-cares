@@ -48,8 +48,19 @@ export default function PasswordModal({ isOpen, submitting, onClose, onSubmit }:
 
   if (!isOpen) return null;
 
+  // Client mirrors the server password policy (_shared passwordPolicyError:
+  // 8–40 chars, upper + digit + special, new != current) so weak input fails
+  // here instead of 400ing after submit.
+  const policyFails: string[] = [];
+  if (next !== '') {
+    if (next.length < 8 || next.length > 40) policyFails.push('8–40 characters');
+    if (!/[A-Z]/.test(next)) policyFails.push('an uppercase letter');
+    if (!/[0-9]/.test(next)) policyFails.push('a number');
+    if (!/[^A-Za-z0-9]/.test(next)) policyFails.push('a special character');
+    if (current !== '' && next === current) policyFails.push('different from current');
+  }
   const mismatch = next !== '' && confirm !== '' && next !== confirm;
-  const canSubmit = !submitting && current !== '' && next.length >= 8 && !mismatch;
+  const canSubmit = !submitting && current !== '' && policyFails.length === 0 && next !== '' && !mismatch;
   const score = passwordScore(next);
 
   const inputCls =
@@ -100,6 +111,11 @@ export default function PasswordModal({ isOpen, submitting, onClose, onSubmit }:
                 <div className={`h-full ${score.bar} transition-all duration-300`} style={{ width: `${score.score}%` }} />
               </div>
             </div>
+          )}
+          {next !== '' && policyFails.length > 0 && (
+            <p className="text-xs text-amber-700 mt-1">
+              Needs {policyFails.join(', ')}.
+            </p>
           )}
           <div>
             <label className={labelCls}>Confirm new password</label>

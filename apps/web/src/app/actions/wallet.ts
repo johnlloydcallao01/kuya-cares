@@ -32,6 +32,17 @@ function toNum(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+// Hoisted (§4b item 1): one shared date formatter instead of a fresh
+// toLocaleString options-object + lookup per ledger row per fetch.
+const txDateFormatter = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
 function mapTx(d: any): WalletTransactionUI {
   const created = d.createdAt ? new Date(d.createdAt) : null;
   const ts = created && !Number.isNaN(created.getTime()) ? created.getTime() : 0;
@@ -43,16 +54,7 @@ function mapTx(d: any): WalletTransactionUI {
     orderId: d.orderId ?? (typeof d.order === 'object' ? d.order?.id : d.order) ?? null,
     gateway: d.gateway ?? null,
     status: d.status || 'posted',
-    createdAt:
-      ts > 0
-        ? new Date(ts).toLocaleString('en-PH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          })
-        : '',
+    createdAt: ts > 0 ? txDateFormatter.format(new Date(ts)) : '',
     createdAtTs: ts,
   };
 }

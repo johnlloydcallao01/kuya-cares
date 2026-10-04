@@ -69,8 +69,17 @@ function formatDate(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+  return pointsDateFormatter.format(d);
 }
+
+// Hoisted (§4b item 1): one shared date formatter instead of a fresh
+// toLocaleDateString per row per render.
+const pointsDateFormatter = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
 
 function PointsContent() {
   const [tab, setTab] = useState<Tab>('overview');
@@ -90,6 +99,7 @@ function PointsContent() {
   const [error, setError] = useState<string | null>(null);
   const [redeemingId, setRedeemingId] = useState<string | number | null>(null);
   const [claimingId, setClaimingId] = useState<string | number | null>(null);
+  const [filteringHistory, setFilteringHistory] = useState(false);
 
   const loadAll = useCallback(async (opts: { silent?: boolean; reset?: boolean } = {}) => {
     try {
@@ -112,6 +122,7 @@ function PointsContent() {
       setHistoryMore(h.hasNextPage);
     } catch (e: any) {
       if (!opts.silent) setError(e?.message || 'Failed to load points');
+      else toast.error(e?.message || 'Refresh failed — showing saved data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,7 +153,9 @@ function PointsContent() {
 
   const loadHistoryPage = useCallback(async (nextPage: number, type: HistoryFilter) => {
     try {
-      if (nextPage === 1) setHistory([]);
+      // Keep stale rows on filter change (no false-empty flash): only the
+      // inline spinner shows while the first page reloads.
+      if (nextPage === 1) setFilteringHistory(true);
       else setLoadingMore(true);
       const h = await fetchLoyaltyHistory({ type, page: nextPage, limit: PAGE_SIZE });
       setHistory((prev) => (nextPage === 1 ? h.docs : [...prev, ...h.docs]));
@@ -152,47 +165,58 @@ function PointsContent() {
       toast.error(e?.message || 'Failed to load history');
     } finally {
       setLoadingMore(false);
+      setFilteringHistory(false);
     }
   }, []);
 
   const handleHistoryFilter = useCallback(
     (t: HistoryFilter) => {
+      if (t === historyFilter) return;
       setHistoryFilter(t);
-      setHistory([]);
       loadHistoryPage(1, t);
     },
-    [loadHistoryPage],
+    [loadHistoryPage, historyFilter],
   );
 
+  // Global mutation lock: per-card redeemingId blocks only the same card,
+  // so two fast taps on DIFFERENT rewards both passed the stale-balance
+  // check and double-burned. While any mutation is in flight, all redeem
+  // and claim buttons go inert.
+  const mutating = redeemingId != null || claimingId != null;
+
   const handleRedeem = useCallback(async (r: RewardUI) => {
+    if (redeemingId != null || claimingId != null) return;
     setRedeemingId(r.id);
     try {
       const res = await redeemReward(r.id);
       toast.success(`Redeemed! Balance: ${res.newBalance.toLocaleString()} pts${res.claimId ? ' • voucher added to wallet' : ''}`);
       await refreshCatalog();
-      setHistory([]);
-      loadHistoryPage(1, historyFilter);
+      await loadHistoryPage(1, historyFilter);
     } catch (e: any) {
       toast.error(e?.message || 'Redeem failed');
     } finally {
       setRedeemingId(null);
     }
-  }, [refreshCatalog, loadHistoryPage, historyFilter]);
+  }, [refreshCatalog, loadHistoryPage, historyFilter, redeemingId, claimingId]);
 
   const handleClaimAchievement = useCallback(
     async (a: AchievementUI) => {
+      if (redeemingId != null || claimingId != null) return;
       setClaimingId(a.id);
       try {
         const res = await claimAchievement(a.id);
         toast.success(`+${res.granted.toLocaleString()} pts claimed!`);
         await refreshCatalog();
+        // The grant posts a ledger row — refresh history so the +X pts line
+        // appears without a manual reload (was: invisible until revisit).
+        await loadHistoryPage(1, historyFilter);
       } catch (e: any) {
         toast.error(e?.message || 'Claim failed');
       } finally {
         setClaimingId(null);
       }
     },
-    [refreshCatalog],
+    [refreshCatalog, loadHistoryPage, historyFilter, redeemingId, claimingId],
   );
 
   const filteredRewards = useMemo(() => {
@@ -235,13 +259,35 @@ function PointsContent() {
     );
   }
 
-  if (!summary) return null;
+  if (!summary) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+            <i className="fas fa-exclamation-triangle text-red-500 text-xl" />
+          </div>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Points unavailable</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            {error ?? 'Your loyalty data could not be shown right now.'}
+          </p>
+          <button
+            onClick={() => loadAll({ reset: true })}
+            className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+            style={{ backgroundColor: BRAND }}
+          >
+            <i className="fas fa-redo mr-2" />
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
   const balance = summary.balance;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-20">
+      <div className="bg-white shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -419,7 +465,7 @@ function PointsContent() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                 {filteredRewards.map((r) => (
-                  <RewardCard key={r.id} reward={r} balance={balance} redeemingId={redeemingId} onRedeem={handleRedeem} />
+                  <RewardCard key={r.id} reward={r} balance={balance} redeemingId={redeemingId} mutating={mutating} onRedeem={handleRedeem} />
                 ))}
               </div>
             )}
@@ -443,6 +489,12 @@ function PointsContent() {
               ))}
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {filteringHistory ? (
+                <p className="p-6 text-center text-sm text-gray-400">
+                  <i className="fas fa-spinner fa-spin mr-2" />Loading transactions…
+                </p>
+              ) : (
+                <>
               {history.length === 0 && (
                 <p className="p-6 text-center text-sm text-gray-400">No transactions yet.</p>
               )}
@@ -468,6 +520,8 @@ function PointsContent() {
                   </div>
                 );
               })}
+                </>
+              )}
             </div>
             {historyMore && (
               <div className="text-center mt-5">
@@ -499,7 +553,7 @@ function PointsContent() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
                 {achievements.map((a) => (
-                  <AchievementCard key={a.id} achievement={a} claimingId={claimingId} onClaim={handleClaimAchievement} />
+                  <AchievementCard key={a.id} achievement={a} claimingId={claimingId} mutating={mutating} onClaim={handleClaimAchievement} />
                 ))}
               </div>
             )}

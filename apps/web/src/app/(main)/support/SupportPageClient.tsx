@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { SupportTicketSummary } from './actions';
@@ -18,14 +18,22 @@ export const SUPPORT_CATEGORIES = [
 
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  try {
+    return listDateFormatter.format(new Date(dateString));
+  } catch {
+    return 'N/A';
+  }
 }
+
+// Hoisted (§4b item 1): one shared formatter instead of a locale parse per
+// ticket row per render.
+const listDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 function formatStatus(status: string) {
   return status.replace(/_/g, ' ').toUpperCase();
@@ -70,12 +78,20 @@ export default function SupportPageClient({ initialTickets }: { initialTickets: 
   });
 
   const openTicketCount = useMemo(
-    () => tickets.filter((ticket) => ticket.status === 'open' || ticket.status === 'in_progress').length,
+    () =>
+      tickets.filter((ticket) =>
+        ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'waiting_for_user',
+      ).length,
     [tickets],
   );
 
+  // Synchronous submit guard: same double-submit window as thread replies.
+  const submittingRef = useRef(false);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setErrorMessage('');
 
@@ -89,6 +105,7 @@ export default function SupportPageClient({ initialTickets }: { initialTickets: 
       console.error('Error creating support ticket', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create ticket. Please try again.');
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };

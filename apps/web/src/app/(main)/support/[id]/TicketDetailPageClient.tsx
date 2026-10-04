@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -8,15 +8,23 @@ import { useUser } from '@/hooks/useAuth';
 import type { SupportThreadData } from '../actions';
 import { fetchSupportThread, replyToSupportTicket, updateSupportTicketStatus } from '../actions';
 
+// Hoisted (§4b item 1): one shared formatter instead of a locale parse per
+// message row per render.
+const threadDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  try {
+    return threadDateFormatter.format(new Date(dateString));
+  } catch {
+    return 'N/A';
+  }
 }
 
 function formatStatus(status: string) {
@@ -64,6 +72,27 @@ export default function TicketDetailPageClient({ initialThread }: { initialThrea
   const { user } = useUser();
   const userId = user?.id ?? null;
   const [isLive, setIsLive] = useState(false);
+  // Coalesced refetch: broadcast + focus + visibility can fire together on
+  // rapid admin replies — one shared promise + 5s throttle instead of N
+  // parallel thread fetches.
+  const inflightRef = useRef<Promise<unknown> | null>(null);
+  const lastRefetchRef = useRef(0);
+
+  const refetchThread = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefetchRef.current < 5000) return;
+    lastRefetchRef.current = now;
+    if (inflightRef.current) return;
+    const p = fetchSupportThread(String(ticket.id))
+      .then((fresh) => {
+        if (fresh) setThread(fresh);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (inflightRef.current === p) inflightRef.current = null;
+      });
+    inflightRef.current = p;
+  }, [ticket.id]);
 
   useEffect(() => {
     if (!userId || !ticket.id) return;
@@ -85,66 +114,71 @@ export default function TicketDetailPageClient({ initialThread }: { initialThrea
         const metadata = (notification?.metadata ?? {}) as Record<string, unknown>;
         if (!typeKey.startsWith('support.ticket')) return;
         if (String(metadata.ticketId ?? '') !== String(ticket.id)) return;
-        fetchSupportThread(String(ticket.id))
-          .then((fresh) => {
-            if (!cancelled && fresh) setThread(fresh);
-          })
-          .catch(() => {});
+        refetchThread();
       })
       .subscribe((status: string) => {
         if (!cancelled) setIsLive(status === 'SUBSCRIBED');
       });
 
+    // One listener (visibility covers focus in practice): the old
+    // visibilitychange + focus pair fired twice per tab switch.
     const refetchOnVisible = () => {
       if (document.visibilityState === 'visible') {
-        fetchSupportThread(String(ticket.id))
-          .then((fresh) => {
-            if (!cancelled && fresh) setThread(fresh);
-          })
-          .catch(() => {});
+        refetchThread();
       }
     };
     document.addEventListener('visibilitychange', refetchOnVisible);
-    window.addEventListener('focus', refetchOnVisible);
 
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', refetchOnVisible);
-      window.removeEventListener('focus', refetchOnVisible);
       try {
         supabase.removeChannel(channel);
       } catch {}
       setIsLive(false);
     };
-  }, [userId, ticket.id]);
+  }, [userId, ticket.id, refetchThread]);
+
+  // Synchronous send guard: isSending state lags a render, so double-Enter
+  // before the first await double-posted (CMS creates unconditionally).
+  const sendingRef = useRef(false);
+  const statusRef = useRef(false);
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!replyMessage.trim()) {
+    const text = replyMessage.trim();
+    if (!text || sendingRef.current) {
       return;
     }
+    sendingRef.current = true;
 
     setIsSending(true);
     setErrorMessage('');
 
     try {
-      const optimisticMessage = await replyToSupportTicket(ticket.id, replyMessage.trim());
+      // Real server message (no temp-*): appended with its authoritative id
+      // and timestamp, so later live refetches can never duplicate it.
+      const confirmed = await replyToSupportTicket(ticket.id, text);
       setThread((current) => ({
         ...current,
-        messages: [...current.messages, optimisticMessage],
+        messages: [...current.messages, confirmed],
       }));
+      // Clear the draft only on success — failures keep the text for retry.
       setReplyMessage('');
       router.refresh();
     } catch (error: unknown) {
       console.error('Error sending message', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to send message.');
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
   };
 
   const handleStatusChange = async (status: 'open' | 'closed') => {
+    if (statusRef.current) return;
+    statusRef.current = true;
     setIsUpdatingStatus(true);
     setErrorMessage('');
 
@@ -156,6 +190,7 @@ export default function TicketDetailPageClient({ initialThread }: { initialThrea
       console.error('Error updating ticket status', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to update ticket.');
     } finally {
+      statusRef.current = false;
       setIsUpdatingStatus(false);
     }
   };

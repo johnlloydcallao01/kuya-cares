@@ -71,6 +71,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Username cannot be empty' }, { status: 400 })
     }
 
+    // Perf (raw power): drop unchanged values vs the already-loaded authUser.
+    // A gender-only edit then becomes a single-column UPDATE with no username
+    // unique check and a 1-field audit diff. No-op saves skip the DB entirely.
+    const norm = (v: unknown) => (v === undefined ? undefined : (v as string | null))
+    for (const key of Object.keys(data)) {
+      const incoming = norm(data[key])
+      const current = norm((authUser as Record<string, any>)[key])
+      if (incoming === current) delete data[key]
+      // Avoid a unique-constraint SELECT when the username did not change
+      // (compare case-sensitively — DB unique is case-sensitive here).
+    }
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ data: { user: sanitizeAccountUser(authUser) } })
+    }
+
     // Perf: depth 0 — the response merges already-known fields, no populate.
     let updated: Record<string, any>
     try {

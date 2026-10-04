@@ -73,10 +73,26 @@ export async function GET(request: NextRequest) {
       progressByDef.set(String(relId(r.achievement) ?? ''), r)
     }
 
+    // Batched progress (§4: no sequential N+1): defs missing a progress row
+    // each needed a metricValue round-trip (count or 2000-doc scan). All
+    // misses resolve concurrently — reads only, order-independent.
+    const missing = ((((defs as any)?.docs || []) as any[]).filter((def: any) => !progressByDef.get(String(def.id))))
+    const measured = await Promise.all(
+      missing.map(async (def: any) => {
+        try {
+          return { id: def.id, progress: Math.floor(await service.metricValue(def.metric, customer.id)) }
+        } catch {
+          return { id: def.id, progress: 0 }
+        }
+      }),
+    )
+    const measuredByDef = new Map<string, number>()
+    for (const m of measured) measuredByDef.set(String(m.id), m.progress)
+
     const achievements: any[] = []
     for (const def of (((defs as any)?.docs || []) as any[])) {
       const row = progressByDef.get(String(def.id))
-      const progress = row ? Number(row.progress ?? 0) : Math.floor(await service.metricValue(def.metric, customer.id))
+      const progress = row ? Number(row.progress ?? 0) : (measuredByDef.get(String(def.id)) ?? 0)
       const target = Number(def.target ?? 1)
       achievements.push({
         id: def.id,
@@ -104,19 +120,32 @@ export async function GET(request: NextRequest) {
           minOrderTotal: Number(r.min_order_total ?? 0),
           capPoints: Math.floor(Number(r.cap_points ?? 0)),
         })),
-        rewards: (((rewards as any)?.docs || []) as any[]).map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          pointsCost: Math.floor(Number(r.points_cost ?? 0)),
-          category: r.category,
-          imageUrl: imageUrlOf(r.image),
-          stock: r.stock ?? null,
-          isAvailable: r.stock === undefined || r.stock === null || Number(r.stock) > 0,
-          terms: Array.isArray(r.terms) ? r.terms.map((t: any) => t?.term).filter(Boolean) : [],
-          hasVoucher: !!relId(r.coupon),
-          affordable: balance.points >= Math.floor(Number(r.points_cost ?? 0)),
-        })),
+        rewards: (((rewards as any)?.docs || []) as any[]).map((r: any) => {
+          const inStock = r.stock === undefined || r.stock === null || Number(r.stock) > 0
+          // Coupon-backed rewards inherit coupon validity (zero extra
+          // queries — the coupon is already populated at depth:1). Without
+          // this, rewards showed Available while redeem auto-claimed an
+          // expired/unpublished coupon.
+          const coupon = r.coupon && typeof r.coupon === 'object' ? r.coupon : null
+          const couponValid =
+            !coupon ||
+            (coupon.status === 'published' &&
+              (!coupon.starts_at || new Date(coupon.starts_at).getTime() <= Date.now()) &&
+              (!coupon.expires_at || new Date(coupon.expires_at).getTime() > Date.now()))
+          return {
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            pointsCost: Math.floor(Number(r.points_cost ?? 0)),
+            category: r.category,
+            imageUrl: imageUrlOf(r.image),
+            stock: r.stock ?? null,
+            isAvailable: inStock && couponValid,
+            terms: Array.isArray(r.terms) ? r.terms.map((t: any) => t?.term).filter(Boolean) : [],
+            hasVoucher: !!relId(r.coupon),
+            affordable: balance.points >= Math.floor(Number(r.points_cost ?? 0)),
+          }
+        }),
         achievements,
       },
     })

@@ -557,7 +557,10 @@ export function Header({
         const data = await getRes.json();
         const id = data?.docs?.[0]?.id;
         if (!id) return;
-        await fetch(`${API_BASE}/recent-searches/${id}`, { method: 'PATCH', headers, body: '{}' });
+        // Refresh the existing row with a full body (query + addressText):
+        // the old PATCH '{}' carried no query, so the server re-derived an
+        // empty normalized key and corrupted the row's compositeKey.
+        await fetch(`${API_BASE}/recent-searches/${id}`, { method: 'PATCH', headers, body });
       } catch { }
     })();
     router.push(`/results?search_query=${encodeURIComponent(v)}`);

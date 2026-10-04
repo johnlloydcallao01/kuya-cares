@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import Image from '@/components/ui/ImageWrapper';
 import { rewardCategoryStyle, type RewardUI } from '@/types/loyalty';
 
@@ -8,6 +8,10 @@ interface RewardCardProps {
   reward: RewardUI;
   balance: number;
   redeemingId?: string | number | null;
+  /** Global mutation lock: while ANY redeem/claim is in flight, all cards
+      go inert so stale-balance double-taps on different rewards can't both
+      pass the affordability check. */
+  mutating?: boolean;
   onRedeem: (reward: RewardUI) => void;
 }
 
@@ -18,10 +22,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   exclusive: 'fas fa-crown',
 };
 
-export default function RewardCard({ reward, balance, redeemingId, onRedeem }: RewardCardProps) {
+export default memo(function RewardCard({ reward, balance, redeemingId, mutating = false, onRedeem }: RewardCardProps) {
   const busy = redeemingId != null && String(redeemingId) === String(reward.id);
   const need = Math.max(0, reward.pointsCost - balance);
-  const canRedeem = reward.isAvailable && need === 0;
+  const canRedeem = reward.isAvailable && need === 0 && !mutating;
 
   return (
     <article className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
@@ -95,4 +99,4 @@ export default function RewardCard({ reward, balance, redeemingId, onRedeem }: R
       </div>
     </article>
   );
-}
+})

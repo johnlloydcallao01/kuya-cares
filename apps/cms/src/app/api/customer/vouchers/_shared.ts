@@ -12,25 +12,54 @@ export function relId(v: unknown): string | null {
   return null
 }
 
+// In-process resolve memo (see resolveCustomer below).
+const RESOLVE_TTL_MS = 10_000
+const resolveCache = new Map<string, { ts: number; customer: any }>()
+const resolveInflight = new Map<string, Promise<any>>()
+const contactCache = new Map<string, { ts: number; contact: { email?: string; phone?: string } }>()
+const contactInflight = new Map<string, Promise<{ email?: string; phone?: string }>>()
+
 export async function resolveCustomer(payload: any, userId: string) {
-  const numericUser = Number(userId)
-  const { docs } = await payload.find({
-    collection: 'customers',
-    where: { user: { equals: Number.isFinite(numericUser) ? numericUser : userId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  if (docs[0]) return docs[0]
-  try {
-    return await payload.create({
-      collection: 'customers',
-      data: { user: Number.isFinite(numericUser) ? numericUser : (userId as any) },
-      overrideAccess: true,
-    })
-  } catch {
-    return null
-  }
+  // Request-scoped memo (§4 singleflight, in-process): the wallet page fans
+  // out parallel voucher calls that each resolve the same customer. 10s TTL
+  // is safe — customer identity/creation is stable at this timescale. Only
+  // successful resolutions are cached; misses retry (auto-provision races).
+  const key = `resolve-customer:${userId}`
+  const hit = resolveCache.get(key)
+  if (hit && Date.now() - hit.ts <= RESOLVE_TTL_MS) return hit.customer
+  const running = resolveInflight.get(key)
+  if (running) return running
+  const p = (async () => {
+    try {
+      const numericUser = Number(userId)
+      const { docs } = await payload.find({
+        collection: 'customers',
+        where: { user: { equals: Number.isFinite(numericUser) ? numericUser : userId } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (docs[0]) {
+        resolveCache.set(key, { ts: Date.now(), customer: docs[0] })
+        return docs[0]
+      }
+      try {
+        const created = await payload.create({
+          collection: 'customers',
+          data: { user: Number.isFinite(numericUser) ? numericUser : (userId as any) },
+          overrideAccess: true,
+        })
+        resolveCache.set(key, { ts: Date.now(), customer: created })
+        return created
+      } catch {
+        return null
+      }
+    } finally {
+      resolveInflight.delete(key)
+    }
+  })()
+  resolveInflight.set(key, p)
+  return p
 }
 
 function imageUrlOf(image: any): string | null {
@@ -140,23 +169,37 @@ export function sanitizeCoupon(
 }
 
 export async function customerContact(payload: any, customer: any): Promise<{ email?: string; phone?: string }> {
-  try {
-    const full = await payload.findByID({
-      collection: 'customers',
-      id: customer.id,
-      depth: 1,
-      overrideAccess: true,
-    })
-    const out: { email?: string; phone?: string } = {}
-    if (typeof full?.email === 'string' && full.email.trim()) out.email = full.email.trim()
-    const user = (full as any)?.user
-    if (user && typeof user === 'object' && typeof user.phone === 'string' && user.phone.trim()) {
-      out.phone = user.phone.trim()
+  // Same 10s memo as resolveCustomer: contact is re-read per route and per
+  // validate call, but email/phone are stable at this timescale.
+  const key = `customer-contact:${customer?.id ?? 'unknown'}`
+  const hit = contactCache.get(key)
+  if (hit && Date.now() - hit.ts <= RESOLVE_TTL_MS) return hit.contact
+  const running = contactInflight.get(key)
+  if (running) return running
+  const p = (async () => {
+    try {
+      const full = await payload.findByID({
+        collection: 'customers',
+        id: customer.id,
+        depth: 1,
+        overrideAccess: true,
+      })
+      const out: { email?: string; phone?: string } = {}
+      if (typeof full?.email === 'string' && full.email.trim()) out.email = full.email.trim()
+      const user = (full as any)?.user
+      if (user && typeof user === 'object' && typeof user.phone === 'string' && user.phone.trim()) {
+        out.phone = user.phone.trim()
+      }
+      contactCache.set(key, { ts: Date.now(), contact: out })
+      return out
+    } catch {
+      return {}
+    } finally {
+      contactInflight.delete(key)
     }
-    return out
-  } catch {
-    return {}
-  }
+  })()
+  contactInflight.set(key, p)
+  return p
 }
 
 export function windowNowActive(coupon: any, now: Date, timeZone = 'Asia/Manila'): boolean {

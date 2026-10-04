@@ -7,6 +7,7 @@ import {
   type OrderStatus,
   type OrderUI,
 } from '@/types/order';
+import { dataCache, CACHE_TTL } from '@encreasl/client-services';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
@@ -98,6 +99,12 @@ export async function fetchCustomerOrders(
   const page = opts.page ?? 1;
   const h = headers();
 
+  // Singleflight (§docs/performance.md herd): double-mounts (StrictMode,
+  // list+poll overlap) share one 3-request chain instead of doubling it.
+  // No TTL — the 30s poll owns freshness; dedupe evicts on settle.
+  return dataCache.dedupe<FetchOrdersResult>(
+    `inflight:orders-list:${userId}:${limit}:${page}`,
+    async () => {
   const orderParams = new URLSearchParams({
     'where[customer.user][equals]': String(userId),
     depth: '3',
@@ -152,14 +159,21 @@ export async function fetchCustomerOrders(
     const oid = String(toId(tx.order) ?? '');
     if (oid && !txByOrder.has(oid)) txByOrder.set(oid, tx);
   }
+  // Group once (§4b item 1): the old per-order filter() was O(Orders×Items).
+  const itemsByOrder = new Map<string, any[]>();
+  for (const it of allItems) {
+    const oid = String(toId((it as any).order) ?? '');
+    if (!oid) continue;
+    const bucket = itemsByOrder.get(oid);
+    if (bucket) bucket.push(it);
+    else itemsByOrder.set(oid, [it]);
+  }
 
   const orders: OrderUI[] = docs.map((order: any) => {
     const merchant = order.merchant;
     const restaurant = merchantNameOf(merchant);
     const merchantLogo = merchantLogoOf(merchant);
-    const orderItems = allItems.filter(
-      (it: any) => String(toId(it.order) ?? '') === String(order.id),
-    );
+    const orderItems = itemsByOrder.get(String(order.id)) ?? [];
     const tx = txByOrder.get(String(order.id));
 
     return {
@@ -217,9 +231,18 @@ export async function fetchCustomerOrders(
     totalPages: ordersData?.totalPages ?? 1,
     page: ordersData?.page ?? page,
   };
+    },
+  );
 }
 
 export async function resolveCustomerId(userId: string | number): Promise<string | number | null> {
+  const cacheKey = `orders-customer-id-${userId}`;
+  const hit = dataCache.get<string | number>(cacheKey);
+  if (hit != null) return hit;
+  // Cached + coalesced: every Rate click re-fetched /customers uncached.
+  return dataCache.dedupe<string | number | null>(`inflight:${cacheKey}`, async () => {
+    const rechecked = dataCache.get<string | number>(cacheKey);
+    if (rechecked != null) return rechecked;
   try {
     const res = await fetch(
       `${API_URL}/customers?${new URLSearchParams({
@@ -231,10 +254,40 @@ export async function resolveCustomerId(userId: string | number): Promise<string
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.docs?.[0]?.id ?? null;
+    const id = data?.docs?.[0]?.id ?? null;
+    if (id != null) dataCache.set(cacheKey, id, CACHE_TTL.MERCHANTS);
+    return id;
   } catch {
     return null;
   }
+  });
+}
+
+/**
+ * Shared order header fetch (§4 single query): list→detail→tracking
+ * navigation refetched `GET /orders/{id}?depth=3` on every screen with zero
+ * sharing. 60s TTL + singleflight; extras (items/tx/tracking) stay per-page.
+ */
+export async function fetchOrderHead(orderId: string | number): Promise<any | null> {
+  const cacheKey = `orders-head-${orderId}`;
+  const hit = dataCache.get<any>(cacheKey);
+  if (hit) return hit;
+  return dataCache.dedupe<any | null>(`inflight:${cacheKey}`, async () => {
+    const rechecked = dataCache.get<any>(cacheKey);
+    if (rechecked) return rechecked;
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}?depth=3`, {
+        headers: headers(),
+        cache: 'no-store',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      dataCache.set(cacheKey, data, 1);
+      return data;
+    } catch {
+      return null;
+    }
+  });
 }
 
 /** Cancel is best-effort: Lalamove cancel first, then mark order cancelled. */

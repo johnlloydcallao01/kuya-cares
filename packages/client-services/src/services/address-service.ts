@@ -240,36 +240,48 @@ export class AddressService {
   static async getUserAddresses(userId: string | number, token?: string, useCache: boolean = true): Promise<AddressResponse> {
     try {
       if (useCache) {
-        const cached = this.getCachedAddresses();
+        const cached = this.getCachedAddresses(userId);
         if (cached) return { success: true, addresses: cached };
       }
 
-      const response = await fetch(`${this.API_BASE}/${this.COLLECTION_SLUG}?where[user][equals]=${userId}&sort=-createdAt`, {
-        method: 'GET',
-        headers: this.getHeaders(token),
-      });
+      // Singleflight (§docs/performance.md herd): concurrent mounts for the
+      // same user share one list fetch instead of N identical requests.
+      const result = await dataCache.dedupe<{ docs: any[]; totalDocs: number }>(
+        `inflight:addresses-list-${userId}`,
+        async () => {
+          const response = await fetch(`${this.API_BASE}/${this.COLLECTION_SLUG}?where[user][equals]=${userId}&sort=-createdAt`, {
+            method: 'GET',
+            headers: this.getHeaders(token),
+          });
 
-      if (!response.ok) {
+          if (!response.ok) {
+            throw new Error('No addresses found');
+          }
+
+          const data = await response.json();
+          return { docs: data.docs || [], totalDocs: data.totalDocs ?? (data.docs || []).length };
+        },
+      ).catch(() => null);
+
+      if (!result) {
         return { success: false, message: 'No addresses found' };
       }
 
-      const data = await response.json();
-      const addresses = data.docs || [];
-      this.updateCache(addresses);
+      this.updateCache(result.docs, userId);
 
       return {
         success: true,
-        addresses,
-        total: data.totalDocs
+        addresses: result.docs,
+        total: result.totalDocs
       };
     } catch (error) {
-      
+
       if (error instanceof Error && (
-        error.message.includes('fetch') || 
-        error.message.includes('network') || 
+        error.message.includes('fetch') ||
+        error.message.includes('network') ||
         error.message.includes('Server error')
       )) {
-        const cachedAddresses = this.getCachedAddresses();
+        const cachedAddresses = this.getCachedAddresses(userId);
         if (cachedAddresses) {
           console.log('🔄 Using cached addresses as fallback due to network error');
           return { success: true, addresses: cachedAddresses };
@@ -396,6 +408,13 @@ export class AddressService {
         }
       }
 
+      // Singleflight: header + location modal + checkout mount together and
+      // each resolves the active address on the same tick.
+      return await dataCache.dedupe<AddressResponse>(
+        `inflight:active-address-${userId}`,
+        async () => {
+          const rechecked = useCache ? this.getCachedActiveAddress(userId) : null;
+          if (rechecked) return { success: true, address: rechecked };
       // 1. Fetch customer for this user - may not exist yet for new/browsing users (Shopee/Lazada-style, not an error)
       const customerRes = await fetch(`${this.API_BASE}/customers?where[user][equals]=${userId}&depth=1`, {
         ...this.getFetchOptions('GET'),
@@ -408,7 +427,7 @@ export class AddressService {
 
       const customerData = await customerRes.json();
       const customer = customerData.docs?.[0];
-      
+
       if (!customer) {
         // No customer profile yet
         return { success: false, message: 'Customer profile not found' };
@@ -424,18 +443,20 @@ export class AddressService {
       } else if (customer.activeAddress) {
         // If it's just an ID (shouldn't be with depth=1, but safety check)
          // Fetch the address details
-         const addressRes = await fetch(`${this.API_BASE}/${this.COLLECTION_SLUG}/${customer.activeAddress}`, {
-           ...this.getFetchOptions('GET'),
-           headers: this.getHeaders(token)
-         });
-         const addressData = await addressRes.json();
-         if (addressRes.ok) {
-           this.updateActiveAddressInCache(userId, addressData);
-           return { success: true, address: addressData };
-         }
+          const addressRes = await fetch(`${this.API_BASE}/${this.COLLECTION_SLUG}/${customer.activeAddress}`, {
+            ...this.getFetchOptions('GET'),
+            headers: this.getHeaders(token)
+          });
+          const addressData = await addressRes.json();
+          if (addressRes.ok) {
+            this.updateActiveAddressInCache(userId, addressData);
+            return { success: true, address: addressData };
+          }
       }
 
       return { success: false, message: 'No active address set' };
+        },
+      );
     } catch (error) {
       // Active address is optional for browsing - silently return without console error (Shopee/Lazada-style)
       return {
@@ -519,15 +540,33 @@ export class AddressService {
   }
 
   // === Cache Helpers ===
+  // List entries are keyed PER USER (§docs/performance.md §24 keys-carry-
+  // params): the old global 'addresses' key served user A's rows to user B
+  // on shared devices. Callers without an id fall back to the legacy key.
 
-  private static isCacheValid(timestamp: number): boolean {
-    return Date.now() - timestamp < (CACHE_TTL.ADDRESSES * 60 * 1000);
+  private static listKey(userId?: string | number | null): string {
+    return userId == null
+      ? (CACHE_KEYS.ADDRESSES as string)
+      : `${CACHE_KEYS.ADDRESSES}-${userId}`;
   }
 
-  static getCachedAddresses(): any[] | null {
-    const cached = dataCache.get<{ addresses: any[], timestamp: number }>(CACHE_KEYS.ADDRESSES);
+  private static isCacheValid(timestamp: number, ttlMinutes: number = CACHE_TTL.ADDRESSES): boolean {
+    return Date.now() - timestamp < ttlMinutes * 60 * 1000;
+  }
+
+  static getCachedAddresses(userId?: string | number | null): any[] | null {
+    const cached = dataCache.get<{ addresses: any[], timestamp: number }>(this.listKey(userId));
     if (cached && this.isCacheValid(cached.timestamp)) {
       return cached.addresses;
+    }
+    // One-shot legacy migration: a global entry written before per-user
+    // keys existed is readable once, then dropped so it can never leak.
+    if (userId != null) {
+      const legacy = dataCache.get<{ addresses: any[], timestamp: number }>(CACHE_KEYS.ADDRESSES as string);
+      if (legacy && this.isCacheValid(legacy.timestamp)) {
+        dataCache.delete(CACHE_KEYS.ADDRESSES as string);
+        return legacy.addresses;
+      }
     }
     return null;
   }
@@ -535,14 +574,16 @@ export class AddressService {
   static getCachedActiveAddress(userId: string | number): any | null {
     const cacheKey = CACHE_KEYS.ACTIVE_ADDRESS(userId);
     const cached = dataCache.get<{ address: any; timestamp: number }>(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) {
+    // ACTIVE_ADDRESS TTL (10m) — the old code validated with ADDRESSES (5m),
+    // expiring active rows early and refetching every 5 minutes.
+    if (cached && this.isCacheValid(cached.timestamp, CACHE_TTL.ACTIVE_ADDRESS)) {
       return cached.address;
     }
     return null;
   }
 
   static updateCache(addresses: any[], userId?: string | number): void {
-    dataCache.set(CACHE_KEYS.ADDRESSES, {
+    dataCache.set(this.listKey(userId), {
       addresses,
       timestamp: Date.now(),
       userId
@@ -550,7 +591,7 @@ export class AddressService {
   }
 
   static updateCacheOptimized(newAddress: any, userId?: string | number): void {
-    const cached = dataCache.get<{ addresses: any[], timestamp: number, userId?: string | number }>(CACHE_KEYS.ADDRESSES);
+    const cached = dataCache.get<{ addresses: any[], timestamp: number, userId?: string | number }>(this.listKey(userId));
     if (cached && this.isCacheValid(cached.timestamp)) {
       if (newAddress && newAddress.formatted_address && newAddress.id) {
         const updatedAddresses = [...cached.addresses, newAddress];
@@ -562,21 +603,32 @@ export class AddressService {
   }
 
   static clearCache(): void {
-    dataCache.delete(CACHE_KEYS.ADDRESSES);
-    // Clear all active address caches
-    const cacheKeys = Array.from((dataCache as any).cache.keys()) as string[];
-    cacheKeys.forEach(key => {
-      if (key.startsWith('active-address-')) {
+    const { keys } = dataCache.getStats();
+    for (const key of keys) {
+      if (key === CACHE_KEYS.ADDRESSES || key.startsWith(`${CACHE_KEYS.ADDRESSES}-`) || key.startsWith('active-address-')) {
         dataCache.delete(key);
       }
-    });
+    }
   }
 
   static removeAddressFromCache(addressId: string): void {
-    const cached = dataCache.get<{ addresses: any[], timestamp: number, userId?: string | number }>(CACHE_KEYS.ADDRESSES);
-    if (cached && this.isCacheValid(cached.timestamp)) {
-      const updated = cached.addresses.filter(a => a.id !== addressId);
-      this.updateCache(updated, cached.userId);
+    const { keys } = dataCache.getStats();
+    for (const key of keys) {
+      if (key === CACHE_KEYS.ADDRESSES || key.startsWith(`${CACHE_KEYS.ADDRESSES}-`)) {
+        const cached = dataCache.get<{ addresses: any[], timestamp: number, userId?: string | number }>(key);
+        if (cached && this.isCacheValid(cached.timestamp)) {
+          const updated = cached.addresses.filter(a => String(a.id) !== String(addressId));
+          dataCache.set(key, { addresses: updated, timestamp: cached.timestamp, userId: cached.userId }, CACHE_TTL.ADDRESSES);
+        }
+      }
+      // Bust stale ACTIVE: deleting the active address left
+      // active-address-* pointing at a dead row.
+      if (key.startsWith('active-address-')) {
+        const cached = dataCache.get<{ address: any; timestamp: number }>(key);
+        if (cached && String(cached.address?.id) === String(addressId)) {
+          dataCache.delete(key);
+        }
+      }
     }
   }
 

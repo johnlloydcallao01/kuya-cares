@@ -125,7 +125,7 @@ export default function MenuPage() {
 
   const stats = overview?.stats;
 
-  const quickActions: {
+  const accountActions: {
     icon: string;
     label: string;
     badge?: number;
@@ -156,11 +156,58 @@ export default function MenuPage() {
       path: '/addresses',
     },
     {
+      icon: 'fa-wallet',
+      label: 'Wallets',
+      path: '/wallets',
+    },
+    {
       icon: 'fa-pen-to-square',
       label: 'Edit Profile',
-      path: '/settings',
+      path: '/settings?tab=profile',
     },
   ];
+
+  const exploreActions = [
+    { icon: 'fa-home', label: 'Home', path: '/' },
+    { icon: 'fa-clock-rotate-left', label: 'Recently Viewed', path: '/recently-viewed' },
+  ];
+
+  const perkActions = [
+    { icon: 'fa-ticket', label: 'Vouchers', path: '/vouchers' },
+    { icon: 'fa-coins', label: 'Points', path: '/points' },
+  ];
+
+  const generalActions = [
+    { icon: 'fa-gear', label: 'Settings', path: '/settings' },
+    { icon: 'fa-headset', label: 'Support', path: '/support' },
+    { icon: 'fa-file-contract', label: 'General Terms and Conditions', path: '/terms' },
+    { icon: 'fa-shield-halved', label: 'Privacy Policy', path: '/privacy' },
+    { icon: 'fa-cookie-bite', label: 'Cookie Policy', path: '/cookies' },
+  ];
+
+  const renderActionRow = (
+    item: { icon: string; label: string; badge?: number; path: string },
+    idx: number,
+  ) => (
+    <button
+      key={item.label}
+      onClick={() => handleMenuItemClick(item.path)}
+      className={`w-full flex items-center px-5 py-4 hover:bg-gray-50 transition-colors ${
+        idx > 0 ? 'border-t border-gray-100' : ''
+      }`}
+    >
+      <i className={`fa ${item.icon} text-[22px] text-gray-500 w-[22px] text-center`} />
+      <span className="flex-1 ml-3.5 text-left text-base text-gray-900">{item.label}</span>
+      {item.badge !== undefined && item.badge > 0 && (
+        <span className="bg-[#239459] min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1.5 mr-2">
+          <span className="text-white text-xs font-bold">
+            {item.badge > 99 ? '99+' : item.badge}
+          </span>
+        </span>
+      )}
+      <i className="fa fa-chevron-right text-gray-400 text-xs" />
+    </button>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -251,29 +298,28 @@ export default function MenuPage() {
           </div>
         )}
 
-        {/* My Account actions */}
+        {/* My Account actions — mirrors desktop sidebar Account section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <h3 className="text-base font-bold text-gray-900 px-5 pt-5 pb-3">My Account</h3>
-          {quickActions.map((item, idx) => (
-            <button
-              key={item.label}
-              onClick={() => handleMenuItemClick(item.path)}
-              className={`w-full flex items-center px-5 py-4 hover:bg-gray-50 transition-colors ${
-                idx > 0 ? 'border-t border-gray-100' : ''
-              }`}
-            >
-              <i className={`fa ${item.icon} text-[22px] text-gray-500 w-[22px] text-center`} />
-              <span className="flex-1 ml-3.5 text-left text-base text-gray-900">{item.label}</span>
-              {item.badge !== undefined && item.badge > 0 && (
-                <span className="bg-[#239459] min-w-[22px] h-[22px] rounded-full flex items-center justify-center px-1.5 mr-2">
-                  <span className="text-white text-xs font-bold">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                </span>
-              )}
-              <i className="fa fa-chevron-right text-gray-400 text-xs" />
-            </button>
-          ))}
+          {accountActions.map(renderActionRow)}
+        </div>
+
+        {/* Explore — mirrors desktop sidebar Main navigation */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <h3 className="text-base font-bold text-gray-900 px-5 pt-5 pb-3">Explore</h3>
+          {exploreActions.map(renderActionRow)}
+        </div>
+
+        {/* Perks — mirrors desktop sidebar Perks section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <h3 className="text-base font-bold text-gray-900 px-5 pt-5 pb-3">Perks</h3>
+          {perkActions.map(renderActionRow)}
+        </div>
+
+        {/* General — mirrors desktop sidebar General section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <h3 className="text-base font-bold text-gray-900 px-5 pt-5 pb-3">General</h3>
+          {generalActions.map(renderActionRow)}
         </div>
 
         {/* Sign Out */}

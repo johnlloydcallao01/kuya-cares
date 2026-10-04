@@ -31,7 +31,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
   const loadUserAddresses = useCallback(async () => {
     if (!user?.id) return;
 
-    const cachedAddresses = AddressService.getCachedAddresses();
+    const cachedAddresses = AddressService.getCachedAddresses(user.id);
     const cachedActive = AddressService.getCachedActiveAddress(user.id);
 
     if (cachedAddresses && cachedAddresses.length > 0) {

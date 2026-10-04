@@ -7,9 +7,12 @@ import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   getActiveAddressNamesForMerchants,
+  getCurrentCustomerId,
+  getLocationBasedMerchants,
   type LocationBasedMerchant,
 } from '@encreasl/client-services';
 import {
+  getCurrentUserIdFromStorage,
   getWishlistDocsForCurrentUser,
   removeMerchantFromWishlist,
   removeMerchantProductFromWishlist,
@@ -20,13 +23,17 @@ import { toast } from 'react-hot-toast';
 
 type WishlistDoc = any;
 
+// Hoisted (§docs/performance.md §4b item 1): one shared formatter instead of
+// `new Intl.NumberFormat` per product row per render.
+const phpFormatter = new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+  minimumFractionDigits: 2,
+});
+
 const formatCurrency = (value: number | null | undefined) => {
   if (value == null) return null;
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    minimumFractionDigits: 2,
-  }).format(Number(value));
+  return phpFormatter.format(Number(value));
 };
 
 const toSlug = (name: string | null | undefined): string => {
@@ -55,8 +62,16 @@ const buildMerchantSlugId = (merchant: any): string => {
 };
 
 const isMerchantProductDoc = (doc: any) => {
-  const itemType = String(doc?.itemType || '').toLowerCase();
-  return itemType === 'merchantproduct' || itemType === 'merchant_product' || !!doc?.merchantProduct;
+  // Canonical CMS value is itemType 'merchantProduct' (Wishlists.ts).
+  // Tolerate the legacy underscore spelling on explicit rows only — never
+  // infer from a populated merchantProduct object, or merchant rows carrying
+  // a denormalized product would mis-bucket into the product tab.
+  const raw = doc?.itemType;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const itemType = raw.toLowerCase();
+    return itemType === 'merchantproduct' || itemType === 'merchant_product';
+  }
+  return !!doc?.merchantProduct;
 };
 
 const getImageUrl = (media: any): string | null => {
@@ -78,7 +93,11 @@ const getProductImageUrl = (product: any): string | null => {
 export default function WishlistsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [wishlistDocs, setWishlistDocs] = useState<WishlistDoc[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start true (§14 never-blank): first commit paints the skeleton, not the
+  // empty-list branch flashing into content before the effect fires.
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addressMap, setAddressMap] = useState<Record<string, string>>({});
   const [etaMap, setEtaMap] = useState<Record<string, string>>({});
@@ -90,9 +109,31 @@ export default function WishlistsPage() {
     setIsLoading(true);
     setError(null);
     try {
+      // Guest check first: the docs service returns [] for guests, which the
+      // old code rendered as "wishlist is empty" with no sign-in CTA.
+      if (getCurrentUserIdFromStorage() == null) {
+        if (!signal?.cancelled) {
+          setIsGuest(true);
+          setWishlistDocs([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+      if (!signal?.cancelled) setIsGuest(false);
+      // Cached + coalesced service (2-min TTL): repeat visits skip the
+      // 200-doc depth=3 refetch. Throws on HTTP failure so the error branch
+      // (with retry) renders instead of cementing an empty list.
       const docs = await getWishlistDocsForCurrentUser();
       if (signal?.cancelled) return;
       setWishlistDocs(docs);
+      // Paint the grid NOW — enrichment streams in below without holding the
+      // skeleton (§24: background work never re-flashes first paint).
+      setIsLoading(false);
+      if (docs.length === 0) {
+        setAddressMap({});
+        setEtaMap({});
+        return;
+      }
       const baseMerchants: LocationBasedMerchant[] = docs
         .map((doc: any) => {
           if (doc?.merchant?.id) return doc.merchant;
@@ -102,46 +143,39 @@ export default function WishlistsPage() {
         })
         .filter((m: any) => m && m.id) as LocationBasedMerchant[];
       const merchantIds = Array.from(new Set(baseMerchants.map((m) => String(m.id))));
-      let merchantMap: Record<string, LocationBasedMerchant> = {};
-      try {
-        const { getCurrentCustomerId, getLocationBasedMerchants } = await import('@encreasl/client-services');
-        const customerId = await getCurrentCustomerId();
-        if (customerId) {
-          const locationMerchants = await getLocationBasedMerchants({ customerId, limit: 9999 });
-          const map: Record<string, LocationBasedMerchant> = {};
-          for (const m of locationMerchants) {
-            const mid = String((m as any).id);
-            if (merchantIds.includes(mid)) {
-              map[mid] = m;
+      // Bounded pool (was: hardcoded limit 9999 to enrich ≤200 rows — the
+      // exact §24 anti-pattern). Sized to the wishlist at hand; misses fall
+      // back to the raw depth-3 merchant below. Shares singleflight cache
+      // with homepage/header on overlapping keys.
+      const poolLimit = Math.min(200, Math.max(merchantIds.length * 2, 50));
+      const enrich = (async () => {
+        let merchantMap: Record<string, LocationBasedMerchant> = {};
+        try {
+          const customerId = await getCurrentCustomerId();
+          if (customerId) {
+            const locationMerchants = await getLocationBasedMerchants({ customerId, limit: poolLimit });
+            const map: Record<string, LocationBasedMerchant> = {};
+            for (const m of locationMerchants) {
+              const mid = String((m as any).id);
+              if (merchantIds.includes(mid)) {
+                map[mid] = m;
+              }
             }
+            merchantMap = map;
           }
-          merchantMap = map;
+        } catch {
         }
-      } catch {
-      }
-      const effectiveMerchants: LocationBasedMerchant[] = baseMerchants.map((m) => {
-        const mid = String(m.id);
-        return merchantMap[mid] || m;
-      });
-      if (!signal?.cancelled) {
+        if (signal?.cancelled) return;
+        const effectiveMerchants: LocationBasedMerchant[] = baseMerchants.map((m) => {
+          const mid = String(m.id);
+          return merchantMap[mid] || m;
+        });
         const nextEnriched: Record<string, LocationBasedMerchant> = {};
         effectiveMerchants.forEach((m) => {
           const mid = String((m as any).id);
           nextEnriched[mid] = m;
         });
         setEnrichedMerchants(nextEnriched);
-      }
-      if (effectiveMerchants.length > 0) {
-        const addressNames = await getActiveAddressNamesForMerchants(effectiveMerchants);
-        if (!signal?.cancelled) {
-          setAddressMap(addressNames);
-        }
-      } else {
-        if (!signal?.cancelled) {
-          setAddressMap({});
-        }
-      }
-      if (!signal?.cancelled) {
         const nextEta: Record<string, string> = {};
         effectiveMerchants.forEach((m: any) => {
           const mid = String(m.id);
@@ -152,16 +186,22 @@ export default function WishlistsPage() {
           if (eta) nextEta[mid] = String(eta);
         });
         setEtaMap(nextEta);
-      }
+        try {
+          const addressNames = await getActiveAddressNamesForMerchants(effectiveMerchants);
+          if (!signal?.cancelled) {
+            setAddressMap(addressNames);
+          }
+        } catch {
+        }
+      })();
+      // Fire-and-forget: maps stream into state as the pool settles.
+      void enrich;
     } catch (err) {
       if (!signal?.cancelled) {
-        setError('Failed to load wishlist. Please try again.');
-        setWishlistDocs([]);
+        setError(err instanceof Error && err.message ? err.message : 'Failed to load wishlist. Please try again.');
         setAddressMap({});
         setEtaMap({});
-      }
-    } finally {
-      if (!signal?.cancelled) {
+        setEnrichedMerchants({});
         setIsLoading(false);
       }
     }
@@ -212,17 +252,27 @@ export default function WishlistsPage() {
   }, [wishlistDocs, searchQuery]);
 
   const handleRemoveFromWishlist = (doc: WishlistDoc) => {
+    // Route by doc type (B-H2): a merchantProduct row can carry a
+    // denormalized doc.merchant — deleting via the merchant API would hit
+    // the wrong doc (or "missing") after the UI already removed the row.
+    if (isMerchantProductDoc(doc)) {
+      handleRemoveProductFromWishlist(doc);
+      return;
+    }
     const merchantId = doc?.merchant?.id ?? doc?.merchant;
     if (!merchantId) return;
+    const prevDocs = wishlistDocs;
     setWishlistDocs((prev) => prev.filter((item: any) => item?.id !== doc?.id));
     (async () => {
       try {
         await removeMerchantFromWishlist(merchantId);
         toast.success('Removed from wishlist', { id: `wishlist-${merchantId}` });
       } catch (err) {
+        // Rollback, not reload: a failed DELETE must not wipe the UI, and a
+        // refetch could cement [] on transient errors.
+        setWishlistDocs(prevDocs);
         const message = err instanceof Error && err.message ? err.message : 'Failed to update wishlist';
         toast.error(message, { id: `wishlist-${merchantId}-error` });
-        await loadWishlist();
       }
     })();
   };
@@ -231,26 +281,33 @@ export default function WishlistsPage() {
     const merchantProduct = doc?.merchantProduct;
     const merchantProductId =
       typeof merchantProduct === 'object' && merchantProduct !== null
-        ? merchantProduct.id
+        ? merchantProduct.id ?? merchantProduct
         : merchantProduct;
-    if (!merchantProductId) return;
+    if (merchantProductId == null) return;
+    const prevDocs = wishlistDocs;
     setWishlistDocs((prev) => prev.filter((item: any) => item?.id !== doc?.id));
     (async () => {
       try {
         await removeMerchantProductFromWishlist(merchantProductId);
         toast.success('Removed from wishlist', { id: `wishlist-mp-${merchantProductId}` });
       } catch (err) {
+        setWishlistDocs(prevDocs);
         const message = err instanceof Error && err.message ? err.message : 'Failed to update wishlist';
         toast.error(message, { id: `wishlist-mp-${merchantProductId}-error` });
-        await loadWishlist();
       }
     })();
   };
 
   const clearAllWishlist = async () => {
+    if (isClearing) return;
+    const prevDocs = wishlistDocs;
+    const prevAddress = addressMap;
+    const prevEta = etaMap;
+    const prevEnriched = enrichedMerchants;
     const docsToRemove = wishlistDocs
       .map((doc: any) => doc?.id)
       .filter((id: any) => id !== null && id !== undefined);
+    setIsClearing(true);
     setWishlistDocs([]);
     setAddressMap({});
     setEtaMap({});
@@ -261,14 +318,24 @@ export default function WishlistsPage() {
     } catch (err) {
       try {
         if (docsToRemove.length > 0) {
-          await Promise.all(docsToRemove.map((id: any) => removeWishlistDocById(id)));
-          toast.success('Wishlist cleared', { id: 'wishlist-clear' });
-          return;
+          const results = await Promise.allSettled(docsToRemove.map((id: any) => removeWishlistDocById(id)));
+          const failed = results.filter((r) => r.status === 'rejected').length;
+          if (failed === 0) {
+            toast.success('Wishlist cleared', { id: 'wishlist-clear' });
+            return;
+          }
+          throw err;
         }
       } catch {}
+      // Restore — a failed clear must not cement an empty list.
+      setWishlistDocs(prevDocs);
+      setAddressMap(prevAddress);
+      setEtaMap(prevEta);
+      setEnrichedMerchants(prevEnriched);
       const message = err instanceof Error && err.message ? err.message : 'Failed to clear wishlist';
       toast.error(message, { id: 'wishlist-clear-error' });
-      await loadWishlist();
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -324,10 +391,11 @@ export default function WishlistsPage() {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={clearAllWishlist}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                  disabled={isClearing}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-60"
                 >
-                  <i className="fas fa-trash mr-2"></i>
-                  Clear Wishlist
+                  <i className={`fas ${isClearing ? 'fa-spinner fa-spin' : 'fa-trash'} mr-2`}></i>
+                  {isClearing ? 'Clearing…' : 'Clear Wishlist'}
                 </button>
               </div>
             )}
@@ -398,7 +466,7 @@ export default function WishlistsPage() {
       </div>
 
       <div className="w-full px-2.5 py-4">
-        {isLoading ? (
+        {isLoading && wishlistDocs.length === 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="group cursor-pointer animate-pulse">
@@ -426,6 +494,32 @@ export default function WishlistsPage() {
               Failed to load wishlist
             </h3>
             <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => loadWishlist()}
+              className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium"
+              style={{ backgroundColor: '#239459' }}
+            >
+              <i className="fas fa-redo mr-2"></i>Try again
+            </button>
+          </div>
+        ) : isGuest ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <i className="fas fa-user-lock text-3xl text-gray-400"></i>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Sign in to see your wishlist
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Save restaurants and food items across devices once you&apos;re signed in.
+            </p>
+            <Link
+              href="/signin"
+              className="inline-block text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium"
+              style={{ backgroundColor: '#239459' }}
+            >
+              Sign in
+            </Link>
           </div>
         ) : visibleCount === 0 ? (
           <div className="text-center py-16">
@@ -531,6 +625,7 @@ export default function WishlistsPage() {
                                 src={imageUrl}
                                 alt={product?.name || 'Product'}
                                 fill
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 320px"
                                 className="object-cover"
                               />
                             ) : (

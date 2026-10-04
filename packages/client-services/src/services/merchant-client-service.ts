@@ -80,13 +80,18 @@ export class MerchantClientService {
    */
   static async getMerchantById(id: string): Promise<Merchant | null> {
     const cacheKey = CACHE_KEYS.MERCHANTS_BY_ID(id);
-    
+
     // Check cache first
     const cachedData = dataCache.get<Merchant>(cacheKey);
     if (cachedData) {
       return cachedData;
     }
 
+    // Singleflight (§docs/performance.md herd): recently-viewed fans out
+    // one detail fetch per unique merchant on the same tick.
+    return dataCache.dedupe<Merchant | null>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<Merchant>(cacheKey);
+      if (rechecked) return rechecked;
     try {
       // Build headers
       const headers: Record<string, string> = {
@@ -114,12 +119,13 @@ export class MerchantClientService {
       
       // Cache the result
       dataCache.set(cacheKey, merchant, CACHE_TTL.MERCHANT_DETAILS);
-      
+
       return merchant;
     } catch (error) {
       console.error('Error fetching merchant by ID:', error);
       return null; // Graceful fallback
     }
+    });
   }
 
   /**

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { shortAddress, typeBadge, type AddressUI } from '@/types/address';
 
 interface AddressCardProps {
@@ -11,7 +11,7 @@ interface AddressCardProps {
   onDelete: (address: AddressUI) => void;
 }
 
-export default function AddressCard({ address, activatingId, onSetActive, onEdit, onDelete }: AddressCardProps) {
+export default memo(function AddressCard({ address, activatingId, onSetActive, onEdit, onDelete }: AddressCardProps) {
   const badge = typeBadge(address.addressType);
   const busy = activatingId === address.id;
 
@@ -102,4 +102,4 @@ export default function AddressCard({ address, activatingId, onSetActive, onEdit
       </div>
     </article>
   );
-}
+})

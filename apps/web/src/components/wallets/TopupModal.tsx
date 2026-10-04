@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { TOPUP_METHODS, type TopupMethod } from '@/types/wallet';
@@ -30,6 +30,10 @@ export default function TopupModal({ isOpen, customerName, customerEmail, onClos
   const [step, setStep] = useState<Step>('form');
   const [statusMsg, setStatusMsg] = useState('');
   const [qrImage, setQrImage] = useState<string | null>(null);
+  // Synchronous in-flight lock (§4 double-submit): setState alone leaves a
+  // same-tick window where two taps create two PayMongo intents (double
+  // charge). The ref flips before the first await, so re-entry is dead.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,6 +45,7 @@ export default function TopupModal({ isOpen, customerName, customerEmail, onClos
       setStep('form');
       setStatusMsg('');
       setQrImage(null);
+      submittingRef.current = false;
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -62,10 +67,19 @@ export default function TopupModal({ isOpen, customerName, customerEmail, onClos
     Number.isFinite(parsedAmount) && parsedAmount >= 1 && cardValid && step === 'form';
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!canSubmit) {
       if (parsedAmount < 1) toast.error('Minimum top-up is ₱1.00');
       return;
     }
+    // Never send placeholder PII to PayMongo: the page passes '' before auth
+    // resolves, and the old fallback shipped customer@example.com as a real
+    // billing email. Require the signed-in email instead.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      toast.error('Please sign in with a verified email to top up');
+      return;
+    }
+    submittingRef.current = true;
     setStep('working');
     setStatusMsg('Creating top-up…');
     try {
@@ -90,7 +104,7 @@ export default function TopupModal({ isOpen, customerName, customerEmail, onClos
       const pmId = await createPaymongoPaymentMethod({
         type: method,
         name: customerName || 'KuyaCares Customer',
-        email: customerEmail || 'customer@example.com',
+        email: customerEmail,
         card,
       });
       setStatusMsg('Confirming payment…');
@@ -123,6 +137,7 @@ export default function TopupModal({ isOpen, customerName, customerEmail, onClos
       setStatusMsg('Payment processing. Balance updates after confirmation.');
       toast('Top-up processing');
     } catch (e: any) {
+      submittingRef.current = false;
       setStep('form');
       setStatusMsg('');
       toast.error(e?.message || 'Top-up failed');

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { toast } from 'react-hot-toast';
 
 /**
  * Mobile app-like sticky footer navigation
@@ -14,6 +15,15 @@ export function MobileFooter() {
   const [quantity, setQuantity] = useState(1);
   const [showProductCartBar, setShowProductCartBar] = useState(false);
   const [productDetailHasInvalidModifiers, setProductDetailHasInvalidModifiers] = useState(false);
+  // Full PDP gate mirrored from ProductDetailClient (desktop button parity).
+  const [pdpGate, setPdpGate] = useState<{
+    cannotAddVariableProduct?: boolean;
+    isUnavailable?: boolean;
+    isBelowPayMongoMinimum?: boolean;
+    isAdding?: boolean;
+    isGroupedProduct?: boolean;
+    totalPrice?: number;
+  }>({});
   const isProductPage = pathname.startsWith('/merchant/') && pathname.split('/').length === 4;
   const { addToCart, totalQuantity, items } = useCart();
 
@@ -33,6 +43,16 @@ export function MobileFooter() {
         const detail = (custom as any).detail;
         if (detail && typeof detail.hasInvalidModifiers === 'boolean') {
           setProductDetailHasInvalidModifiers(detail.hasInvalidModifiers);
+        }
+        if (detail && typeof detail === 'object') {
+          setPdpGate({
+            cannotAddVariableProduct: !!detail.cannotAddVariableProduct,
+            isUnavailable: !!detail.isUnavailable,
+            isBelowPayMongoMinimum: !!detail.isBelowPayMongoMinimum,
+            isAdding: !!detail.isAdding,
+            isGroupedProduct: !!detail.isGroupedProduct,
+            totalPrice: typeof detail.totalPrice === 'number' ? detail.totalPrice : undefined,
+          });
         }
       } catch {}
     };
@@ -185,7 +205,14 @@ export function MobileFooter() {
           </div>
           <button
             type="button"
-            disabled={productDetailHasInvalidModifiers}
+            disabled={
+              productDetailHasInvalidModifiers ||
+              !!pdpGate.cannotAddVariableProduct ||
+              !!pdpGate.isUnavailable ||
+              !!pdpGate.isBelowPayMongoMinimum ||
+              !!pdpGate.isAdding ||
+              !!pdpGate.isGroupedProduct
+            }
             className="flex-1 h-11 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#239459' }}
             onClick={async () => {
@@ -204,6 +231,22 @@ export function MobileFooter() {
                 } catch {}
               }
               try {
+                // Mirror the desktop gate in the fallback path too: the PDP
+                // handler enforces these internally, but the direct POST here
+                // must not bypass them.
+                if (
+                  productDetailHasInvalidModifiers ||
+                  pdpGate.cannotAddVariableProduct ||
+                  pdpGate.isUnavailable ||
+                  pdpGate.isBelowPayMongoMinimum ||
+                  pdpGate.isGroupedProduct
+                ) {
+                  if (pdpGate.isUnavailable) toast.error('This item is currently unavailable from this merchant.');
+                  else if (pdpGate.cannotAddVariableProduct) toast.error('Please choose an available variation before adding this item.');
+                  else if (pdpGate.isGroupedProduct) toast.error('Select grouped items below to add them together.');
+                  else toast.error('Please review your selections for required options.');
+                  return;
+                }
                 const parts = pathname.split('/').filter(Boolean);
                 const idx = parts.indexOf('merchant');
                 const slugId = idx >= 0 && parts[idx + 1] ? parts[idx + 1] : '';
@@ -234,6 +277,21 @@ export function MobileFooter() {
                 if (!merchantProductId) return;
 
                 const merchantProduct = doc;
+                // Mobile parity: variable/grouped products must be configured
+                // on the product page — direct POST would 400/500 on missing
+                // selectedVariation. Route to the PDP instead.
+                const directType = String(
+                  (merchantProduct?.product_id as any)?.productType ||
+                  (merchantProduct as any)?.productType ||
+                  'simple',
+                ).toLowerCase();
+                if (directType !== 'simple') {
+                  const pName = String((merchantProduct?.product_id as any)?.name || 'item')
+                    .trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+                  const pId = String((merchantProduct?.product_id as any)?.id ?? productId);
+                  router.push(`/merchant/${slugId}/${pName}-${pId}` as any);
+                  return;
+                }
                 const resolvedPrice =
                   typeof merchantProduct?.price_override === 'number'
                     ? merchantProduct.price_override
@@ -258,10 +316,20 @@ export function MobileFooter() {
                   compareAtPrice: resolvedCompare,
                 });
                 setShowProductCartBar(true);
-              } catch {}
+              } catch (e: any) {
+                toast.error(e?.message || 'Failed to add to cart');
+              }
             }}
           >
-            Add to cart
+            {pdpGate.isAdding
+              ? 'Adding…'
+              : pdpGate.isUnavailable
+                ? 'Unavailable'
+                : pdpGate.isGroupedProduct
+                  ? 'Select items below'
+                  : typeof pdpGate.totalPrice === 'number'
+                    ? `Add to cart • ${formatCurrency(pdpGate.totalPrice)}`
+                    : 'Add to cart'}
           </button>
         </div>
       ) : (

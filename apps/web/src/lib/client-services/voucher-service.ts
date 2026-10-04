@@ -26,7 +26,7 @@ export async function fetchClaimableVouchers(input: {
   return getClaimableVouchers(input);
 }
 
-export async function fetchMyVouchers(filter: MineFilter = 'available') {
+export async function fetchMyVouchers(filter: MineFilter | 'all' = 'available') {
   return getMyVouchers(filter);
 }
 
@@ -44,8 +44,30 @@ export async function detachVoucher(orderId: string | number, code?: string) {
 
 export async function copyVoucherCode(code: string): Promise<void> {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(code);
-    return;
+    try {
+      await navigator.clipboard.writeText(code);
+      return;
+    } catch {
+      // HTTP/non-secure contexts reject clipboard API — fall through.
+    }
+  }
+  // Legacy fallback for clipboard-less contexts.
+  if (typeof document !== 'undefined') {
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      if (document.execCommand('copy')) {
+        document.body.removeChild(ta);
+        return;
+      }
+    } catch {
+      // fall through to throw below
+    }
+    document.body.removeChild(ta);
   }
   throw new Error('Copy unavailable');
 }

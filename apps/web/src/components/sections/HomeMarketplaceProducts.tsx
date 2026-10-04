@@ -3,8 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from '@/components/ui/ImageWrapper';
 import { useCart } from '@/contexts/CartContext';
+import { toast } from 'react-hot-toast';
 import {
   getMarketplaceProducts,
   getMarketplaceProductCategories,
@@ -112,6 +114,7 @@ function ProductCardSkeleton() {
 
 function ProductCard({ product, hideDistance = false }: { product: MarketplaceProduct; hideDistance?: boolean }) {
   const { addToCart } = useCart();
+  const router = useRouter();
   const [adding, setAdding] = useState(false);
   const LinkComponent = Link as unknown as React.ElementType;
 
@@ -125,8 +128,13 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
     async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      // Variable/grouped items must be configured on the detail page.
-      if (product.productType !== 'simple') return;
+      // Variable/grouped items must be configured on the detail page
+      // (mobile parity) — POSTing without a variation 400/500s. Route to
+      // the PDP instead of silently swallowing the tap.
+      if (product.productType !== 'simple') {
+        router.push(product.href as any);
+        return;
+      }
       const merchantId = Number(product.merchantId);
       const productId = Number(product.id);
       const merchantProductId = Number(product.merchantProductId);
@@ -144,12 +152,12 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
           compareAtPrice: product.compareAtPrice ?? null,
         });
       } catch {
-        // Cart context surfaces its own errors; keep card silent.
+        toast.error('Failed to add to cart. Please sign in and try again.');
       } finally {
         setAdding(false);
       }
     },
-    [addToCart, product],
+    [addToCart, product, router],
   );
 
   return (
@@ -193,16 +201,24 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
       <div className="p-3">
         <h3 className="text-[13px] leading-[1.35] font-normal text-gray-900 line-clamp-2 min-h-[35px]">{product.name}</h3>
         <div className="mt-1.5 flex items-baseline gap-1.5 flex-wrap">
-          {priceLabel ? (
-            <span className="text-[15px] font-bold text-[#ee4d2d]">{priceLabel}</span>
+          {product.productType === 'simple' ? (
+            priceLabel ? (
+              <span className="text-[15px] font-bold text-[#ee4d2d]">{priceLabel}</span>
+            ) : (
+              <span className="text-[13px] text-gray-500">Price varies</span>
+            )
           ) : product.productType === 'variable' ? (
             <span className="text-[13px] font-medium text-[#239459]">Show Variations</span>
           ) : product.productType === 'grouped' ? (
             <span className="text-[13px] font-medium text-[#239459]">Show Grouped Items</span>
           ) : (
-            <span className="text-[13px] text-gray-500">Price unavailable</span>
+            priceLabel ? (
+              <span className="text-[15px] font-bold text-[#ee4d2d]">{priceLabel}</span>
+            ) : (
+              <span className="text-[13px] text-gray-500">Price varies</span>
+            )
           )}
-          {compareLabel && <span className="text-[11px] text-gray-400 line-through">{compareLabel}</span>}
+          {priceLabel && compareLabel && <span className="text-[11px] text-gray-400 line-through">{compareLabel}</span>}
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2 min-w-0">
           <p className="text-[11px] text-gray-500 truncate">

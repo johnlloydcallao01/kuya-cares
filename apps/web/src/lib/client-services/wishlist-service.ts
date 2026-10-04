@@ -27,10 +27,28 @@ function buildHeaders(): Record<string, string> {
   return headers;
 }
 
-// Heart-state cache (§docs/performance.md §24 wishlist split): header +
+// Docs-query cache (§docs/performance.md §24, mirrors recently-viewed):
+// the 200-doc depth=3 pull is the heaviest payload on the wishlist page.
+// 2-min TTL + singleflight keyed by user; every mutator below busts it.
+// NOTE: depth stays 3 — LocationMerchantCard reads vendor.user.firstName/
+// lastName (3rd level: doc → merchant → vendor → user); depth=2 would drop
+// owner names. Offer-level fields ride along unread (see page notes).
+const WISHLIST_DOCS_TTL_MS = 2 * 60 * 1000;
+const wishlistDocsCache = new Map<string, { data: any[]; ts: number }>();
+const wishlistDocsInflight = new Map<string, Promise<any[]>>();
+
+export function bustWishlistDocs(userId: string | number | null | undefined): void {
+  if (userId == null) return;
+  wishlistDocsCache.delete(String(userId));
+}
+
+// Heart-state caches (§docs/performance.md §24 wishlist split): header +
 // homepage sections mount concurrently and each asked for the same 200
 // depth-0 IDs. Coalesce onto one promise + 5-min TTL instead of N fetches.
 const WISHLIST_IDS_TTL_MS = 5 * 60 * 1000;
+// Product heart-state cache (same 5-min + singleflight as merchant IDs).
+const wishlistMpIdsCache = new Map<string, { data: string[]; ts: number }>();
+const wishlistMpIdsInflight = new Map<string, Promise<string[]>>();
 const wishlistIdsCache = new Map<string, { data: string[]; ts: number }>();
 const wishlistIdsInflight = new Map<string, Promise<string[]>>();
 
@@ -95,6 +113,12 @@ export async function getWishlistMerchantIdsForCurrentUser(): Promise<string[]> 
 export async function getWishlistMerchantProductIdsForCurrentUser(): Promise<string[]> {
   const currentUserId = getCurrentUserIdFromStorage();
   if (currentUserId == null) return [];
+  const key = String(currentUserId);
+  const hit = wishlistMpIdsCache.get(key);
+  if (hit && Date.now() - hit.ts <= WISHLIST_IDS_TTL_MS) return hit.data;
+  const running = wishlistMpIdsInflight.get(key);
+  if (running) return running;
+  const p = (async (): Promise<string[]> => {
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(currentUserId));
@@ -117,10 +141,26 @@ export async function getWishlistMerchantProductIdsForCurrentUser(): Promise<str
         return mpId ? String(mpId) : null;
       })
       .filter((v): v is string => typeof v === "string" && v.length > 0);
-    return Array.from(new Set(ids));
+    const out = Array.from(new Set(ids));
+    wishlistMpIdsCache.set(key, { data: out, ts: Date.now() });
+    return out;
   } catch {
     return [];
+  } finally {
+    wishlistMpIdsInflight.delete(key);
   }
+  })();
+  wishlistMpIdsInflight.set(key, p);
+  return p;
+}
+
+/** Bust every wishlist cache for a user (IDs + product IDs + docs). */
+export function bustAllWishlistCaches(userId: string | number | null | undefined): void {
+  if (userId == null) return;
+  bustWishlistIds(userId);
+  const key = String(userId);
+  wishlistMpIdsCache.delete(key);
+  wishlistDocsCache.delete(key);
 }
 
 export async function addMerchantToWishlist(merchantId: string | number): Promise<"added" | "exists"> {
@@ -128,7 +168,7 @@ export async function addMerchantToWishlist(merchantId: string | number): Promis
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
-  bustWishlistIds(userId);
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const body = JSON.stringify({
     user: userId,
@@ -161,6 +201,7 @@ export async function addMerchantProductToWishlist(input: {
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const body = JSON.stringify({
     user: userId,
@@ -190,7 +231,7 @@ export async function removeMerchantFromWishlist(merchantId: string | number): P
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
-  bustWishlistIds(userId);
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(userId));
@@ -217,6 +258,7 @@ export async function removeMerchantProductFromWishlist(merchantProductId: strin
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(userId));
@@ -243,6 +285,7 @@ export async function removeWishlistDocById(docId: string | number): Promise<voi
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const delUrl = `${API_BASE}/wishlists/${encodeURIComponent(String(docId))}`;
   const delRes = await fetch(delUrl, { method: "DELETE", headers });
@@ -256,6 +299,7 @@ export async function clearWishlistForCurrentUser(): Promise<void> {
   if (!userId) {
     throw new Error("Please sign in to use wishlist");
   }
+  bustAllWishlistCaches(userId);
   const headers = buildHeaders();
   const params = new URLSearchParams();
   params.append("where[user][equals]", String(userId));
@@ -266,23 +310,45 @@ export async function clearWishlistForCurrentUser(): Promise<void> {
   }
 }
 
+/**
+ * Full wishlist docs (the WishlistScreen query). 2-min TTL + singleflight
+ * keyed by user — previously refetched 200×depth=3 on every mount with
+ * zero sharing. Throws on HTTP errors so callers can tell failure apart
+ * from a genuinely empty list (the old `[]`-on-error cemented empty UI);
+ * returns [] only for guests.
+ */
 export async function getWishlistDocsForCurrentUser(): Promise<any[]> {
   const currentUserId = getCurrentUserIdFromStorage();
   if (currentUserId == null) return [];
-  const headers = buildHeaders();
-  const params = new URLSearchParams();
-  params.append("where[user][equals]", String(currentUserId));
-  params.append("sort", "-createdAt");
-  params.append("limit", "200");
-  params.append("depth", "3");
-  const url = `${API_BASE}/wishlists?${params.toString()}`;
-  try {
-    const res = await fetch(url, { headers, cache: "no-store" });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const docs: any[] = Array.isArray(data?.docs) ? data.docs : [];
-    return docs;
-  } catch {
-    return [];
-  }
+  const key = String(currentUserId);
+  const hit = wishlistDocsCache.get(key);
+  if (hit && Date.now() - hit.ts <= WISHLIST_DOCS_TTL_MS) return hit.data;
+  const running = wishlistDocsInflight.get(key);
+  if (running) return running;
+  const p = (async (): Promise<any[]> => {
+    const headers = buildHeaders();
+    const params = new URLSearchParams();
+    params.append("where[user][equals]", String(currentUserId));
+    params.append("sort", "-createdAt");
+    params.append("limit", "200");
+    params.append("depth", "3");
+    const url = `${API_BASE}/wishlists?${params.toString()}`;
+    try {
+      const res = await fetch(url, { headers, cache: "no-store" });
+      if (!res.ok) throw new Error(`Wishlist docs (${res.status})`);
+      const data = await res.json();
+      const docs: any[] = Array.isArray(data?.docs) ? data.docs : [];
+      wishlistDocsCache.set(key, { data: docs, ts: Date.now() });
+      return docs;
+    } catch (e) {
+      // Serve warm rows instead of cementing an empty list on transient
+      // failures; rethrow only when there is nothing to show.
+      if (hit) return hit.data;
+      throw e;
+    } finally {
+      wishlistDocsInflight.delete(key);
+    }
+  })();
+  wishlistDocsInflight.set(key, p);
+  return p;
 }

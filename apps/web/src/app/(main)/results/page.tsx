@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchModal from "@/components/search/SearchModal";
 import LocationMerchantCard from "@/components/cards/LocationMerchantCard";
@@ -23,7 +23,38 @@ import {
 } from "@/lib/client-services/wishlist-service";
 import { toast } from "react-hot-toast";
 
+// useSearchParams suspends on prerender — without this boundary Next deopts
+// the whole route to client rendering (same pattern as the home page).
 export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={<ResultsShell />}>
+      <ResultsContent />
+    </Suspense>
+  );
+}
+
+/** First-paint shell: never blank while the query/index resolves. */
+function ResultsShell() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto px-2.5 pt-2 lg:pt-6 pb-6">
+        <div className="grid grid-cols-1 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="animate-pulse flex items-center gap-4">
+              <div className="w-20 h-20 rounded-xl bg-gray-200" />
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+                <div className="mt-2 h-3 bg-gray-200 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -36,11 +67,22 @@ export default function SearchResultsPage() {
   const [matchedCategory, setMatchedCategory] = useState<MerchantCategoryDisplay | null>(null);
   const [categoryMerchants, setCategoryMerchants] = useState<LocationBasedMerchant[]>([]);
   const [productMatchedMerchants, setProductMatchedMerchants] = useState<LocationBasedMerchant[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start true (§14 never-blank): first commit paints the skeleton, not a
+  // one-tick "No results" flash before the query/index resolves.
+  const [isLoading, setIsLoading] = useState(true);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [isProductLoading, setIsProductLoading] = useState(false);
+  const [indexError, setIndexError] = useState<string | null>(null);
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [showAll, setShowAllFlag] = useShowAll();
+  // Request identity for the product chain (§23 stale-overwrite): only the
+  // latest keystroke's pair may commit; older pairs are aborted + ignored.
+  const productReqRef = useRef(0);
+  const productAbortRef = useRef<AbortController | null>(null);
+  // merchantsRef decouples the product effect from merchants array identity
+  // so index rebuilds don't refire the product chain when q is unchanged.
+  const merchantsRef = useRef<LocationBasedMerchant[]>([]);
+  merchantsRef.current = merchants;
 
   const toggleWishlist = useCallback((id: string | number) => {
     const idStr = String(id);
@@ -100,6 +142,7 @@ export default function SearchResultsPage() {
 
   const fetchResultsIndex = useCallback(async () => {
     setIsLoading(true);
+    setIndexError(null);
     try {
       const cid = await getCurrentCustomerId();
       setCustomerId(cid);
@@ -120,6 +163,7 @@ export default function SearchResultsPage() {
     } catch (e: any) {
       if (e?.code !== 'NO_ACTIVE_ADDRESS') {
         console.error('Failed to build search index:', e);
+        setIndexError('Search is unavailable right now. Check your connection and retry.');
       }
       setMerchants([]);
       setCategories([]);
@@ -235,13 +279,31 @@ export default function SearchResultsPage() {
   }, [matchedCategory, customerId, showAll]);
 
   useEffect(() => {
-    let cancelled = false;
+    const reqId = ++productReqRef.current;
+    // Abort the previous pair: rapid typing otherwise leaves N overlapping
+    // products + merchant-products fetches racing to commit.
+    productAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    productAbortRef.current = ctrl;
+    const isCurrent = () => reqId === productReqRef.current && !ctrl.signal.aborted;
     const run = async () => {
       setIsProductLoading(true);
       const q = normalizeQuery(query);
       if (!q) {
-        setProductMatchedMerchants([]);
-        setIsProductLoading(false);
+        if (isCurrent()) {
+          setProductMatchedMerchants([]);
+          setIsProductLoading(false);
+        }
+        return;
+      }
+      // Guest with no location and no Show-All scope: the intersect below is
+      // provably empty — skip both fetches instead of downloading ~250 docs
+      // to filter against [].
+      if (!showAll && !customerId && merchantsRef.current.length === 0) {
+        if (isCurrent()) {
+          setProductMatchedMerchants([]);
+          setIsProductLoading(false);
+        }
         return;
       }
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://cms.kuyacares.com/api";
@@ -250,10 +312,12 @@ export default function SearchResultsPage() {
       if (apiKey) headers["Authorization"] = `users API-Key ${apiKey}`;
       try {
         const pUrl = `${API_BASE}/products?where[name][contains]=${encodeURIComponent(q)}&limit=50&depth=0`;
-        const pRes = await fetch(pUrl, { headers });
+        const pRes = await fetch(pUrl, { headers, signal: ctrl.signal });
         if (!pRes.ok) {
-          setProductMatchedMerchants([]);
-          setIsProductLoading(false);
+          if (isCurrent()) {
+            setProductMatchedMerchants([]);
+            setIsProductLoading(false);
+          }
           return;
         }
         const pData = await pRes.json();
@@ -262,8 +326,10 @@ export default function SearchResultsPage() {
           .map((p: any) => p?.id)
           .filter((id: any) => typeof id === "number" || typeof id === "string");
         if (pIds.length === 0) {
-          setProductMatchedMerchants([]);
-          setIsProductLoading(false);
+          if (isCurrent()) {
+            setProductMatchedMerchants([]);
+            setIsProductLoading(false);
+          }
           return;
         }
 
@@ -273,10 +339,12 @@ export default function SearchResultsPage() {
           200,
           pIds.length * 10,
         )}&depth=0`;
-        const mpRes = await fetch(mpUrl, { headers });
+        const mpRes = await fetch(mpUrl, { headers, signal: ctrl.signal });
         if (!mpRes.ok) {
-          setProductMatchedMerchants([]);
-          setIsProductLoading(false);
+          if (isCurrent()) {
+            setProductMatchedMerchants([]);
+            setIsProductLoading(false);
+          }
           return;
         }
         const mpData = await mpRes.json();
@@ -289,13 +357,15 @@ export default function SearchResultsPage() {
           })
           .filter((id: any) => typeof id === "number" || typeof id === "string");
         const idSet = new Set<string>(mIds.map((x: any) => String(x)));
-        const matched = (merchants || []).filter(m => idSet.has(String((m as any).id)));
-        if (!cancelled) {
+        const matched = (merchantsRef.current || []).filter(m => idSet.has(String((m as any).id)));
+        if (isCurrent()) {
           setProductMatchedMerchants(matched);
           setIsProductLoading(false);
         }
-      } catch {
-        if (!cancelled) {
+      } catch (e: any) {
+        // Aborted predecessors land here — never confuse them with failures.
+        if (ctrl.signal.aborted || (typeof e?.name === 'string' && e.name === 'AbortError')) return;
+        if (isCurrent()) {
           setProductMatchedMerchants([]);
           setIsProductLoading(false);
         }
@@ -303,10 +373,12 @@ export default function SearchResultsPage() {
     };
     const t = setTimeout(run, 200);
     return () => {
-      cancelled = true;
       clearTimeout(t);
+      // Don't abort here: a newer run already aborted us via productAbortRef.
+      // Only cancel the timer; in-flight predecessors self-suppress through
+      // the request-id check.
     };
-  }, [query, merchants, normalizeQuery]);
+  }, [query, customerId, showAll, normalizeQuery]);
 
   const results = useMemo(() => {
     const q = normalizeQuery(query);
@@ -327,6 +399,10 @@ export default function SearchResultsPage() {
   }, [merchants, categoryMerchants, productMatchedMerchants, query, normalizeQuery]);
 
   const isFetching = isLoading || isCategoryLoading || isProductLoading;
+  // Guest without a delivery location (and no Show-All scope) can never
+  // match: the location index is provably empty. Render a location CTA
+  // instead of the generic "no results" dead-end.
+  const needsLocation = !showAll && !customerId && !isLoading;
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -384,13 +460,6 @@ export default function SearchResultsPage() {
               )}
             </div>
           </form>
-          <button
-            type="button"
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="More options"
-          >
-            <i className="fas fa-ellipsis-v text-gray-800" />
-          </button>
         </div>
       </div>
       <div className="max-w-5xl mx-auto px-2.5 pt-2 lg:pt-6 pb-6">
@@ -425,6 +494,40 @@ export default function SearchResultsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : indexError && results.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-red-100 p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 bg-red-50 rounded-full flex items-center justify-center">
+              <i className="fas fa-exclamation-triangle text-red-500" />
+            </div>
+            <p className="text-sm font-bold text-gray-900 mb-1">Search is unavailable</p>
+            <p className="text-xs text-gray-500 mb-4">{indexError}</p>
+            <button
+              type="button"
+              onClick={() => fetchResultsIndex()}
+              className="px-5 py-2 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: '#239459' }}
+            >
+              <i className="fas fa-redo mr-2" />Try again
+            </button>
+          </div>
+        ) : needsLocation && results.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 bg-green-50 rounded-full flex items-center justify-center">
+              <i className="fas fa-location-dot text-lg" style={{ color: '#239459' }} />
+            </div>
+            <p className="text-sm font-bold text-gray-900 mb-1">Set your delivery location</p>
+            <p className="text-xs text-gray-500 mb-4">
+              Search shows merchants that deliver to you — pick an address or turn on Show All above.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowAllFlag(true)}
+              className="px-5 py-2 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: '#239459' }}
+            >
+              Show all merchants
+            </button>
           </div>
         ) : results.length === 0 ? (
           <div className="text-gray-500 text-sm">No results found for &quot;{query.trim()}&quot;</div>

@@ -357,6 +357,18 @@ export class PointsService {
     if (reward.stock !== undefined && reward.stock !== null && Number(reward.stock) <= 0) {
       throw new Error('REWARD_OUT_OF_STOCK')
     }
+    // Linked-coupon validity (mirrors catalog isAvailable): never burn
+    // points for a reward whose auto-claimed coupon is unpublished or
+    // outside its window. The coupon is already populated (depth:1 above).
+    const coupon = (reward as any).coupon
+    if (coupon && typeof coupon === 'object') {
+      const now = Date.now()
+      const started = !coupon.starts_at || new Date(coupon.starts_at).getTime() <= now
+      const unexpired = !coupon.expires_at || new Date(coupon.expires_at).getTime() > now
+      if (coupon.status !== 'published' || !started || !unexpired) {
+        throw new Error('REWARD_UNAVAILABLE')
+      }
+    }
 
     const entry = await this.postPoints({
       customerId,

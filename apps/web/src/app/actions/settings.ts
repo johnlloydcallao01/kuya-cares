@@ -17,7 +17,7 @@ import type {
   NotificationPrefs,
   SavedPaymentMethod,
 } from '@/types/settings';
-import { getServerToken, getServerUserId, serverLogout } from './auth';
+import { getServerToken, serverLogout } from './auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 
@@ -42,12 +42,17 @@ function requireAuth(token: string | null): asserts token is string {
 }
 
 export async function getAccountSummary(): Promise<AccountSummary> {
-  const userId = await getServerUserId();
-  if (!userId) throw new Error('SETTINGS_NO_SESSION');
+  // Perf: CMS summary already authenticates the JWT + returns the user doc.
+  // The old getServerUserId() added a full extra /users/me round-trip
+  // (JWT verify + findByID) before every summary load — just check the
+  // cookie here and let the CMS do the single auth.
+  const token = await getServerToken();
+  requireAuth(token);
   const headers = await userHeaders();
   const res = await fetch(`${API_BASE_URL}/customer/account/summary`, {
     headers,
     cache: 'no-store',
+    signal: AbortSignal.timeout(10000),
   });
   const json = await readJson(res);
   if (!res.ok) throw new Error(String(json?.error || `Account unavailable (${res.status})`));
@@ -71,6 +76,8 @@ export async function updateProfileAction(input: Record<string, unknown>): Promi
     headers: await userHeaders(),
     body: JSON.stringify(input),
     cache: 'no-store',
+    // Fail fast instead of hanging on a cold CMS/pg checkout.
+    signal: AbortSignal.timeout(8000),
   });
   const json = await readJson(res);
   if (!res.ok) throw new Error(String(json?.error || `Update failed (${res.status})`));

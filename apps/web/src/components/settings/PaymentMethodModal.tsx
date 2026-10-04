@@ -33,6 +33,34 @@ function detectBrand(digits: string): string {
   return 'card';
 }
 
+function luhnValid(digits: string): boolean {
+  if (digits.length < 15) return false;
+  let sum = 0;
+  let double = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let d = Number(digits[i]);
+    if (!Number.isFinite(d)) return false;
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+
+function expiryValid(expiry: string): boolean {
+  const m = /^(\d{2})\/(\d{2})$/.exec(expiry);
+  if (!m) return false;
+  const mm = Number(m[1]);
+  const yy = Number(m[2]);
+  if (!Number.isFinite(mm) || !Number.isFinite(yy) || mm < 1 || mm > 12) return false;
+  const now = new Date();
+  const endOfMonth = new Date(2000 + yy, mm, 0, 23, 59, 59);
+  return endOfMonth.getTime() >= now.getTime();
+}
+
 export default function PaymentMethodModal({
   isOpen,
   customerName,
@@ -70,9 +98,12 @@ export default function PaymentMethodModal({
   if (!isOpen) return null;
 
   const digits = cardNumber.replace(/\D/g, '');
+  // Full gate before PayMongo tokenization: Luhn checksum + real calendar
+  // month (01–12) + future expiry. The old check (>=15 digits + MM/YY shape)
+  // let NaN months and past cards through to a processor round-trip.
   const cardValid =
     method !== 'card' ||
-    (digits.length >= 15 && /^\d{2}\/\d{2}$/.test(expiry) && cvc.replace(/\D/g, '').length >= 3);
+    (luhnValid(digits) && expiryValid(expiry) && cvc.replace(/\D/g, '').length >= 3);
   const canSubmit = !submitting && !working && cardValid;
 
   const handleSubmit = async () => {

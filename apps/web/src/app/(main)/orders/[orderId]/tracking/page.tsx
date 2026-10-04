@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useCallback, useEffect, useRef, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleMap, Marker, Polyline } from '@react-google-maps/api';
 import { useGoogleMapsApiReady } from '@/lib/google-maps-api';
 import Image from '@/components/ui/ImageWrapper';
 import OrderHeader from '@/components/orders/OrderHeader';
 import { TrackingPageSkeleton } from '@/components/skeletons/OrdersSkeleton';
+import { fetchOrderHead } from '@/lib/client-services/order-service';
+import { formatOrderDateTime, getStatusMeta, orderNumberOf } from '@/types/order';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '00ffd535-f53d-44d0-b86d-945c90be2729';
+const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
+
+const TRACK_POLL_MS = 15000;
 
 // Mock Coordinates
 const MOCK_COORDINATES = {
@@ -100,45 +104,62 @@ export default function OrderTrackingPage({ params }: PageProps) {
   const router = useRouter();
   const [data, setData] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const isLoaded = useGoogleMapsApiReady();
-
+  const mountedRef = useRef(true);
   useEffect(() => {
-    let active = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (silent = false) => {
+      const isActive = () => mountedRef.current;
       try {
+        if (!silent) {
+          setLoading(true);
+          setLoadError(null);
+        }
         const headers = {
           Authorization: `users API-Key ${API_KEY}`,
           'Content-Type': 'application/json',
         };
 
-        // 1. Fetch Order
-        const orderRes = await fetch(`${API_URL}/orders/${orderId}?depth=3`, { headers, cache: 'no-store' });
-        if (!orderRes.ok) throw new Error('Failed to fetch order');
-        const order = await orderRes.json();
-
-        // 2. Fetch Tracking Events
-        const trackingRes = await fetch(
-          `${API_URL}/order-tracking?where[order][equals]=${orderId}&sort=-timestamp&depth=1`,
-          { headers, cache: 'no-store' }
-        );
-        const trackingData = await trackingRes.json();
-
-        // 3. Fetch Delivery Location
-        const locRes = await fetch(
-          `${API_URL}/delivery-locations?where[order][equals]=${orderId}&depth=1`,
-          { headers, cache: 'no-store' }
-        );
-        const locData = await locRes.json();
+        // Parallel fan-out (§4): tracking, location and driver only need
+        // orderId — the old code awaited all four sequentially (+3 RTT).
+        // The order head is shared + 60s-cached with the detail screen.
+        const [order, trackingData, locData, driverData] = await Promise.all([
+          fetchOrderHead(orderId).then((d) => {
+            if (!d) throw new Error('order 404');
+            return d;
+          }),
+          fetch(
+            `${API_URL}/order-tracking?where[order][equals]=${orderId}&sort=-timestamp&depth=1`,
+            { headers, cache: 'no-store' },
+          ).then((r) => {
+            if (!r.ok) throw new Error(`tracking ${r.status}`);
+            return r.json();
+          }),
+          fetch(
+            `${API_URL}/delivery-locations?where[order][equals]=${orderId}&depth=1`,
+            { headers, cache: 'no-store' },
+          ).then((r) => {
+            if (!r.ok) throw new Error(`location ${r.status}`);
+            return r.json();
+          }),
+          fetch(
+            `${API_URL}/driver-assignments?where[order][equals]=${orderId}&where[status][equals]=accepted&depth=2`,
+            { headers, cache: 'no-store' },
+          ).then((r) => {
+            if (!r.ok) throw new Error(`driver ${r.status}`);
+            return r.json();
+          }),
+        ]);
         const deliveryLocationDoc = locData.docs?.[0];
-
-        // 4. Fetch Driver Assignment
-        const driverRes = await fetch(
-          `${API_URL}/driver-assignments?where[order][equals]=${orderId}&where[status][equals]=accepted&depth=2`,
-          { headers, cache: 'no-store' }
-        );
-        const driverData = await driverRes.json();
         const assignment = driverData.docs?.[0];
 
         // Process Data
@@ -200,21 +221,13 @@ export default function OrderTrackingPage({ params }: PageProps) {
           };
         }
 
-        if (active) {
+        if (isActive()) {
           const placedAt = order.placed_at ? new Date(order.placed_at) : null;
-          
+
           setData({
             orderId: order.id,
-            orderNumber: `#${String(order.id).padStart(5, '0')}`,
-            placedAt: placedAt
-            ? placedAt.toLocaleString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              })
-            : '',
+            orderNumber: orderNumberOf(order.id),
+            placedAt: placedAt ? formatOrderDateTime(order.placed_at) : '',
             status: order.status,
             restaurantName: (() => {
               let name = 'Unknown Restaurant';
@@ -237,20 +250,47 @@ export default function OrderTrackingPage({ params }: PageProps) {
             driver,
             deliveryLocation,
           });
+          if (isActive()) setLoadError(null);
         }
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        if (isActive() && !silent) {
+          const msg = String(err?.message ?? '');
+          setLoadError(
+            msg.includes('404')
+              ? 'Order not found. It may have been removed.'
+              : 'Couldn’t load tracking. Check your connection and retry.',
+          );
+        }
       } finally {
-        if (active) setLoading(false);
+        if (isActive() && !silent) setLoading(false);
       }
-    };
+    },
+    [orderId],
+  );
 
+  useEffect(() => {
     fetchData();
+  }, [fetchData, reloadKey]);
 
-    return () => {
-      active = false;
+  // Live tracking refresh (§4 poll): active orders revalidate every 15s,
+  // silently and only while the tab is visible. Settled orders never poll.
+  useEffect(() => {
+    if (loading || !data) return;
+    if (getStatusMeta(data.status).group !== 'active') return;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void fetchData(true);
     };
-  }, [orderId]);
+    const t = setInterval(tick, TRACK_POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loading, data, fetchData]);
 
   if (loading) {
     return <TrackingPageSkeleton />;
@@ -258,8 +298,31 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Tracking information not available.</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <i className="fas fa-map-marker-alt text-xl text-gray-400" />
+          </div>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Tracking unavailable</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            {loadError ?? 'Tracking information not available.'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.back()}
+              className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+            >
+              Go back
+            </button>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="flex-1 py-2.5 text-white rounded-xl text-sm font-bold hover:opacity-90"
+              style={{ backgroundColor: '#239459' }}
+            >
+              <i className="fas fa-redo mr-2" />Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -332,9 +395,101 @@ export default function OrderTrackingPage({ params }: PageProps) {
         )}
       </div>
       
-      {/* Bottom Content Area (Placeholder) */}
-      <div className="flex-1 bg-white p-4">
-        {/* Future status card/driver info will go here */}
+      {/* Bottom Content Area — live timeline, driver & addresses.
+          Previously a placeholder while C2–C4 hydrated for zero pixels. */}
+      <div className="flex-1 bg-white p-4 space-y-4 pb-24">
+        {data.driver && (
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-2xl p-3.5">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
+              {data.driver.photo ? (
+                <Image
+                  src={data.driver.photo}
+                  alt={data.driver.name}
+                  width={48}
+                  height={48}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <i className="fas fa-motorcycle text-gray-400" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">{data.driver.name}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {[data.driver.vehicleModel, data.driver.vehicleColor, data.driver.vehiclePlate]
+                  .filter(Boolean)
+                  .join(' • ') || data.driver.vehicleType || 'Delivery rider'}
+                {data.driver.rating != null && ` • ★ ${Number(data.driver.rating).toFixed(1)}`}
+              </p>
+            </div>
+            {data.driver.phone && (
+              <a
+                href={`tel:${data.driver.phone}`}
+                className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50"
+                aria-label={`Call ${data.driver.name}`}
+              >
+                <i className="fas fa-phone text-sm" />
+              </a>
+            )}
+          </div>
+        )}
+
+        {data.deliveryLocation && (
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-3.5 space-y-2">
+            <div className="flex items-start gap-2.5">
+              <i className="fas fa-location-dot text-red-500 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">Deliver to</p>
+                <p className="text-sm font-medium text-gray-900 leading-snug">
+                  {data.deliveryLocation.formattedAddress || '—'}
+                </p>
+                {data.deliveryLocation.deliveryInstructions && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    “{data.deliveryLocation.deliveryInstructions}”
+                  </p>
+                )}
+              </div>
+            </div>
+            {data.deliveryLocation.merchantFormattedAddress && (
+              <div className="flex items-start gap-2.5 pt-2 border-t border-gray-200/70">
+                <i className="fas fa-store text-gray-400 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                    {data.deliveryLocation.merchantLabel || 'Pickup from'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 leading-snug">
+                    {data.deliveryLocation.merchantFormattedAddress}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div>
+          <h2 className="text-sm font-bold text-gray-900 mb-2.5">Tracking history</h2>
+          {data.events.length > 0 ? (
+            <ol className="relative border-l-2 border-gray-100 ml-2 space-y-4">
+              {data.events.map((ev) => (
+                <li key={ev.id} className="ml-4">
+                  <span className="absolute -left-[7px] mt-1 w-3 h-3 rounded-full bg-green-500 ring-4 ring-green-50" />
+                  <p className="text-sm font-bold text-gray-900 capitalize">
+                    {String(ev.status).replace(/_/g, ' ')}
+                  </p>
+                  {ev.description && (
+                    <p className="text-xs text-gray-500 mt-0.5">{ev.description}</p>
+                  )}
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {ev.timestamp ? formatOrderDateTime(ev.timestamp) : ''}
+                    {ev.actor?.name ? ` • ${ev.actor.name}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-sm text-gray-400">No tracking events yet — check back soon.</p>
+          )}
+        </div>
       </div>
     </div>
   );

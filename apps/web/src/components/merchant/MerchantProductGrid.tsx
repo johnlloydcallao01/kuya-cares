@@ -3,11 +3,12 @@
 import React from "react";
 import Image from "@/components/ui/ImageWrapper";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import SearchField from "@/components/ui/SearchField";
 import MerchantProductCategoriesCarousel from "@/components/merchant/MerchantProductCategoriesCarousel";
 import MerchantSearchModal from "@/components/merchant/MerchantSearchModal";
 import { useCart } from "@/contexts/CartContext";
+import { toast } from "react-hot-toast";
 
 type ProductCardItem = {
   id: string | number;
@@ -27,20 +28,34 @@ type MerchantCategoryDisplay = {
   media?: { icon?: any | null };
 };
 
-export default function MerchantProductGrid({ products, categories }: { products: ProductCardItem[]; categories?: MerchantCategoryDisplay[] }) {
+export default function MerchantProductGrid({ products, categories, requiredModifierProductIds }: { products: ProductCardItem[]; categories?: MerchantCategoryDisplay[]; requiredModifierProductIds?: Set<string | number> }) {
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<number | null>(null);
   const sectionRefs = React.useRef<Map<number, HTMLElement>>(new Map());
   const sentinelRefs = React.useRef<Map<number, HTMLElement>>(new Map());
   const [visibleCounts, setVisibleCounts] = React.useState<Record<number, number>>({});
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { addToCart } = useCart();
   const handleAddToCart = React.useCallback(
     async (p: ProductCardItem) => {
-      const path = String(pathname || "");
-      const parts = path.split("/").filter(Boolean);
-      const idx = parts.indexOf("merchant");
-      const slugId = idx >= 0 && parts[idx + 1] ? parts[idx + 1] : "";
+      // Mobile parity (MerchantScreen.handleAddToCart): variable/grouped
+      // products — and simple items carrying REQUIRED modifier groups — MUST
+      // be configured on the product page. POSTing either is a guaranteed
+      // CMS 400/500. Route there instead.
+      const pType = String((p as any).productType || 'simple').toLowerCase();
+      const numericPid = typeof p.id === 'number' ? p.id : Number(String(p.id).split('-').pop() || '');
+      const needsConfig = pType !== 'simple' || (Number.isFinite(numericPid) && (requiredModifierProductIds?.has(numericPid) || requiredModifierProductIds?.has(String((p as any).id)) || false));
+      const slugId = (() => {
+        const parts = String(pathname || "").split("/").filter(Boolean);
+        const idx = parts.indexOf("merchant");
+        return idx >= 0 && parts[idx + 1] ? parts[idx + 1] : "";
+      })();
+      if (needsConfig) {
+        const productSlugId = `${toSlug(p.name)}-${p.id}`;
+        router.push((slugId ? `/merchant/${slugId}/${productSlugId}` : `/merchant/${productSlugId}`) as any);
+        return;
+      }
       const merchantId = slugId ? Number(slugId.split("-").pop() || "") : NaN;
       if (!merchantId || Number.isNaN(merchantId)) return;
 
@@ -70,10 +85,25 @@ export default function MerchantProductGrid({ products, categories }: { products
           priceAtAdd: p.basePrice ?? 0,
           compareAtPrice: p.compareAtPrice ?? null,
         });
-      } catch {}
+        toast.success('Added to cart');
+      } catch (e: any) {
+        // Never fail silently: a swallowed add leaves the cart "always empty"
+        // with zero feedback. Login-gate message is user-ready as-is.
+        toast.error(e?.message || 'Failed to add to cart');
+      }
     },
-    [pathname, addToCart],
+    [pathname, addToCart, router, requiredModifierProductIds],
   );
+
+  // Per-card config gate shared by the FAB below (mirrors handleAddToCart).
+  const needsConfigFor = (p: ProductCardItem): boolean => {
+    const pType = String((p as any).productType || 'simple').toLowerCase();
+    if (pType !== 'simple') return true;
+    const numericPid = typeof p.id === 'number' ? p.id : Number(String(p.id).split('-').pop() || '');
+    return Number.isFinite(numericPid) && (
+      requiredModifierProductIds?.has(numericPid) || requiredModifierProductIds?.has(String((p as any).id)) || false
+    );
+  };
 
   const formatPrice = (value: number | null) => {
     if (value == null) return null;
@@ -233,6 +263,7 @@ export default function MerchantProductGrid({ products, categories }: { products
         onClose={() => setIsSearchOpen(false)}
         products={products}
         categories={(categories || []).map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+        requiredModifierProductIds={requiredModifierProductIds}
       />
       <div className="mb-4 px-2.5">
         <SearchField placeholder="Search menu" value={""} onChange={() => {}} readOnly onClick={() => setIsSearchOpen(true)} />
@@ -272,11 +303,12 @@ export default function MerchantProductGrid({ products, categories }: { products
                           )}
                           <button
                             type="button"
-                            aria-label="Add to cart"
+                            aria-label={needsConfigFor(p) ? "View product" : "Add to cart"}
+                            title={needsConfigFor(p) ? "View product" : "Add to cart"}
                             onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}
                             className="absolute bottom-2 right-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
                           >
-                            <i className="fas fa-plus text-[12px]" style={{ color: "#333" }} />
+                            <i className={`fas ${needsConfigFor(p) ? "fa-eye" : "fa-plus"} text-[12px]`} style={{ color: "#333" }} />
                           </button>
                         </div>
                         <div className="p-4">

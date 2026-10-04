@@ -128,10 +128,15 @@ export function getEntryMeta(type: string): EntryMeta {
   );
 }
 
+const signedPhpFormatter = new Intl.NumberFormat('en-PH', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export function formatSignedPHP(amount: number): string {
   const sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
   const abs = Math.abs(amount);
-  return `${sign}₱${abs.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${sign}₱${signedPhpFormatter.format(abs)}`;
 }
 
 export type TopupMethod = 'card' | 'gcash' | 'grab_pay' | 'paymaya' | 'qrph';

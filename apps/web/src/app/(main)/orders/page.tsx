@@ -117,14 +117,25 @@ export default function OrdersPage() {
     load();
   }, [load]);
 
-  // Auto-refresh active orders (Shopee/Foodpanda style live status)
+  // Auto-refresh active orders (Shopee/Foodpanda style live status).
+  // Visibility-gated (§docs/performance.md §4): background tabs must not
+  // burn 3 requests/30s; refetch promptly when the tab becomes visible.
   useEffect(() => {
     if (loading) return;
-    const t = setInterval(() => {
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const hasActive = orders.some((o) => getStatusMeta(o.status).group === 'active');
       if (hasActive) load({ silent: true });
-    }, POLL_MS);
-    return () => clearInterval(t);
+    };
+    const t = setInterval(tick, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loading, orders, load]);
 
   // Debounced search
@@ -157,7 +168,9 @@ export default function OrdersPage() {
       if (fulfillment !== 'all' && o.fulfillmentType !== fulfillment) return false;
       if (dateRange !== 'all') {
         const window = dateRange === 'today' ? day : dateRange === '7d' ? 7 * day : 30 * day;
-        if (!o.placedAtTs || now - o.placedAtTs > window) return false;
+        // Missing placed_at (placedAtTs 0) passes instead of vanishing —
+        // absence of a timestamp must not hide the order from its owner.
+        if (o.placedAtTs && now - o.placedAtTs > window) return false;
       }
       if (searchQuery) {
         const hay = `${o.orderNumber} ${o.restaurant} ${o.items.map((i) => i.name).join(' ')}`.toLowerCase();
@@ -203,10 +216,13 @@ export default function OrdersPage() {
       }
       setReorderingId(order.orderId);
       try {
-        let added = 0;
-        for (const item of order.items) {
-          if (item.productId == null || item.merchantProductId == null || order.merchantId == null) continue;
-          try {
+        // Concurrent fan-out (§4b item 1): the old serial for-await made N
+        // items cost N POSTs + N full cart reloads back-to-back.
+        const results = await Promise.allSettled(
+          order.items.map(async (item) => {
+            if (item.productId == null || item.merchantProductId == null || order.merchantId == null) {
+              throw new Error('missing ids');
+            }
             await addToCart({
               merchantId: Number(order.merchantId),
               productId: Number(item.productId),
@@ -214,11 +230,9 @@ export default function OrdersPage() {
               quantity: item.quantity,
               priceAtAdd: item.price,
             });
-            added += 1;
-          } catch {
-            /* try next item */
-          }
-        }
+          }),
+        );
+        const added = results.filter((r) => r.status === 'fulfilled').length;
         if (added > 0) {
           toast.success(`${added} item${added === 1 ? '' : 's'} added back to cart`);
           router.push('/carts');
@@ -312,13 +326,21 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-20">
+      <div className="bg-white shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">My Orders</h1>
               <p className="text-gray-500 mt-0.5 text-sm">
                 {totalDocs > 0 ? `${totalDocs} order${totalDocs === 1 ? '' : 's'} • ` : ''}Track, reorder & manage
+                {/* Server paging is a client slice over a 100-row prefetch
+                    cap (§12 honest totals): disclose truncation instead of
+                    implying the full history is shown. */}
+                {totalDocs > orders.length && (
+                  <span className="block text-xs text-amber-600 font-medium mt-0.5">
+                    Showing latest {orders.length} of {totalDocs} — pull to refresh for newer orders.
+                  </span>
+                )}
               </p>
             </div>
             <button

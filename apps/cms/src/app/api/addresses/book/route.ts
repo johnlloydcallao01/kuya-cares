@@ -110,7 +110,20 @@ export async function GET(request: NextRequest) {
     // Active-first (Foodpanda/Shopee convention).
     docs.sort((a: any, b: any) => Number(b.isActive) - Number(a.isActive))
 
-    const all = (res.docs || []) as any[]
+    // Book-wide stats (§docs/performance.md §4b item 5): home/work/verified
+    // used to filter the CURRENT PAGE slice, going wrong past page one or
+    // under a type filter. Scoped counts keep them exact for the whole book.
+    const statsWhere = (extra: any) =>
+      payload.count({
+        collection: 'addresses',
+        where: { and: [{ user: { equals: customer.user } }, extra] },
+        overrideAccess: true,
+      })
+    const [homeCount, workCount, verifiedCount] = await Promise.all([
+      statsWhere({ address_type: { equals: 'home' } }),
+      statsWhere({ address_type: { equals: 'work' } }),
+      statsWhere({ is_verified: { equals: true } }),
+    ])
     return NextResponse.json({
       data: {
         customerId: customer.id,
@@ -126,10 +139,10 @@ export async function GET(request: NextRequest) {
           hasPrevPage: res.hasPrevPage,
         },
         stats: {
-          total: res.totalDocs ?? all.length,
-          home: all.filter((d) => d.address_type === 'home').length,
-          work: all.filter((d) => d.address_type === 'work').length,
-          verified: all.filter((d) => d.is_verified).length,
+          total: res.totalDocs ?? docs.length,
+          home: homeCount?.totalDocs ?? 0,
+          work: workCount?.totalDocs ?? 0,
+          verified: verifiedCount?.totalDocs ?? 0,
         },
       },
     })

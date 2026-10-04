@@ -52,6 +52,21 @@ export interface ProductVariation {
   attributes: Record<string, string>;
 }
 
+/** Grouped-bundle child row (mobile parity: GroupedProductItem). */
+export interface GroupedChild {
+  key: string;
+  productId: string | number;
+  name: string;
+  shortDescription?: string | null;
+  basePrice: number | null;
+  compareAtPrice?: number | null;
+  productType: string;
+  imageUrl: string | null;
+  defaultQuantity: number;
+  merchantProductId: number | null;
+  isAvailable: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;

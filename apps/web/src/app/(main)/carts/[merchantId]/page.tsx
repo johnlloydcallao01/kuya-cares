@@ -6,6 +6,10 @@ import ImageWrapper from '@/components/ui/ImageWrapper';
 import { useCart } from '@/contexts/CartContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 
+// PayMongo rejects payments below ₱1.00 — gate checkout here, not at the
+// processor (mobile parity: PAYMONGO_MINIMUM_AMOUNT_PHP).
+const PAYMONGO_MINIMUM_AMOUNT_PHP = 1;
+
 export default function MerchantCartPage() {
   const params = useParams() as { merchantId?: string };
   const merchantIdParam = params?.merchantId || '';
@@ -37,14 +41,22 @@ export default function MerchantCartPage() {
     (sum, item) => sum + (item.subtotal || 0),
     0,
   );
+  const isBelowPayMongoMinimum = totalSubtotal < PAYMONGO_MINIMUM_AMOUNT_PHP;
 
   const handleQuantityChange = async (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    await updateQuantity(itemId, newQuantity);
+    try {
+      await updateQuantity(itemId, newQuantity);
+    } catch {
+      // Context surfaces the error state; the shelf keeps last-good values.
+    }
   };
 
   const handleRemoveItem = async (itemId: number) => {
-    await removeItem(itemId);
+    try {
+      await removeItem(itemId);
+    } catch {
+      // Context surfaces the error state; nothing to roll back visually.
+    }
   };
 
   const toggleItemExpanded = (itemId: number) => {
@@ -55,7 +67,7 @@ export default function MerchantCartPage() {
   };
 
   const handleCheckout = () => {
-    if (!Number.isFinite(merchantId) || totalSubtotal <= 0) return;
+    if (!Number.isFinite(merchantId) || isBelowPayMongoMinimum) return;
     router.push(`/checkout/${merchantId}` as any);
   };
 
@@ -354,14 +366,23 @@ export default function MerchantCartPage() {
             <span>Subtotal</span>
             <span>{formatCurrency(totalSubtotal)}</span>
           </div>
+          <div className="flex items-center justify-between text-sm font-semibold border-t border-gray-100 pt-3">
+            <span>Total</span>
+            <span>{formatCurrency(totalSubtotal)}</span>
+          </div>
+          {isBelowPayMongoMinimum && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+              This cart is below the PayMongo minimum of PHP 1.00. Review the item options or pricing before checkout.
+            </div>
+          )}
           <button
             type="button"
             onClick={handleCheckout}
-            disabled={totalSubtotal <= 0}
+            disabled={isBelowPayMongoMinimum}
             className="w-full text-white rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#239459' }}
           >
-            Proceed to Checkout
+            Proceed to Checkout | {formatCurrency(totalSubtotal)}
           </button>
         </div>
       </div>

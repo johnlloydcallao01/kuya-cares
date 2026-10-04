@@ -8,7 +8,8 @@
  * AddressesScreen, ported to web conventions.
  */
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { AddressesPageSkeleton } from '@/components/skeletons/AddressesSkeleton';
 import AddressCard from '@/components/addresses/AddressCard';
@@ -62,8 +63,15 @@ function AddressesContent() {
   const [deleteTarget, setDeleteTarget] = useState<AddressUI | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const requestIdRef = useRef(0);
+
   const loadBook = useCallback(
     async (opts: { silent?: boolean; reset?: boolean; type?: TypeFilter; q?: string } = {}) => {
+      // Race guard (§4 singleflight, client side): server actions can't take
+      // an AbortSignal, so rapid tab/search churn stamps each flight and only
+      // the latest may commit — no last-resolve-wins list swaps.
+      const requestId = ++requestIdRef.current;
+      const isStale = () => requestId !== requestIdRef.current;
       try {
         if (!opts.silent) {
           if (opts.reset) setRefreshing(true);
@@ -75,14 +83,19 @@ function AddressesContent() {
           q: opts.q ?? searchQuery,
           limit: 100,
         });
+        if (isStale()) return;
         setAddresses(book.addresses);
         setActiveId(book.activeAddressId);
         setStats(book.stats);
       } catch (e: any) {
+        if (isStale()) return;
         if (!opts.silent) setError(e?.message || 'Failed to load addresses');
+        else toast.error(e?.message || 'Refresh failed — showing saved list');
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!isStale()) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [typeFilter, searchQuery],
@@ -111,15 +124,15 @@ function AddressesContent() {
     loadBookRef.current({ reset: true, type: typeFilter, q: searchQuery });
   }, [typeFilter, searchQuery]);
 
-  const openAdd = () => {
+  const openAdd = useCallback(() => {
     setEditing(null);
     setFormOpen(true);
-  };
+  }, []);
 
-  const openEdit = (a: AddressUI) => {
+  const openEdit = useCallback((a: AddressUI) => {
     setEditing(a);
     setFormOpen(true);
-  };
+  }, []);
 
   const handleFormSubmit = useCallback(
     async (input: AddressInput) => {
@@ -151,6 +164,13 @@ function AddressesContent() {
   );
 
   const handleSetActive = useCallback(async (a: AddressUI) => {
+    if (a.id === activeId) return;
+    const prevActiveId = activeId;
+    const prevAddresses = addresses;
+    // Optimistic: flip the ACTIVE badge instantly, roll back on failure
+    // instead of leaving the list unchanged through 2 serial round-trips.
+    setActiveId(a.id);
+    setAddresses((prev) => prev.map((x) => ({ ...x, isActive: x.id === a.id })));
     setActivatingId(a.id);
     try {
       await activateAddress(a.id);
@@ -158,11 +178,13 @@ function AddressesContent() {
       toast.success('Active delivery address updated');
       await loadBookRef.current({ silent: true });
     } catch (e: any) {
+      setActiveId(prevActiveId);
+      setAddresses(prevAddresses);
       toast.error(e?.message || 'Set active failed');
     } finally {
       setActivatingId(null);
     }
-  }, []);
+  }, [activeId, addresses]);
 
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -194,21 +216,50 @@ function AddressesContent() {
           <p className="text-sm text-gray-500 mb-5">
             {noSession ? 'Please sign in to manage your addresses.' : error}
           </p>
-          <button
-            onClick={() => loadBook({ reset: true })}
-            className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
-            style={{ backgroundColor: BRAND }}
-          >
-            <i className="fas fa-redo mr-2" />
-            Try again
-          </button>
+          {noSession ? (
+            <Link
+              href="/signin"
+              className="block w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90 text-center"
+              style={{ backgroundColor: BRAND }}
+            >
+              Sign in
+            </Link>
+          ) : (
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                loadBook({});
+              }}
+              className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: BRAND }}
+            >
+              <i className="fas fa-redo mr-2" />
+              Try again
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
   const isFiltered = searchQuery !== '' || typeFilter !== 'all';
-  const activeAddress = addresses.find((a) => a.id === activeId) ?? null;
+  // Memoized derivations (§4b: page rebuilt these per render — 100 rows
+  // re-rendered on every search keystroke).
+  const activeAddress = useMemo(
+    () => addresses.find((a) => a.id === activeId) ?? null,
+    [addresses, activeId],
+  );
+  const statCards = useMemo(
+    () => [
+      { label: 'Saved', value: String(stats.total), icon: 'fa-map-marker-alt', bg: 'bg-gray-50', fg: 'text-gray-700' },
+      { label: 'Home', value: String(stats.home), icon: 'fa-home', bg: 'bg-green-50', fg: 'text-green-700' },
+      { label: 'Work', value: String(stats.work), icon: 'fa-briefcase', bg: 'bg-blue-50', fg: 'text-blue-700' },
+      { label: 'Verified', value: String(stats.verified), icon: 'fa-badge-check', bg: 'bg-amber-50', fg: 'text-amber-700' },
+    ],
+    [stats],
+  );
+  const handleDeleteTarget = useCallback((addr: AddressUI) => setDeleteTarget(addr), []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -249,12 +300,7 @@ function AddressesContent() {
           {/* Stats */}
           {addresses.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
-              {[
-                { label: 'Saved', value: String(stats.total), icon: 'fa-map-marker-alt', bg: 'bg-gray-50', fg: 'text-gray-700' },
-                { label: 'Home', value: String(stats.home), icon: 'fa-home', bg: 'bg-green-50', fg: 'text-green-700' },
-                { label: 'Work', value: String(stats.work), icon: 'fa-briefcase', bg: 'bg-blue-50', fg: 'text-blue-700' },
-                { label: 'Verified', value: String(stats.verified), icon: 'fa-badge-check', bg: 'bg-amber-50', fg: 'text-amber-700' },
-              ].map((s) => (
+              {statCards.map((s) => (
                 <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
                   <i className={`fas ${s.icon} ${s.fg}`} />
                   <div className="min-w-0">
@@ -322,7 +368,10 @@ function AddressesContent() {
 
         {/* List */}
         {addresses.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+          <div
+            className={`grid grid-cols-1 lg:grid-cols-2 gap-3.5 transition-opacity ${refreshing ? 'opacity-60' : ''}`}
+            aria-busy={refreshing}
+          >
             {addresses.map((a) => (
               <AddressCard
                 key={a.id}
@@ -330,7 +379,7 @@ function AddressesContent() {
                 activatingId={activatingId}
                 onSetActive={handleSetActive}
                 onEdit={openEdit}
-                onDelete={(addr) => setDeleteTarget(addr)}
+                onDelete={handleDeleteTarget}
               />
             ))}
           </div>

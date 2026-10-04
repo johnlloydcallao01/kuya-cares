@@ -17,6 +17,17 @@ export async function GET(request: NextRequest) {
 
     // Perf: one parallel batch instead of 7 sequential finds.
     // authUser is already the depth:0 user doc — reuse it, no re-fetch.
+    // Avatar lookup only needs authUser, so kick it off in parallel with the
+    // main batch instead of sequentially after (saves ~1 RTT on cold loads).
+    const picId =
+      authUser.profilePicture && typeof authUser.profilePicture === 'object'
+        ? (authUser.profilePicture as any).id
+        : (authUser.profilePicture as number | string | null)
+    const mediaPromise: Promise<Record<string, any> | null> = picId
+      ? payload
+          .findByID({ collection: 'media', id: picId, depth: 0, overrideAccess: true })
+          .catch(() => null)
+      : Promise.resolve(null)
     const [customersRes, prefsRes, methods, devices, events, addressCount] = await Promise.all([
       payload.find({
         collection: 'customers',
@@ -63,32 +74,18 @@ export async function GET(request: NextRequest) {
     const customer = customersRes.docs[0] as any
     const prefsDocs = prefsRes.docs
 
-    const orderCount = customer
-      ? await payload
-          .count({ collection: 'orders', where: { customer: { equals: customer.id } }, overrideAccess: true })
-          .then((r: any) => r?.totalDocs ?? 0)
-          .catch(() => 0)
-      : 0
+    const [orderCount, media] = await Promise.all([
+      customer
+        ? payload
+            .count({ collection: 'orders', where: { customer: { equals: customer.id } }, overrideAccess: true })
+            .then((r: any) => r?.totalDocs ?? 0)
+            .catch(() => 0)
+        : Promise.resolve(0),
+      mediaPromise,
+    ])
 
     // Avatar URL: authUser has the media id at depth 0 — resolve just that doc.
-    let user: Record<string, any> = authUser
-    const picId =
-      authUser.profilePicture && typeof authUser.profilePicture === 'object'
-        ? authUser.profilePicture.id
-        : authUser.profilePicture
-    if (picId) {
-      try {
-        const media = await payload.findByID({
-          collection: 'media',
-          id: picId,
-          depth: 0,
-          overrideAccess: true,
-        })
-        user = { ...authUser, profilePicture: media }
-      } catch {
-        /* avatar best-effort */
-      }
-    }
+    const user: Record<string, any> = media ? { ...authUser, profilePicture: media } : authUser
 
     return NextResponse.json({
       data: {

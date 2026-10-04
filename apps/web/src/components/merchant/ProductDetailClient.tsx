@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Image from '@/components/ui/ImageWrapper';
 import ProductStickyHeader from '@/components/merchant/ProductStickyHeader';
 import ProductModifiers from '@/components/merchant/ProductModifiers';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Product, ModifierGroup, ModifierOption, ProductVariation } from '@/types/product';
+import { Product, ModifierGroup, ModifierOption, ProductVariation, GroupedChild } from '@/types/product';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
@@ -88,12 +88,20 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<string | number | null>(null);
+  // Grouped-bundle staging (mobile parity: ProductScreen grouped composer).
+  // Children come from prod-grouped-items (public read); availability comes
+  // from one batched merchant-products lookup below.
+  const [groupedItems, setGroupedItems] = useState<GroupedChild[]>([]);
+  const [groupedLoading, setGroupedLoading] = useState(false);
+  const [stagedGroupedIds, setStagedGroupedIds] = useState<Set<string>>(new Set());
+  const [stagingBusy, setStagingBusy] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const wishlistRequestInFlight = useRef(false);
   const queuedWishlistState = useRef<boolean | null>(null);
   const { addToCart, items } = useCart();
   const router = useRouter();
   const isVariableProduct = product?.productType === 'variable';
+  const isGroupedProduct = product?.productType === 'grouped';
   const selectedVariation = React.useMemo(() => {
     if (!product || !isVariableProduct || variations.length === 0) return null;
     if (selectedVariationId != null) {
@@ -148,17 +156,6 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
     return false;
   }, [product, modifierSelection]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const anyWindow = window as any;
-    anyWindow.__kuyaCaresProductDetailHasInvalidModifiers = hasInvalidModifiers;
-    window.dispatchEvent(
-      new CustomEvent('kuyaCares:productDetail:validation', {
-        detail: { hasInvalidModifiers },
-      }),
-    );
-  }, [hasInvalidModifiers]);
-
   const totalPrice = React.useMemo(() => {
     if (!product) return 0;
     let price = basePrice ?? 0;
@@ -174,8 +171,45 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   const isBelowPayMongoMinimum = totalPrice < PAYMONGO_MINIMUM_AMOUNT_PHP;
   const isUnavailable = isAvailable === false;
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const anyWindow = window as any;
+    anyWindow.__kuyaCaresProductDetailHasInvalidModifiers = hasInvalidModifiers;
+    // Full gate snapshot for the sticky mobile footer (mobile parity: the
+    // footer Add mirrors the desktop button's disabled state + live total).
+    // Placed after totalPrice/isUnavailable declarations (hook order + TDZ).
+    anyWindow.__kuyaCaresProductDetailGate = {
+      hasInvalidModifiers,
+      cannotAddVariableProduct,
+      isUnavailable: isUnavailable || isSelectedVariationOutOfStock,
+      isBelowPayMongoMinimum,
+      isAdding: isAddingToCart,
+      isGroupedProduct,
+      totalPrice,
+    };
+    window.dispatchEvent(
+      new CustomEvent('kuyaCares:productDetail:validation', {
+        detail: {
+          hasInvalidModifiers,
+          cannotAddVariableProduct,
+          isUnavailable: isUnavailable || isSelectedVariationOutOfStock,
+          isBelowPayMongoMinimum,
+          isAdding: isAddingToCart,
+          isGroupedProduct,
+          totalPrice,
+        },
+      }),
+    );
+  }, [hasInvalidModifiers, cannotAddVariableProduct, isUnavailable, isSelectedVariationOutOfStock, isBelowPayMongoMinimum, isAddingToCart, isGroupedProduct, totalPrice]);
+
   const handleAddToCart = useCallback(
     (quantityOverride?: number) => {
+      // Grouped parents are never added directly (mobile parity) — children
+      // are staged below and bulk-added instead.
+      if (isGroupedProduct) {
+        toast.error('Select grouped items below to add them together.');
+        return;
+      }
       if (isUnavailable) {
         toast.error('This item is currently unavailable from this merchant.');
         return;
@@ -289,14 +323,195 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
 
       run();
     },
-    [addToCart, basePrice, cannotAddVariableProduct, compareAtPrice, hasInvalidModifiers, hasVariationChoices, isBelowPayMongoMinimum, isUnavailable, merchantSlugId, product, productId, quantity, selectedVariation],
+    [addToCart, basePrice, cannotAddVariableProduct, compareAtPrice, hasInvalidModifiers, hasVariationChoices, isBelowPayMongoMinimum, isGroupedProduct, isUnavailable, merchantSlugId, product, productId, quantity, selectedVariation],
   );
+
+  // ---------- grouped-bundle staging (mobile parity) ----------
+  const isGroupedChildStageable = useCallback(
+    (c: GroupedChild): boolean =>
+      c.productType === 'simple' && c.merchantProductId != null && c.isAvailable,
+    [],
+  );
+
+  const stagedGrouped = useMemo(
+    () => groupedItems.filter((c) => stagedGroupedIds.has(c.key)),
+    [groupedItems, stagedGroupedIds],
+  );
+  const stagedGroupedCount = stagedGrouped.length;
+  const stagedGroupedUnits = useMemo(
+    () => stagedGrouped.reduce((s, c) => s + (c.defaultQuantity || 0), 0),
+    [stagedGrouped],
+  );
+  const stagedGroupedSubtotal = useMemo(
+    () =>
+      stagedGrouped.reduce((s, c) => s + (Number(c.basePrice ?? 0) * (c.defaultQuantity || 1)), 0),
+    [stagedGrouped],
+  );
+  const eligibleGrouped = useMemo(
+    () => groupedItems.filter((c) => isGroupedChildStageable(c)),
+    [groupedItems, isGroupedChildStageable],
+  );
+  const needsCustomizationCount = useMemo(
+    () => groupedItems.filter((c) => c.isAvailable && !isGroupedChildStageable(c)).length,
+    [groupedItems, isGroupedChildStageable],
+  );
+  const unavailableGroupedCount = useMemo(
+    () => groupedItems.filter((c) => !c.isAvailable).length,
+    [groupedItems],
+  );
+
+  const toggleStagedGrouped = useCallback((key: string) => {
+    setStagedGroupedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const selectAllEligibleGrouped = useCallback(() => {
+    setStagedGroupedIds(new Set(eligibleGrouped.map((c) => c.key)));
+  }, [eligibleGrouped]);
+
+  const resetStagedGrouped = useCallback(() => {
+    setStagedGroupedIds(new Set());
+  }, []);
+
+  const openGroupedChild = useCallback(
+    (c: GroupedChild) => {
+      const slug = String(c.name || 'item')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+      router.push(`/merchant/${merchantSlugId}/${slug}-${c.productId}` as any);
+    },
+    [router, merchantSlugId],
+  );
+
+  const handleAddGroupedToCart = useCallback(async () => {
+    if (stagedGrouped.length === 0 || stagingBusy) return;
+    setStagingBusy(true);
+    try {
+      let added = 0;
+      let skipped = 0;
+      for (const child of stagedGrouped) {
+        if (!Number.isFinite(merchantIdNum) || child.merchantProductId == null) {
+          skipped += 1;
+          continue;
+        }
+        try {
+          await addToCart({
+            merchantId: merchantIdNum,
+            productId: Number(child.productId),
+            merchantProductId: Number(child.merchantProductId),
+            quantity: child.defaultQuantity || 1,
+            priceAtAdd: Number(child.basePrice ?? 0),
+            compareAtPrice: child.compareAtPrice ?? null,
+            selectedModifiers: [],
+          });
+          added += 1;
+        } catch {
+          skipped += 1;
+        }
+      }
+      if (added > 0) {
+        setStagedGroupedIds(new Set());
+        setShowCartBar(true);
+        toast.success(
+          skipped > 0
+            ? `${added} item${added === 1 ? '' : 's'} added, ${skipped} unavailable skipped`
+            : `${added} item${added === 1 ? '' : 's'} added to cart`,
+        );
+      } else {
+        toast.error('Could not add grouped items — they may be unavailable.');
+      }
+    } finally {
+      setStagingBusy(false);
+    }
+  }, [stagedGrouped, stagingBusy, addToCart, merchantIdNum]);
 
   useEffect(() => {
     setShowCartBar(false);
     setSelectedVariationId(null);
     setVariations([]);
+    setGroupedItems([]);
+    setStagedGroupedIds(new Set());
   }, [merchantSlugId, productId]);
+
+  // Grouped children (mobile parity: services/product grouped fetch).
+  // prod-grouped-items is public-read; one batched merchant-products lookup
+  // resolves availability + merchantProductId per child.
+  useEffect(() => {
+    if (!isGroupedProduct || !product || !Number.isFinite(productIdNum) || !Number.isFinite(merchantIdNum)) {
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    (async () => {
+      setGroupedLoading(true);
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
+        if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
+        const gUrl = `${API_BASE}/prod-grouped-items?where[parent_product_id][equals]=${productIdNum}&sort=sort_order&limit=100&depth=1`;
+        const gRes = await fetch(gUrl, { headers, cache: 'no-store', signal: controller.signal });
+        if (!gRes.ok) throw new Error(String(gRes.status));
+        const gData = await gRes.json();
+        const rows: any[] = Array.isArray(gData?.docs) ? gData.docs : [];
+        const childIds = rows
+          .map((r: any) => (typeof r?.child_product_id === 'object' ? r.child_product_id?.id : r?.child_product_id))
+          .filter((id: any) => id != null);
+        const mpByProduct = new Map<string, any>();
+        if (childIds.length > 0) {
+          try {
+            const mpUrl = `${API_BASE}/merchant-products?where[merchant_id][equals]=${merchantIdNum}&where[product_id][in]=${childIds.join(',')}&limit=${childIds.length}&depth=0`;
+            const mpRes = await fetch(mpUrl, { headers, cache: 'no-store', signal: controller.signal });
+            if (mpRes.ok) {
+              const mpData = await mpRes.json();
+              for (const mp of (Array.isArray(mpData?.docs) ? mpData.docs : [])) {
+                const pid = typeof mp?.product_id === 'object' ? mp.product_id?.id : mp?.product_id;
+                if (pid != null) mpByProduct.set(String(pid), mp);
+              }
+            }
+          } catch {
+            /* availability unknown — children still list, add resolves later */
+          }
+        }
+        if (cancelled) return;
+        const mapped: GroupedChild[] = rows.map((r: any, i: number) => {
+          const child = (typeof r?.child_product_id === 'object' && r.child_product_id) || null;
+          const cid = child?.id ?? r?.child_product_id;
+          const mp = cid != null ? mpByProduct.get(String(cid)) : null;
+          const media = child?.media?.primaryImage || null;
+          return {
+            key: String(cid ?? `row-${i}`),
+            productId: cid,
+            name: child?.name || 'Item',
+            shortDescription: child?.shortDescription || null,
+            basePrice: typeof child?.basePrice === 'number' ? child.basePrice : null,
+            compareAtPrice: typeof child?.compareAtPrice === 'number' ? child.compareAtPrice : null,
+            productType: String(child?.productType || 'simple'),
+            imageUrl: media?.cloudinaryURL || media?.url || media?.thumbnailURL || null,
+            defaultQuantity: Number(r?.default_quantity) > 0 ? Math.floor(Number(r.default_quantity)) : 1,
+            merchantProductId: mp && mp.id != null ? mp.id : null,
+            isAvailable: mp ? mp.is_available !== false && mp.is_active !== false : true,
+          };
+        });
+        setGroupedItems(mapped);
+      } catch {
+        if (!cancelled) setGroupedItems([]);
+      } finally {
+        if (!cancelled) setGroupedLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [isGroupedProduct, product?.id, productIdNum, merchantIdNum]);
 
   useEffect(() => {
     let cancelled = false;
@@ -884,10 +1099,14 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                   </div>
                   <button
                     type="button"
-                    disabled={hasInvalidModifiers || isUnavailable || cannotAddVariableProduct || isBelowPayMongoMinimum || isAddingToCart}
+                    disabled={hasInvalidModifiers || isUnavailable || cannotAddVariableProduct || isBelowPayMongoMinimum || isAddingToCart || isGroupedProduct}
                     className="h-11 px-6 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: '#239459' }}
                     onClick={() => {
+                      if (isGroupedProduct) {
+                        toast.error('Select grouped items below to add them together.');
+                        return;
+                      }
                       if (!hasInvalidModifiers && !isUnavailable && !cannotAddVariableProduct && !isBelowPayMongoMinimum) {
                         handleAddToCart();
                       } else if (isUnavailable || isSelectedVariationOutOfStock) {
@@ -901,9 +1120,11 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                   >
                     {isAddingToCart
                       ? 'Adding…'
-                      : isUnavailable || isSelectedVariationOutOfStock
-                        ? 'Unavailable'
-                        : `Add to cart${formatPrice(totalPrice) ? ` • ${formatPrice(totalPrice)}` : ''}`}
+                      : isGroupedProduct
+                        ? 'Select items below'
+                        : isUnavailable || isSelectedVariationOutOfStock
+                          ? 'Unavailable'
+                          : `Add to cart${formatPrice(totalPrice) ? ` • ${formatPrice(totalPrice)}` : ''}`}
                   </button>
                 </div>
               )}
@@ -923,8 +1144,10 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
               </p>
             )}
             <div className="mt-3 flex items-baseline gap-3">
-              {formatPrice(basePrice) && (
+              {formatPrice(basePrice) ? (
                 <span className="text-2xl font-bold text-gray-900">{formatPrice(basePrice)}</span>
+              ) : (
+                <span className="text-lg font-medium text-gray-500">Price varies</span>
               )}
               {formatPrice(compareAtPrice) && (compareAtPrice as number) > (basePrice ?? 0) && (
                 <span className="text-base text-gray-500 line-through">{formatPrice(compareAtPrice)}</span>
@@ -942,7 +1165,12 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
 
           {isVariableProduct && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Choose variation</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                Choose variation{' '}
+                <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 align-middle">
+                  Required
+                </span>
+              </h2>
               {hasVariationChoices ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {variations.map((variation) => {
@@ -970,18 +1198,48 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                               : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-gray-900 line-clamp-1">{variation.name}</span>
+                        <div className="flex items-center gap-3">
                           <span
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
-                              outOfStock ? 'text-gray-500 bg-gray-100' : 'text-green-700 bg-green-50'
+                            className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                              isSelected ? 'border-[#eba236]' : 'border-gray-300'
                             }`}
+                            aria-hidden="true"
                           >
-                            {outOfStock ? 'Out of stock' : 'Available'}
+                            {isSelected && <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#eba236' }} />}
                           </span>
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                            {variation.image ? (
+                              <Image
+                                src={getImageUrl(variation.image) || ''}
+                                alt={variation.name}
+                                width={48}
+                                height={48}
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <span className="text-gray-600 text-xs font-medium">
+                                {variation.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`font-semibold line-clamp-1 ${outOfStock ? 'text-gray-400' : 'text-gray-900'}`}>{variation.name}</span>
+                              <span
+                                className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                  outOfStock ? 'text-gray-500 bg-gray-100' : 'text-green-700 bg-green-50'
+                                }`}
+                              >
+                                {outOfStock ? 'Out of stock' : 'Available'}
+                              </span>
+                            </div>
+                            {summary ? (
+                              <p className="mt-1 text-xs text-gray-500 line-clamp-2">{summary}</p>
+                            ) : null}
+                          </div>
                         </div>
-                        {summary ? (
-                          <p className="mt-1 text-xs text-gray-500 line-clamp-2">{summary}</p>
+                        {variation.short_description ? (
+                          <p className="mt-2 text-xs text-gray-500 line-clamp-2">{variation.short_description}</p>
                         ) : null}
                         <p className="mt-2 text-base font-bold text-gray-900">
                           {formatPrice(variation.base_price ?? 0)}
@@ -1016,6 +1274,224 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                 }
               }}
             />
+          )}
+
+          {isGroupedProduct && (
+            <div className="mt-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <h2 className="text-base font-extrabold text-gray-900">Build your bundle</h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Stage the items you want, review them here, then add everything to your order in one step.
+                </p>
+                {groupedLoading ? (
+                  <div className="mt-4 space-y-2 animate-pulse">
+                    <div className="h-3 bg-gray-200 rounded w-1/3" />
+                    <div className="h-2 bg-gray-100 rounded-full" />
+                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  </div>
+                ) : groupedItems.length > 0 ? (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                      <span>{stagedGroupedCount}/{groupedItems.length} selected</span>
+                      <span>{stagedGroupedUnits} units staged • {formatPrice(stagedGroupedSubtotal) ?? ''}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${groupedItems.length > 0 ? Math.round((stagedGroupedCount / groupedItems.length) * 100) : 0}%`,
+                          backgroundColor: '#eba236',
+                        }}
+                      />
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          stagedGroupedCount === eligibleGrouped.length && eligibleGrouped.length > 0
+                            ? resetStagedGrouped()
+                            : selectAllEligibleGrouped()
+                        }
+                        disabled={eligibleGrouped.length === 0}
+                        className="flex-1 py-2 rounded-xl text-[13px] font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {stagedGroupedCount === eligibleGrouped.length && eligibleGrouped.length > 0
+                          ? 'Clear all'
+                          : 'Select all eligible'}
+                      </button>
+                      {stagedGroupedCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={resetStagedGrouped}
+                          className="px-4 py-2 rounded-xl text-[13px] font-bold text-gray-500 hover:text-gray-700"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    {needsCustomizationCount > 0 && (
+                      <p className="text-[11px] text-gray-500 mt-2">
+                        {needsCustomizationCount} item{needsCustomizationCount === 1 ? '' : 's'} still need customization or a separate detail view before they can be staged here.
+                      </p>
+                    )}
+                    {unavailableGroupedCount > 0 && (
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        {unavailableGroupedCount} item{unavailableGroupedCount === 1 ? '' : 's'} are currently unavailable at this merchant.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <h3 className="text-base font-extrabold text-gray-900 mb-3">Included items</h3>
+                {groupedLoading ? (
+                  <div className="space-y-3">
+                    {[0, 1].map((i) => (
+                      <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse flex gap-3">
+                        <div className="w-[72px] h-[72px] rounded-xl bg-gray-200 flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-2/3" />
+                          <div className="h-3 bg-gray-100 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : groupedItems.length === 0 ? (
+                  <p className="text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 p-5 text-center">
+                    Grouped items are not available for this product yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {groupedItems.map((child) => {
+                      const staged = stagedGroupedIds.has(child.key);
+                      const stageable = isGroupedChildStageable(child);
+                      const childPrice = formatPrice(child.basePrice);
+                      return (
+                        <div
+                          key={child.key}
+                          className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 ${!child.isAvailable ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex gap-3">
+                            <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                              {child.imageUrl ? (
+                                <Image
+                                  src={child.imageUrl}
+                                  alt={child.name}
+                                  width={72}
+                                  height={72}
+                                  className="object-cover w-full h-full"
+                                />
+                              ) : (
+                                <span className="text-gray-600 text-sm font-bold">
+                                  {child.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
+                                  x{child.defaultQuantity}
+                                </span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 uppercase">
+                                  {child.productType}
+                                </span>
+                                {staged && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                    <i className="fas fa-check-circle" /> Staged
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[15px] font-bold text-gray-900 mt-1 truncate">{child.name}</p>
+                              {child.shortDescription && (
+                                <p className="text-xs text-gray-500 line-clamp-2">{child.shortDescription}</p>
+                              )}
+                              <p className="mt-1 text-sm font-bold text-gray-900">
+                                {childPrice ?? <span className="text-gray-400 font-medium">Price varies</span>}
+                                {child.compareAtPrice != null &&
+                                  child.compareAtPrice > (child.basePrice ?? 0) &&
+                                  formatPrice(child.compareAtPrice) && (
+                                    <span className="ml-2 text-xs font-normal text-gray-500 line-through">
+                                      {formatPrice(child.compareAtPrice)}
+                                    </span>
+                                  )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className={`text-xs ${child.isAvailable ? 'text-gray-500' : 'text-red-600 font-medium'}`}>
+                              {!child.isAvailable
+                                ? 'Currently unavailable'
+                                : staged
+                                  ? `Ready to add x${child.defaultQuantity}`
+                                  : stageable
+                                    ? 'Tap to stage this item'
+                                    : 'Open for customization'}
+                            </span>
+                            {!child.isAvailable ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-gray-100 text-gray-400 cursor-not-allowed"
+                              >
+                                Unavailable
+                              </button>
+                            ) : staged ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleStagedGrouped(child.key)}
+                                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-gray-900 text-white hover:opacity-90"
+                              >
+                                Remove
+                              </button>
+                            ) : stageable ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleStagedGrouped(child.key)}
+                                className="px-4 py-2 rounded-xl text-[13px] font-bold text-white hover:opacity-90"
+                                style={{ backgroundColor: '#eba236' }}
+                              >
+                                Add
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openGroupedChild(child)}
+                                className="px-4 py-2 rounded-xl text-[13px] font-bold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                {child.productType === 'variable' ? 'Choose' : child.productType === 'grouped' ? 'Open' : 'Customize'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {stagedGroupedCount > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900">
+                      {stagedGroupedCount}/{groupedItems.length} items staged
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {stagedGroupedUnits} units • {formatPrice(stagedGroupedSubtotal) ?? ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddGroupedToCart}
+                    disabled={stagingBusy}
+                    className="px-6 py-2.5 rounded-full font-semibold text-white text-sm shadow-md hover:shadow-lg transition-colors disabled:opacity-60"
+                    style={{ backgroundColor: '#239459' }}
+                  >
+                    {stagingBusy ? 'Adding…' : `Add to Order • ${formatPrice(stagedGroupedSubtotal) ?? ''}`}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

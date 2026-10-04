@@ -47,7 +47,10 @@ export const Users: CollectionConfig = {
             const prev = previousDoc as Record<string, any>
             const next = doc as Record<string, any>
             if (prev.hash !== next.hash) {
-              await req.payload
+              // Perf: audit must never block the profile PUT response (was an
+              // awaited INSERT on the critical path). Fire-and-forget like
+              // Addresses.afterChange.
+              void req.payload
                 .create({
                   collection: 'user-events',
                   data: {
@@ -82,7 +85,9 @@ export const Users: CollectionConfig = {
             ]
             const changed = watched.filter((f) => JSON.stringify(prev[f] ?? null) !== JSON.stringify(next[f] ?? null))
             if (changed.length > 0) {
-              await req.payload
+              // Perf: same — audit off the critical path. Response no longer
+              // waits for the user-events INSERT (address-save pattern).
+              void req.payload
                 .create({
                   collection: 'user-events',
                   data: {

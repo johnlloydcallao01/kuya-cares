@@ -27,6 +27,10 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
   const [error, setError] = React.useState<string | null>(null);
   const [products, setProducts] = React.useState<ProductCardItem[]>([]);
   const [categories, setCategories] = React.useState<MerchantCategoryDisplay[]>([]);
+  // Product ids carrying at least one REQUIRED modifier group (mobile
+  // parity: merchant-client-service required-modifier check). Simple items
+  // in this set must open the PDP instead of direct-adding.
+  const [requiredModifierProductIds, setRequiredModifierProductIds] = React.useState<Set<string | number>>(new Set());
   const [page, setPage] = React.useState<number>(1);
   const [hasMore, setHasMore] = React.useState<boolean>(false);
   const [loadingMore, setLoadingMore] = React.useState<boolean>(false);
@@ -104,6 +108,30 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
         const initialItems = items.filter((p) => p && p.name);
         setProducts(initialItems);
         setCategories([...uniqueCategories, { id: 0, name: "Uncategorized", slug: "uncategorized" }]);
+        // Single batched required-modifier lookup for the whole page (mobile
+        // parity without N queries): simple items flagged here route to the
+        // PDP instead of direct-adding and CMS-400ing.
+        try {
+          const numericIds = initialItems
+            .map((p) => (typeof p.id === 'number' ? p.id : Number(String(p.id).split('-').pop() || '')))
+            .filter((id) => Number.isFinite(id));
+          if (numericIds.length > 0) {
+            const modUrl = `${API_BASE}/modifier-groups?where[product_id][in]=${numericIds.join(',')}&where[is_required][equals]=true&limit=${numericIds.length}&depth=0`;
+            const modRes = await fetch(modUrl, { headers, cache: 'no-store', signal: controller.signal });
+            if (modRes.ok) {
+              const modData = await modRes.json();
+              const flagged = new Set<string | number>();
+              for (const g of (Array.isArray(modData?.docs) ? modData.docs : [])) {
+                const pid = g?.product_id;
+                const id = typeof pid === 'number' || typeof pid === 'string' ? pid : (pid as any)?.id;
+                if (id != null) flagged.add(id);
+              }
+              if (active) setRequiredModifierProductIds(flagged);
+            }
+          }
+        } catch {
+          /* modifier gate best-effort: CMS error text still guides on failure */
+        }
         const currentPage = Number(data?.page ?? 1);
         const totalPages = Number(data?.totalPages ?? (data?.hasNextPage ? currentPage + 1 : currentPage));
         const nextPossible = Boolean(data?.hasNextPage ?? (currentPage < totalPages));
@@ -256,7 +284,7 @@ export default function MerchantProductsClient({ merchantId }: { merchantId: str
         </>
       ) : products && products.length > 0 ? (
         <>
-          <MerchantProductGrid products={products} categories={categories} />
+          <MerchantProductGrid products={products} categories={categories} requiredModifierProductIds={requiredModifierProductIds} />
           <div ref={loadMoreRef} />
           {loadingMore && (
             <div className="px-2.5 mt-4">

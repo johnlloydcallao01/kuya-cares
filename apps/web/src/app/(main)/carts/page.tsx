@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function CartPage() {
-  const { items, isLoading, removeItem } = useCart();
+  const { items, isLoading, error, reload, clearMerchantCart } = useCart();
   const router = useRouter();
   const [activeMerchantId, setActiveMerchantId] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -75,10 +75,9 @@ export default function CartPage() {
 
   const handleDeleteCart = async () => {
     if (activeMerchantId == null) return;
-    const toRemove = items.filter((item) => item.merchant === activeMerchantId);
-    for (const item of toRemove) {
-      await removeItem(item.id);
-    }
+    // Parallel soft-removes (mobile clearMerchantCart parity) — the old
+    // sequential loop stalled multi-item carts on one slow request.
+    await clearMerchantCart(activeMerchantId);
     setActiveMerchantId(null);
   };
 
@@ -161,11 +160,6 @@ export default function CartPage() {
           <div className="px-2.5 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-semibold text-gray-900">Your Carts</h1>
-              <div className="flex items-center space-x-3">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <i className="fas fa-search text-gray-600"></i>
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -177,16 +171,29 @@ export default function CartPage() {
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
           <p className="text-gray-600 text-center mb-8 max-w-sm">
-            Looks like you haven&apos;t added any items to your cart yet. Start browsing to find delicious food!
+            {error
+              ? `We couldn't load your cart (${error}). Check your connection and try again.`
+              : "Looks like you haven't added any items to your cart yet. Start browsing to find delicious food!"}
           </p>
-          <button 
-            className="text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-colors"
-            style={{backgroundColor: '#239459'}}
-            onClick={() => router.push('/' as any)}
-          >
-            <i className="fas fa-utensils mr-2"></i>
-            Browse Restaurants
-          </button>
+          {error ? (
+            <button
+              className="text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-colors"
+              style={{ backgroundColor: '#239459' }}
+              onClick={() => reload()}
+            >
+              <i className="fas fa-redo mr-2"></i>
+              Retry
+            </button>
+          ) : (
+            <button
+              className="text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-colors"
+              style={{ backgroundColor: '#239459' }}
+              onClick={() => router.push('/' as any)}
+            >
+              <i className="fas fa-utensils mr-2"></i>
+              Browse Restaurants
+            </button>
+          )}
         </div>
       </div>
     );
@@ -259,7 +266,7 @@ export default function CartPage() {
                   {group.items.map((item) => (
                     <div
                       key={item.id}
-                      className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0"
+                      className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 relative"
                     >
                       {item.imageUrl ? (
                         <ImageWrapper
@@ -271,6 +278,13 @@ export default function CartPage() {
                         />
                       ) : (
                         <span className="text-[10px] text-gray-400">No image</span>
+                      )}
+                      {/* Quantity badge (mobile parity): only when qty > 1. */}
+                      {item.quantity > 1 && (
+                        <span className="absolute -top-0 -right-0 min-w-[20px] h-5 px-1 rounded-full text-white text-[11px] font-bold flex items-center justify-center"
+                          style={{ backgroundColor: '#F59E0B' }}>
+                          {item.quantity > 99 ? '99+' : item.quantity}
+                        </span>
                       )}
                     </div>
                   ))}

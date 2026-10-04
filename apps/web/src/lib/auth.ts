@@ -120,10 +120,17 @@ export async function makeAuthRequest<T>(
 const SESSION_DAYS = 30;
 const SESSION_MILLIS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 
-function persistSessionMirror(token: string, user: User): void {
+/**
+ * Canonical mirror writer (web-admin parity: cookie + CMS JWT 30d are truth,
+ * localStorage is only a convenience mirror for direct CMS fetches).
+ * Uses server `exp` (seconds) when available so the mirror matches the JWT;
+ * falls back to wall-clock +30d for seeded init where exp is unknown.
+ * Exported so AuthContext uses the same keys/expiry (no divergence).
+ */
+export function persistSessionMirror(token: string, user: User, exp?: number): void {
   if (typeof window === 'undefined') return;
   try {
-    const expiresAt = Date.now() + SESSION_MILLIS;
+    const expiresAt = exp && Number.isFinite(exp) ? exp * 1000 : Date.now() + SESSION_MILLIS;
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(EXPIRES_KEY, expiresAt.toString());
@@ -176,7 +183,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
     const response = await serverLogin(credentials);
 
     if (response.token && response.user) {
-      persistSessionMirror(response.token, response.user);
+      persistSessionMirror(response.token, response.user, response.exp);
     }
 
     return response;
@@ -184,7 +191,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
     // Pass through the human-readable messages raised by the server action.
     throw error instanceof Error ? error : new Error('Login failed');
   }
-}
+ }
 
 export async function logout(): Promise<void> {
   try {
@@ -214,10 +221,12 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function refreshSession(): Promise<AuthResponse> {
   try {
+    // Manual-only sliding renewal (web-admin parity): re-issues cookie maxAge
+    // 30d + fresh JWT 30d. No auto-polling wired — call from useSession only.
     const response = await serverRefresh();
 
     if (response.token && response.user) {
-      persistSessionMirror(response.token, response.user);
+      persistSessionMirror(response.token, response.user, response.exp);
     }
 
     return response;
@@ -237,8 +246,10 @@ export async function checkAuthStatus(): Promise<boolean> {
 }
 
 /**
- * Legacy helper kept for compatibility. The authoritative check is the server
- * cookie via getServerUser(), not the mirrored localStorage expiry.
+ * Mirror validity helper (compat only). Authoritative check is the server
+ * cookie via getServerUser()/getCurrentUser() — same as web-admin where
+ * EXPIRES is never written and this always returns false. Here EXPIRES is
+ * written from server `exp` so direct-CMS fetches can pre-check expiry.
  */
 export function hasValidStoredToken(): boolean {
   if (typeof window === 'undefined') {

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Image from '@/components/ui/ImageWrapper';
+import Link from 'next/link';
 import LocationMerchantCard from '@/components/cards/LocationMerchantCard';
 import {
   getActiveAddressNamesForMerchants,
@@ -19,13 +20,17 @@ import { toast } from 'react-hot-toast';
 
 type RecentViewDoc = any;
 
+// Hoisted (§docs/performance.md §4b item 1 — kill per-row CPU): one shared
+// formatter instead of `new Intl.NumberFormat` per card per render.
+const phpFormatter = new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+  minimumFractionDigits: 2,
+});
+
 const formatCurrency = (value: number | null | undefined) => {
   if (value == null) return null;
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    minimumFractionDigits: 2,
-  }).format(Number(value));
+  return phpFormatter.format(Number(value));
 };
 
 const toSlug = (name: string | null | undefined): string => {
@@ -53,23 +58,167 @@ const buildMerchantSlugId = (merchant: any): string => {
   return idPart ? `${slug}-${idPart}` : slug || 'merchant';
 };
 
-const formatViewedAt = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+// Short-TTL list cache (§docs/performance.md §4 cache wrapper, client-side
+// analogue): the 40-doc depth=2 history is per-user and revalidates on
+// every mount with zero sharing. Coalesce concurrent mounts onto one fetch
+// and reuse rows for 2 minutes; mutations bust it (write-through).
+const RECENT_VIEWS_TTL_MS = 2 * 60 * 1000;
+const recentViewsCache = new Map<string, { data: RecentViewDoc[]; ts: number }>();
+const recentViewsInflight = new Map<string, Promise<RecentViewDoc[]>>();
+
+function bustRecentViewsCache(userId: string | number | null | undefined): void {
+  if (userId == null) return;
+  recentViewsCache.delete(String(userId));
+}
+
+function readStoredUserId(): string | number | null {
+  if (typeof window === 'undefined') return null;
+  const userStr = window.localStorage.getItem('grandline_auth_user');
+  if (!userStr) return null;
+  try {
+    const id = JSON.parse(userStr)?.id;
+    return typeof id === 'number' || typeof id === 'string' ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function MerchantTile({
+  doc,
+  merchantDetailsMap,
+  etaMap,
+  addressMap,
+  wishlistIds,
+  onToggleWishlist,
+}: {
+  doc: RecentViewDoc;
+  merchantDetailsMap: Record<string, any>;
+  etaMap: Record<string, string>;
+  addressMap: Record<string, string>;
+  wishlistIds: Set<string>;
+  onToggleWishlist: (id: string) => void;
+}) {
+  const baseMerchant = doc.merchant;
+  const merchantId = String(baseMerchant.id);
+  const detailedMerchant = merchantDetailsMap[merchantId] || baseMerchant;
+  const merchantWithEta = {
+    ...detailedMerchant,
+    estimatedDeliveryTime:
+      etaMap[merchantId] ||
+      detailedMerchant.estimatedDeliveryTime ||
+      detailedMerchant.deliverySettings?.estimatedDeliveryTime ||
+      '',
+  };
+  return (
+    <LocationMerchantCard
+      key={`merchant-${doc.id}`}
+      merchant={merchantWithEta as any}
+      isWishlisted={wishlistIds.has(merchantId)}
+      onToggleWishlist={() => onToggleWishlist(merchantId)}
+      addressName={addressMap[String(detailedMerchant.id)] || null}
+    />
+  );
+}
+
+function ProductTile({ doc }: { doc: RecentViewDoc }) {
+  const merchant = doc?.merchant || doc?.merchantProduct?.merchant_id;
+  const product = doc?.product || doc?.merchantProduct?.product_id;
+  if (!merchant || !product) return null;
+  const merchantSlugId = buildMerchantSlugId(merchant);
+  const productSlugId = `${toSlug(product?.name)}-${product?.id}`;
+  const href = `/merchant/${merchantSlugId}/${productSlugId}`;
+  const primaryImage =
+    product?.media?.primaryImage || product?.media?.image || null;
+  const imageUrl =
+    primaryImage?.cloudinaryURL ||
+    primaryImage?.url ||
+    primaryImage?.thumbnailURL ||
+    null;
+  const price = formatCurrency(product?.basePrice ?? null);
+  const compareAt = formatCurrency(product?.compareAtPrice ?? null);
+  return (
+    <div
+      key={`product-${doc.id}`}
+      className="bg-white rounded-lg shadow-sm overflow-hidden"
+    >
+      <Link href={href}>
+        <div className="relative aspect-square bg-gray-100">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={product?.name || 'Product'}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 300px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              No image
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
+            {product?.name}
+          </h3>
+          <p className="mt-1 text-xs text-gray-500 line-clamp-1">
+            {merchant?.outletName || merchant?.vendor?.businessName || ''}
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            {price && (
+              <span className="text-base font-bold text-gray-900">{price}</span>
+            )}
+            {compareAt &&
+              product?.compareAtPrice > (product?.basePrice ?? 0) && (
+                <span className="text-sm text-gray-500 line-through">
+                  {compareAt}
+                </span>
+              )}
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+async function fetchRecentViews(
+  apiBase: string,
+  headers: Record<string, string>,
+  userId: string | number,
+): Promise<RecentViewDoc[]> {
+  const key = String(userId);
+  const hit = recentViewsCache.get(key);
+  if (hit && Date.now() - hit.ts <= RECENT_VIEWS_TTL_MS) return hit.data;
+  const running = recentViewsInflight.get(key);
+  if (running) return running;
+  const p = (async (): Promise<RecentViewDoc[]> => {
+    try {
+      const url =
+        `${apiBase}/recent-views?where[user][equals]=${encodeURIComponent(key)}` +
+        `&sort=-lastViewedAt&limit=40&depth=2`;
+      const res = await fetch(url, { headers, cache: 'no-store' });
+      if (!res.ok) return hit?.data ?? [];
+      const data = await res.json();
+      const docs = Array.isArray(data?.docs) ? data.docs : [];
+      recentViewsCache.set(key, { data: docs, ts: Date.now() });
+      return docs;
+    } catch {
+      return hit?.data ?? [];
+    } finally {
+      recentViewsInflight.delete(key);
+    }
+  })();
+  recentViewsInflight.set(key, p);
+  return p;
+}
 
 export default function RecentlyViewedPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [recentViews, setRecentViews] = useState<RecentViewDoc[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start true (§docs/performance.md §14 — never serve blank): first commit
+  // paints the skeleton instead of an empty grid flashing into content.
+  const [isLoading, setIsLoading] = useState(true);
   const [addressMap, setAddressMap] = useState<Record<string, string>>({});
   const [etaMap, setEtaMap] = useState<Record<string, string>>({});
   const [merchantDetailsMap, setMerchantDetailsMap] = useState<Record<string, any>>({});
@@ -98,6 +247,7 @@ export default function RecentlyViewedPage() {
             setRecentViews([]);
             setAddressMap({});
             setEtaMap({});
+            setIsLoading(false);
           }
           return;
         }
@@ -108,22 +258,20 @@ export default function RecentlyViewedPage() {
         };
         const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
         if (apiKey) headers['Authorization'] = `users API-Key ${apiKey}`;
-        const url = `${API_BASE}/recent-views?where[user][equals]=${encodeURIComponent(
-          String(userId),
-        )}&sort=-lastViewedAt&limit=40&depth=2`;
-        const res = await fetch(url, { headers, cache: 'no-store' });
-        if (!res.ok) {
-          if (!cancelled) {
-            setRecentViews([]);
-            setAddressMap({});
-            setEtaMap({});
-          }
+        // Cached + coalesced (§4): repeat visits within TTL skip the
+        // 40-doc depth=2 refetch entirely.
+        const docs = await fetchRecentViews(API_BASE, headers, userId);
+        if (cancelled) return;
+        setRecentViews(docs);
+        // Paint the grid NOW — enrichment maps (details / addresses / ETA)
+        // stream in below without holding the skeleton (§24: skeleton only
+        // on true first paint; background work never re-flashes it).
+        setIsLoading(false);
+        if (docs.length === 0) {
+          setAddressMap({});
+          setEtaMap({});
           return;
         }
-        const data = await res.json();
-        const docs = Array.isArray(data?.docs) ? data.docs : [];
-        if (!cancelled) {
-          setRecentViews(docs);
           const uniqueMerchantIds: string[] = Array.from(
             new Set<string>(
               docs
@@ -134,26 +282,6 @@ export default function RecentlyViewedPage() {
                 .map((doc: any) => String(doc.merchant.id)),
             ),
           );
-          if (uniqueMerchantIds.length > 0) {
-            const detailsEntries: [string, any][] = [];
-            for (const id of uniqueMerchantIds) {
-              try {
-                const full = await MerchantClientService.getMerchantById(id);
-                if (full) {
-                  detailsEntries.push([id, full]);
-                }
-              } catch {}
-            }
-            if (!cancelled && detailsEntries.length > 0) {
-              setMerchantDetailsMap((prev) => {
-                const next = { ...prev };
-                for (const [id, full] of detailsEntries) {
-                  next[id] = full;
-                }
-                return next;
-              });
-            }
-          }
           const merchantDocs: LocationBasedMerchant[] = docs
             .filter(
               (doc: any) =>
@@ -170,7 +298,43 @@ export default function RecentlyViewedPage() {
                 estimatedDeliveryTime,
               } as LocationBasedMerchant;
             });
-          if (merchantDocs.length > 0) {
+          // Enrichment fan-out (§docs/performance.md §4): details (bounded,
+          // cached, singleflight) + per-merchant address names + ETA sidecar
+          // run concurrently — the old code awaited all three sequentially
+          // (details serially, one await per merchant).
+          const DETAILS_CONCURRENCY = 5;
+          const fetchDetails = (async () => {
+            if (uniqueMerchantIds.length === 0) return;
+            const queue = [...uniqueMerchantIds];
+            const entries: [string, any][] = [];
+            const workers = Array.from(
+              { length: Math.min(DETAILS_CONCURRENCY, queue.length) },
+              async () => {
+                while (queue.length > 0) {
+                  const id = queue.shift() as string;
+                  try {
+                    const full = await MerchantClientService.getMerchantById(id);
+                    if (full) entries.push([id, full]);
+                  } catch {}
+                }
+              },
+            );
+            await Promise.all(workers);
+            if (!cancelled && entries.length > 0) {
+              setMerchantDetailsMap((prev) => {
+                const next = { ...prev };
+                for (const [id, full] of entries) {
+                  next[id] = full;
+                }
+                return next;
+              });
+            }
+          })();
+          const fetchAddresses = (async () => {
+            if (merchantDocs.length === 0) {
+              if (!cancelled) setAddressMap({});
+              return;
+            }
             try {
               const map =
                 await getActiveAddressNamesForMerchants(merchantDocs);
@@ -178,39 +342,47 @@ export default function RecentlyViewedPage() {
             } catch {
               if (!cancelled) setAddressMap({});
             }
+          })();
+          const fetchEta = (async () => {
+            if (merchantDocs.length === 0) {
+              if (!cancelled) setEtaMap({});
+              return;
+            }
             try {
               const customerId = await getCurrentCustomerId();
-              if (customerId) {
-                const locationMerchants = await getLocationBasedMerchants({
-                  customerId,
-                  limit: 200,
-                });
-                const nextEtaMap: Record<string, string> = {};
-                for (const m of locationMerchants) {
-                  if (m.estimatedDeliveryTime) {
-                    nextEtaMap[String(m.id)] = m.estimatedDeliveryTime;
-                  }
-                }
-                if (!cancelled) setEtaMap(nextEtaMap);
-              } else if (!cancelled) {
-                setEtaMap({});
+              if (!customerId) {
+                if (!cancelled) setEtaMap({});
+                return;
               }
+              // Bounded sidecar: page holds ≤40 recent docs, so a 100-row
+              // location pool covers the ETA join (was: hardcoded 200).
+              // Shared singleflight cache coalesces with homepage/header.
+              const locationMerchants = await getLocationBasedMerchants({
+                customerId,
+                limit: 100,
+              });
+              const nextEtaMap: Record<string, string> = {};
+              for (const m of locationMerchants) {
+                if (m.estimatedDeliveryTime) {
+                  nextEtaMap[String(m.id)] = m.estimatedDeliveryTime;
+                }
+              }
+              if (!cancelled) setEtaMap(nextEtaMap);
             } catch {
               if (!cancelled) setEtaMap({});
             }
-          } else {
-            setAddressMap({});
-            setEtaMap({});
-          }
-        }
+          })();
+          // Fire-and-forget: maps stream into state as each branch settles.
+          // The grid is already painted (isLoading=false above), so the slow
+          // ETA pool + backfill never gate first paint.
+          void Promise.allSettled([fetchDetails, fetchAddresses, fetchEta]);
       } catch {
         if (!cancelled) {
           setRecentViews([]);
           setAddressMap({});
           setEtaMap({});
+          setIsLoading(false);
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
     };
     run();
@@ -325,8 +497,27 @@ export default function RecentlyViewedPage() {
     });
   }, [recentViews, activeFilter, searchQuery]);
 
+  // Single-pass split (§4b: no double map with return-null): the 'all' view
+  // rendered filteredDocs twice and mounted empty sections.
+  const { merchantTiles, productTiles } = useMemo(() => {
+    const merchants: RecentViewDoc[] = [];
+    const products: RecentViewDoc[] = [];
+    for (const doc of filteredDocs) {
+      if (doc?.itemType === 'merchant' && doc?.merchant) merchants.push(doc);
+      else if (
+        doc?.itemType === 'merchant_product' &&
+        (doc?.product || doc?.merchantProduct)
+      )
+        products.push(doc);
+    }
+    return { merchantTiles: merchants, productTiles: products };
+  }, [filteredDocs]);
+
   const handleRemoveFromHistory = async (docId: number | string) => {
     setRecentViews((prev) => prev.filter((doc) => doc?.id !== docId));
+    // Write-through (§4 step 7 analogue): the cached list no longer matches
+    // the server, so drop it — next mount refetches instead of flashing stale.
+    bustRecentViewsCache(readStoredUserId());
     try {
       const API_BASE =
         process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
@@ -344,6 +535,8 @@ export default function RecentlyViewedPage() {
 
   const clearAllHistory = async () => {
     setRecentViews([]);
+    // Write-through: cleared history must not resurrect from cache.
+    bustRecentViewsCache(readStoredUserId());
     try {
       const userStr =
         typeof window !== 'undefined'
@@ -434,7 +627,7 @@ export default function RecentlyViewedPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && recentViews.length === 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="group cursor-pointer animate-pulse">
@@ -456,220 +649,55 @@ export default function RecentlyViewedPage() {
         ) : filteredDocs.length > 0 ? (
           activeFilter === 'all' ? (
             <div className="space-y-10">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                  Recently viewed restaurants
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredDocs.map((doc) => {
-                    const itemType = doc?.itemType;
-                    if (itemType === 'merchant' && doc?.merchant) {
-                      const baseMerchant = doc.merchant;
-                      const merchantId = String(baseMerchant.id);
-                      const detailedMerchant = merchantDetailsMap[merchantId] || baseMerchant;
-                      const merchantWithEta = {
-                        ...detailedMerchant,
-                        estimatedDeliveryTime:
-                          etaMap[merchantId] ||
-                          detailedMerchant.estimatedDeliveryTime ||
-                          detailedMerchant.deliverySettings?.estimatedDeliveryTime ||
-                          '',
-                      };
-                      return (
-                        <LocationMerchantCard
-                          key={`merchant-${doc.id}`}
-                          merchant={merchantWithEta as any}
-                          isWishlisted={wishlistIds.has(merchantId)}
-                          onToggleWishlist={() => toggleWishlist(merchantId)}
-                          addressName={addressMap[detailedMerchant.id] || null}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
+              {merchantTiles.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                    Recently viewed restaurants
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {merchantTiles.map((doc) => (
+                      <MerchantTile
+                        key={`merchant-${doc.id}`}
+                        doc={doc}
+                        merchantDetailsMap={merchantDetailsMap}
+                        etaMap={etaMap}
+                        addressMap={addressMap}
+                        wishlistIds={wishlistIds}
+                        onToggleWishlist={toggleWishlist}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                  Recently viewed food items
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredDocs.map((doc) => {
-                    const itemType = doc?.itemType;
-                    if (itemType === 'merchant_product') {
-                      const merchant =
-                        doc?.merchant || doc?.merchantProduct?.merchant_id;
-                      const product =
-                        doc?.product || doc?.merchantProduct?.product_id;
-                      if (!merchant || !product) return null;
-                      const merchantSlugId = buildMerchantSlugId(merchant);
-                      const productSlugId = `${toSlug(product?.name)}-${product?.id}`;
-                      const href = `/merchant/${merchantSlugId}/${productSlugId}`;
-                      const primaryImage =
-                        product?.media?.primaryImage ||
-                        product?.media?.image ||
-                        null;
-                      const imageUrl =
-                        primaryImage?.cloudinaryURL ||
-                        primaryImage?.url ||
-                        primaryImage?.thumbnailURL ||
-                        null;
-                      const price = formatCurrency(product?.basePrice ?? null);
-                      const compareAt = formatCurrency(
-                        product?.compareAtPrice ?? null,
-                      );
-                      const LinkComponent: any = require('next/link').default;
-                      return (
-                        <div
-                          key={`product-${doc.id}`}
-                          className="bg-white rounded-lg shadow-sm overflow-hidden"
-                        >
-                          <LinkComponent href={href}>
-                            <div className="relative aspect-square bg-gray-100">
-                              {imageUrl ? (
-                                <Image
-                                  src={imageUrl}
-                                  alt={product?.name || 'Product'}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                                  No image
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-4">
-                              <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
-                                {product?.name}
-                              </h3>
-                              <p className="mt-1 text-xs text-gray-500 line-clamp-1">
-                                {merchant?.outletName ||
-                                  merchant?.vendor?.businessName ||
-                                  ''}
-                              </p>
-                              <div className="mt-2 flex items-center gap-2">
-                                {price && (
-                                  <span className="text-base font-bold text-gray-900">
-                                    {price}
-                                  </span>
-                                )}
-                                {compareAt &&
-                                  product?.compareAtPrice >
-                                    (product?.basePrice ?? 0) && (
-                                    <span className="text-sm text-gray-500 line-through">
-                                      {compareAt}
-                                    </span>
-                                  )}
-                              </div>
-                            </div>
-                          </LinkComponent>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
+              )}
+              {productTiles.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">
+                    Recently viewed food items
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {productTiles.map((doc) => (
+                      <ProductTile key={`product-${doc.id}`} doc={doc} />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredDocs.map((doc) => {
-                const itemType = doc?.itemType;
-                if (itemType === 'merchant' && doc?.merchant) {
-                  const baseMerchant = doc.merchant;
-                  const merchantId = String(baseMerchant.id);
-                  const detailedMerchant = merchantDetailsMap[merchantId] || baseMerchant;
-                  const merchantWithEta = {
-                    ...detailedMerchant,
-                    estimatedDeliveryTime:
-                      etaMap[merchantId] ||
-                      detailedMerchant.estimatedDeliveryTime ||
-                      detailedMerchant.deliverySettings?.estimatedDeliveryTime ||
-                      '',
-                  };
-                  return (
-                    <LocationMerchantCard
-                      key={`merchant-${doc.id}`}
-                      merchant={merchantWithEta as any}
-                      isWishlisted={false}
-                      addressName={addressMap[detailedMerchant.id] || null}
-                    />
-                  );
-                }
-                if (itemType === 'merchant_product') {
-                  const merchant =
-                    doc?.merchant || doc?.merchantProduct?.merchant_id;
-                  const product =
-                    doc?.product || doc?.merchantProduct?.product_id;
-                  if (!merchant || !product) return null;
-                  const merchantSlugId = buildMerchantSlugId(merchant);
-                  const productSlugId = `${toSlug(product?.name)}-${product?.id}`;
-                  const href = `/merchant/${merchantSlugId}/${productSlugId}`;
-                  const primaryImage =
-                    product?.media?.primaryImage ||
-                    product?.media?.image ||
-                    null;
-                  const imageUrl =
-                    primaryImage?.cloudinaryURL ||
-                    primaryImage?.url ||
-                    primaryImage?.thumbnailURL ||
-                    null;
-                  const price = formatCurrency(product?.basePrice ?? null);
-                  const compareAt = formatCurrency(
-                    product?.compareAtPrice ?? null,
-                  );
-                  const LinkComponent: any = require('next/link').default;
-                  return (
-                    <div
-                      key={`product-${doc.id}`}
-                      className="bg-white rounded-lg shadow-sm overflow-hidden"
-                    >
-                      <LinkComponent href={href}>
-                        <div className="relative aspect-square bg-gray-100">
-                          {imageUrl ? (
-                            <Image
-                              src={imageUrl}
-                              alt={product?.name || 'Product'}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-4">
-                          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
-                            {product?.name}
-                          </h3>
-                          <p className="mt-1 text-xs text-gray-500 line-clamp-1">
-                            {merchant?.outletName ||
-                              merchant?.vendor?.businessName ||
-                              ''}
-                          </p>
-                          <div className="mt-2 flex items-center gap-2">
-                            {price && (
-                              <span className="text-base font-bold text-gray-900">
-                                {price}
-                              </span>
-                            )}
-                            {compareAt &&
-                              product?.compareAtPrice >
-                                (product?.basePrice ?? 0) && (
-                                <span className="text-sm text-gray-500 line-through">
-                                  {compareAt}
-                                </span>
-                              )}
-                          </div>
-                        </div>
-                      </LinkComponent>
-                    </div>
-                  );
-                }
-                return null;
-              })}
+              {merchantTiles.map((doc) => (
+                <MerchantTile
+                  key={`merchant-${doc.id}`}
+                  doc={doc}
+                  merchantDetailsMap={merchantDetailsMap}
+                  etaMap={etaMap}
+                  addressMap={addressMap}
+                  wishlistIds={wishlistIds}
+                  onToggleWishlist={toggleWishlist}
+                />
+              ))}
+              {productTiles.map((doc) => (
+                <ProductTile key={`product-${doc.id}`} doc={doc} />
+              ))}
             </div>
           )
         ) : (

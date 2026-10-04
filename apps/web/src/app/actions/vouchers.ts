@@ -86,7 +86,7 @@ export async function getClaimableVouchers(input: {
   return Array.isArray(json?.data) ? json.data.map(mapVoucher) : [];
 }
 
-export async function getMyVouchers(filter: MineFilter = 'available'): Promise<MyVoucher[]> {
+export async function getMyVouchers(filter: MineFilter | 'all' = 'available'): Promise<MyVoucher[]> {
   const userId = await getServerUserId();
   if (!userId) throw new Error('VOUCHERS_NO_SESSION');
 

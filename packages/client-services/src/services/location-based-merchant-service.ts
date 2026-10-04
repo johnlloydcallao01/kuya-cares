@@ -436,6 +436,11 @@ export class LocationBasedMerchantService {
     const cacheKey = `${CACHE_KEYS.MERCHANTS}-browsing-categories-${includeInactive ? 'all' : 'active'}-${limit ?? 'all'}`;
     const cached = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
     if (cached) return cached;
+    // Singleflight like every sibling fetcher: concurrent Header + results
+    // cold-starts coalesce instead of doubling the 9999-merchant pull.
+    return dataCache.dedupe<MerchantCategoryDisplay[]>(`inflight:${cacheKey}`, async () => {
+      const rechecked = dataCache.get<MerchantCategoryDisplay[]>(cacheKey);
+      if (rechecked) return rechecked;
     const list = await LocationBasedMerchantService.getBrowsingMerchants({ limit: 9999 });
     const hasUncategorized = (list || []).some((m: any) => {
       const raw = (m as any).merchant_categories;
@@ -518,6 +523,7 @@ export class LocationBasedMerchantService {
       dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
       return [];
     }
+    });
   }
 
   static async getLocationBasedMerchantCategories(options: { customerId: string; includeInactive?: boolean; limit?: number }): Promise<MerchantCategoryDisplay[]> {
@@ -626,6 +632,12 @@ export class LocationBasedMerchantService {
       const cacheKey = `${CACHE_KEYS.MERCHANTS}-active-address-${m.id}`;
       const cached = dataCache.get<string>(cacheKey);
       if (cached) { out[m.id] = cached; return; }
+      // Singleflight (§docs/performance.md herd): concurrent mounts of the
+      // same merchant list (recently-viewed, wishlists, merchants) share one
+      // per-merchant lookup instead of thundering N identical fetches.
+      await dataCache.dedupe<void>(`inflight:${cacheKey}`, async () => {
+        const rechecked = dataCache.get<string>(cacheKey);
+        if (rechecked) { out[m.id] = rechecked; return; }
       try {
         const res = await fetch(`${base}/merchants/${m.id}?depth=1`, { headers, cache: 'no-store' });
         if (res.ok) {
@@ -656,6 +668,7 @@ export class LocationBasedMerchantService {
           }
         } catch {}
       }
+      });
     });
     const limit = 5;
     let idx = 0;
@@ -793,6 +806,10 @@ export class LocationBasedMerchantService {
    * Clear location-based merchants cache
    */
   static clearCache(customerId?: string): void {
+    // Identity must die with the session: a stale current-customer-id would
+    // serve user A's merchants to user B for up to 5 minutes after logout
+    // on a shared device.
+    dataCache.delete('current-customer-id');
     if (customerId) {
       // Clear specific customer's cache
       const stats = dataCache.getStats();
