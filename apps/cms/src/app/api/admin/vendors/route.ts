@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
       if (Number.isNaN(uid)) return badRequest('userId must be numeric')
       try {
         const u = await payload.findByID({ collection: 'users', id: uid, depth: 0, overrideAccess: true }) as any
-        if (!u || u.role !== 'vendor') return badRequest('userId must reference a vendor user')
+        if (!u || (u.role !== 'vendor' && u.role !== 'member')) return badRequest('userId must reference a vendor or member user')
         ownerUserId = uid
       } catch { return badRequest('userId not found') }
     } else if (body.ownerUserId) {
@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
       if (!Number.isNaN(uid)) {
         try {
           const u = await payload.findByID({ collection: 'users', id: uid, depth: 0, overrideAccess: true }) as any
-          if (u && u.role === 'vendor') ownerUserId = uid
+          if (u && (u.role === 'vendor' || u.role === 'member')) ownerUserId = uid
         } catch {}
       }
     }
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
       const existing = await payload.find({ collection: 'users', where: { email: { equals: ownerEmail } }, limit: 1, depth: 0, overrideAccess: true })
       if (existing.docs.length) {
         const eu = existing.docs[0] as any
-        if (eu.role !== 'vendor') return badRequest(`Email ${ownerEmail} already belongs to a ${eu.role} account`)
+        if (eu.role !== 'vendor' && eu.role !== 'member') return badRequest(`Email ${ownerEmail} already belongs to a ${eu.role} account`)
         ownerUserId = eu.id
       } else {
         // Create vendor user

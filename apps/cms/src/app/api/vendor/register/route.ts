@@ -45,6 +45,7 @@ const registerSchema = z.object({
     .optional(),
   planSlug: z.string().optional(),
   billingInterval: z.enum(['month', 'year', 'one_time']).optional(),
+  role: z.enum(['member', 'vendor']).optional().default('vendor'),
   idempotencyKey: z.string().optional(),
 })
 
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create vendor user
+    // Create vendor user (role vendor by default; member allowed to own a vendor record)
     let userDoc: any
     try {
       userDoc = await payload.create({
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
           password: data.password,
           firstName: data.firstName.trim(),
           lastName: data.lastName.trim(),
-          role: 'vendor',
+          role: data.role ?? 'vendor',
           isActive: true,
         } as any,
         overrideAccess: true,

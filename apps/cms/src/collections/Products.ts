@@ -356,7 +356,7 @@ export const Products: CollectionConfig = {
 
         // Set createdByVendor based on the user's role and vendor association
         if (req.user) {
-          if (req.user.role === 'vendor') {
+          if (req.user.role === 'vendor' || req.user.role === 'member') {
             // Only set createdByVendor if it's not already set (for create operations)
             // For update operations, preserve existing createdByVendor unless it's empty
             if (!data.createdByVendor || _operation === 'create') {

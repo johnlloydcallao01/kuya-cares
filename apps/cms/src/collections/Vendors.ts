@@ -45,10 +45,10 @@ export const Vendors: CollectionConfig = {
       relationTo: 'users',
       required: true,
       filterOptions: ({ relationTo: _relationTo, data: _data }) => {
-        // Only show users with 'vendor' role in the dropdown
+        // Show users with 'vendor' or 'member' role in the dropdown (both may own a vendor record)
         return {
           role: {
-            equals: 'vendor',
+            in: ['vendor', 'member'],
           },
         }
       },
