@@ -28,6 +28,7 @@ import {
   checkAuthStatus,
   clearAuthState,
   emitAuthEvent,
+  ensureCustomerProvisioned,
   getStoredToken,
   getStoredUser,
   persistSessionMirror,
@@ -216,6 +217,28 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
   // ========================================
 
   const isInitializedRef = React.useRef(false);
+  // Companion-customer provisioning (Option A) fires once per session —
+  // after login and after session restore — best-effort, silent fail.
+  const ensureFiredRef = React.useRef(false);
+
+  const ensureCompanionCustomer = useCallback(async () => {
+    if (ensureFiredRef.current) return;
+    ensureFiredRef.current = true;
+    try {
+      await ensureCustomerProvisioned();
+    } catch {
+      void 0;
+    } finally {
+      // Identity must never go stale: drop the cached customer id + address
+      // caches (existing pattern) so the fresh companion row is resolved.
+      try { dataCache.delete('current-customer-id'); } catch {}
+      try { AddressService.clearCache(); } catch {}
+      // Wake sections that resolved identity before the row existed (fresh
+      // members): LocationBasedMerchants refetches on this event. The fetch
+      // itself is cache/singleflight-guarded, so existing sessions no-op.
+      emitAuthEvent('customer_provisioned');
+    }
+  }, []);
 
   const initializeAuth = useCallback(async () => {
     if (isInitializedRef.current) return;
@@ -233,6 +256,7 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
         }
 
         emitAuthEvent('session_restored', { user: initialUser });
+        void ensureCompanionCustomer();
         return;
       }
 
@@ -275,12 +299,13 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
 
       if (user) {
         emitAuthEvent('session_restored', { user });
+        void ensureCompanionCustomer();
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to initialize authentication';
       dispatch({ type: 'AUTH_INIT_ERROR', payload: { error: errorMessage } });
     }
-  }, []);
+  }, [ensureCompanionCustomer]);
 
   // Initialize authentication on mount
   useEffect(() => {
@@ -298,13 +323,19 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
       const response = await authLogin(credentials);
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user: response.user, token: response.token || '' } });
       emitAuthEvent('login_success', { user: response.user });
+      // Provision the companion customers row (member or legacy customer
+      // without one), then drop identity caches. Best-effort, silent fail.
+      // Reset the once-per-mount latch: a seeded restore may have already
+      // fired (guest→member upgrade in the same mount must not skip).
+      ensureFiredRef.current = false;
+      void ensureCompanionCustomer();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       dispatch({ type: 'LOGIN_ERROR', payload: { error: errorMessage } });
       emitAuthEvent('login_failure', { error: errorMessage });
       throw error;
     }
-  }, []);
+  }, [ensureCompanionCustomer]);
 
   const logout = useCallback(async () => {
     dispatch({ type: 'LOGOUT_START' });
@@ -312,11 +343,15 @@ export const AuthProvider = ({ children, initialUser = null, initialToken = null
     try {
       await authLogout();
       clearAuthState();
+      // Next session must provision again — never carry the latch across
+      // users on a shared device.
+      ensureFiredRef.current = false;
       dispatch({ type: 'LOGOUT_SUCCESS' });
       emitAuthEvent('logout');
     } catch {
       // Always succeed logout locally even if server call fails
       clearAuthState();
+      ensureFiredRef.current = false;
       dispatch({ type: 'LOGOUT_SUCCESS' });
       emitAuthEvent('logout');
     }

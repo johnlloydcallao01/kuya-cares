@@ -18,6 +18,10 @@ export default function RegisterPage(): React.ReactNode {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  // Members-only app: every registration creates a unified member account
+  // (private-circle account — buys + sells — with a companion food-ordering
+  // profile provisioned automatically). No customer option on apps/web.
+  const [inviteCode, setInviteCode] = useState('');
 
   // Helper function to get initial form data
   const getInitialFormData = () => {
@@ -208,6 +212,10 @@ export default function RegisterPage(): React.ReactNode {
         username: derivedUsername,
         password: formData.password,
         agreeToTerms: (formData as any).agreeToTerms,
+        // Members-only app: always register as member (member users row +
+        // companion customers row). No customer option on apps/web.
+        role: 'member',
+        ...(inviteCode.trim() !== '' ? { inviteCode: inviteCode.trim() } : {}),
       };
 
       const response = await fetch(registrationUrl, {
@@ -224,9 +232,10 @@ export default function RegisterPage(): React.ReactNode {
 
         // Reset form after successful registration
         setFormData(getInitialFormData());
+        setInviteCode('');
 
         // Show success state in UI instead of popup
-        setErrors({ success: result.message || 'Registration successful! Your customer account has been created.' });
+        setErrors({ success: result.message || 'Registration successful! Your member account has been created.' });
       } else {
         // Try to get the response text first, then parse as JSON
         const responseText = await response.text();
@@ -257,6 +266,9 @@ export default function RegisterPage(): React.ReactNode {
         }
 
         showError(errorMessage);
+        if (error?.field && typeof error.field === 'string') {
+          setErrors({ general: errorMessage, [error.field]: error.message || errorMessage });
+        }
       }
     } catch (error) {
       console.error('âŒ REGISTRATION ERROR:', error);
@@ -405,7 +417,7 @@ export default function RegisterPage(): React.ReactNode {
                   Create Your Account
                 </h2>
                 <p className="text-gray-600">
-                  One Tap, Brings Yum
+                  Members only — join the circle, food ordering included
                 </p>
               </div>
 
@@ -420,7 +432,9 @@ export default function RegisterPage(): React.ReactNode {
                   style={{ objectFit: 'contain' }}
                 />
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Create Account</h2>
-                <p className="text-gray-600 text-sm">One Tap, Brings Yum</p>
+                <p className="text-gray-600 text-sm">
+                  Members only — join the circle, food ordering included
+                </p>
               </div>
 
               {/* Error Messages */}
@@ -572,6 +586,42 @@ export default function RegisterPage(): React.ReactNode {
                   
 
                   
+
+                  {/* Account Type Section — members-only, fixed */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                      Account Type
+                    </h3>
+                    <div className="p-4 border border-[#239459] bg-green-50 rounded-xl ring-2 ring-[#239459]/20">
+                      <p className="font-semibold text-gray-900">Member</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Members only — join the private circle: buy &amp; sell, plus food ordering.
+                        Admins supervise members from this same app.
+                      </p>
+                    </div>
+                    <div className="mt-4">
+                        <label className="block text-sm font-normal mb-2" style={{ color: '#555' }}>
+                          Invite Code (optional)
+                        </label>
+                        <input
+                          type="text"
+                          name="inviteCode"
+                          value={inviteCode}
+                          onChange={(e) => {
+                            setInviteCode(e.target.value);
+                            if (errors['inviteCode']) {
+                              setErrors(prev => ({ ...prev, inviteCode: '' }));
+                            }
+                          }}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#201a7c]/20 focus:border-[#201a7c] transition-all duration-200 text-gray-900 bg-gray-50 focus:bg-white uppercase"
+                          placeholder="e.g. KUYA-ABC123"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Have an invite from a member? Enter it here — otherwise leave blank.
+                        </p>
+                        {renderFieldError('inviteCode')}
+                      </div>
+                  </div>
 
                   {/* Terms Agreement */}
                   <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl">

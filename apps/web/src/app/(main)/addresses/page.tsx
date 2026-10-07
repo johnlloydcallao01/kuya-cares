@@ -62,6 +62,17 @@ function AddressesContent() {
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AddressUI | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Member-safe: signed-in members have no customer doc (ADDRESSES_NO_CUSTOMER).
+  // They see the empty hero, never a red error wall. NO_SESSION keeps the wall.
+  const [noCustomer, setNoCustomer] = useState(false);
+
+  const applyNoCustomerEmpty = useCallback(() => {
+    setAddresses([]);
+    setActiveId(null);
+    setStats({ total: 0, home: 0, work: 0, verified: 0 });
+    setError(null);
+    setNoCustomer(true);
+  }, []);
 
   const requestIdRef = useRef(0);
 
@@ -87,8 +98,18 @@ function AddressesContent() {
         setAddresses(book.addresses);
         setActiveId(book.activeAddressId);
         setStats(book.stats);
+        if (!isStale()) setNoCustomer(false);
       } catch (e: any) {
         if (isStale()) return;
+        const msg = String(e?.message || '');
+        if (msg.includes('ADDRESSES_NO_CUSTOMER')) {
+          if (!opts.silent) applyNoCustomerEmpty();
+          else {
+            applyNoCustomerEmpty();
+            toast.error('Address book not available for this account yet');
+          }
+          return;
+        }
         if (!opts.silent) setError(e?.message || 'Failed to load addresses');
         else toast.error(e?.message || 'Refresh failed — showing saved list');
       } finally {
@@ -98,7 +119,7 @@ function AddressesContent() {
         }
       }
     },
-    [typeFilter, searchQuery],
+    [typeFilter, searchQuery, applyNoCustomerEmpty],
   );
 
   const loadBookRef = useRef(loadBook);
@@ -155,12 +176,16 @@ function AddressesContent() {
         setEditing(null);
         await loadBookRef.current({ reset: true });
       } catch (e: any) {
-        toast.error(e?.message || 'Save failed');
+        const msg = String(e?.message || '');
+        if (msg.includes('ADDRESSES_NO_CUSTOMER')) {
+          applyNoCustomerEmpty();
+          toast.error('Address book not available for this account yet');
+        } else toast.error(e?.message || 'Save failed');
       } finally {
         setFormBusy(false);
       }
     },
-    [],
+    [applyNoCustomerEmpty],
   );
 
   const handleSetActive = useCallback(async (a: AddressUI) => {
@@ -180,11 +205,15 @@ function AddressesContent() {
     } catch (e: any) {
       setActiveId(prevActiveId);
       setAddresses(prevAddresses);
-      toast.error(e?.message || 'Set active failed');
+      const msg = String(e?.message || '');
+      if (msg.includes('ADDRESSES_NO_CUSTOMER')) {
+        applyNoCustomerEmpty();
+        toast.error('Address book not available for this account yet');
+      } else toast.error(e?.message || 'Set active failed');
     } finally {
       setActivatingId(null);
     }
-  }, [activeId, addresses]);
+  }, [activeId, addresses, applyNoCustomerEmpty]);
 
   const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -196,15 +225,42 @@ function AddressesContent() {
       setDeleteTarget(null);
       await loadBookRef.current({ reset: true });
     } catch (e: any) {
-      toast.error(e?.message || 'Delete failed');
+      const msg = String(e?.message || '');
+      if (msg.includes('ADDRESSES_NO_CUSTOMER')) {
+        applyNoCustomerEmpty();
+        toast.error('Address book not available for this account yet');
+      } else toast.error(e?.message || 'Delete failed');
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, applyNoCustomerEmpty]);
+
+  // All hooks must stay above every early return (Rules of Hooks):
+  // `loading`/`error` flip between renders, so any useMemo/useCallback
+  // declared after those returns would change the hook count → crash.
+  const isFiltered = searchQuery !== '' || typeFilter !== 'all';
+  // Memoized derivations (§4b: page rebuilt these per render — 100 rows
+  // re-rendered on every search keystroke).
+  const activeAddress = useMemo(
+    () => addresses.find((a) => a.id === activeId) ?? null,
+    [addresses, activeId],
+  );
+  const statCards = useMemo(
+    () => [
+      { label: 'Saved', value: String(stats.total), icon: 'fa-map-marker-alt', bg: 'bg-gray-50', fg: 'text-gray-700' },
+      { label: 'Home', value: String(stats.home), icon: 'fa-home', bg: 'bg-green-50', fg: 'text-green-700' },
+      { label: 'Work', value: String(stats.work), icon: 'fa-briefcase', bg: 'bg-blue-50', fg: 'text-blue-700' },
+      { label: 'Verified', value: String(stats.verified), icon: 'fa-badge-check', bg: 'bg-amber-50', fg: 'text-amber-700' },
+    ],
+    [stats],
+  );
+  const handleDeleteTarget = useCallback((addr: AddressUI) => setDeleteTarget(addr), []);
 
   if (loading) return <AddressesPageSkeleton />;
 
-  if (error && addresses.length === 0) {
+  // Member-safe: ADDRESSES_NO_CUSTOMER renders the empty hero below, never the wall.
+  // noCustomer state tracks the graceful empty; the includes() guard covers races.
+  if (error && addresses.length === 0 && !noCustomer && !error.includes('ADDRESSES_NO_CUSTOMER')) {
     const noSession = error.includes('ADDRESSES_NO_SESSION');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -242,24 +298,6 @@ function AddressesContent() {
       </div>
     );
   }
-
-  const isFiltered = searchQuery !== '' || typeFilter !== 'all';
-  // Memoized derivations (§4b: page rebuilt these per render — 100 rows
-  // re-rendered on every search keystroke).
-  const activeAddress = useMemo(
-    () => addresses.find((a) => a.id === activeId) ?? null,
-    [addresses, activeId],
-  );
-  const statCards = useMemo(
-    () => [
-      { label: 'Saved', value: String(stats.total), icon: 'fa-map-marker-alt', bg: 'bg-gray-50', fg: 'text-gray-700' },
-      { label: 'Home', value: String(stats.home), icon: 'fa-home', bg: 'bg-green-50', fg: 'text-green-700' },
-      { label: 'Work', value: String(stats.work), icon: 'fa-briefcase', bg: 'bg-blue-50', fg: 'text-blue-700' },
-      { label: 'Verified', value: String(stats.verified), icon: 'fa-badge-check', bg: 'bg-amber-50', fg: 'text-amber-700' },
-    ],
-    [stats],
-  );
-  const handleDeleteTarget = useCallback((addr: AddressUI) => setDeleteTarget(addr), []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

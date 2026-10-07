@@ -1,6 +1,6 @@
 /**
  * @file apps/web/src/app/actions/auth.ts
- * @description Server-side authentication actions for the customer web app.
+ * @description Server-side authentication actions for the members-only web app.
  *
  * Logic ported 1:1 from the proven apps/web-admin pattern (app/actions/auth.ts):
  * - Login happens server-side, storing the PayloadCMS JWT in an httpOnly,
@@ -8,7 +8,12 @@
  * - The browser sends that cookie automatically on every request (same origin),
  *   so a page refresh restores the session without any client-side /me call.
  * - getServerUser() re-validates the cookie against the CMS with
- *   `Authorization: JWT <token>` and enforces the `customer` role.
+ *   `Authorization: JWT <token>` and enforces the members-only gate:
+ *   ONLY `member` may use apps/web. Every other role (admin, customer,
+ *   vendor, driver, service, instructor, trainee) is denied at login,
+ *   session restore, and refresh.
+ * - sanitizeUser() still validates ALL CMS roles so documents pass through
+ *   to this gate (which then allows/denies) — the gate is the single chokepoint.
  */
 
 'use server';
@@ -21,6 +26,12 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.
 const AUTH_COOKIE = 'kuyacares-token';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
+// Roles allowed to use this members-only web app. ONLY `member`.
+// Every other role (admin, customer, vendor, driver, service, instructor,
+// trainee) is denied at login, session restore, and refresh.
+// CMS stays multi-client.
+const ALLOWED_APP_ROLES = ['member'] as const;
+
 async function readResponse(response: Response): Promise<Record<string, unknown>> {
   try {
     return await response.json();
@@ -29,9 +40,9 @@ async function readResponse(response: Response): Promise<Record<string, unknown>
   }
 }
 
-function requireCustomer(value: unknown, message: string): User {
+function requireAllowedRole(value: unknown, message: string): User {
   const user = sanitizeUser(value);
-  if (!user || user.role !== 'customer') throw new Error(message);
+  if (!user || !(ALLOWED_APP_ROLES as readonly string[]).includes(user.role)) throw new Error(message);
   return user;
 }
 
@@ -54,7 +65,7 @@ export async function serverLogin(credentials: LoginCredentials): Promise<AuthRe
   const errors = Array.isArray(data.errors) ? (data.errors as Array<{ message?: string }>) : [];
   if (!response.ok) throw new Error(String(data.message || errors[0]?.message || 'Login failed'));
 
-  const user = requireCustomer(data.user, 'Access denied. Only customers can access this application.');
+  const user = requireAllowedRole(data.user, 'Access denied. This app is for members only.');
   const token = stringValue(data.token);
   if (token) {
     const cookieStore = await cookies();
@@ -94,7 +105,7 @@ export async function getServerUser(): Promise<User | null> {
     if (!response.ok) return null;
     const data = await readResponse(response);
     const user = sanitizeUser(data.user);
-    return user?.role === 'customer' ? user : null;
+    return user && (ALLOWED_APP_ROLES as readonly string[]).includes(user.role) ? user : null;
   } catch {
     return null;
   }
@@ -122,7 +133,7 @@ export async function getServerUserId(): Promise<string | number | null> {
     if (!response.ok) return null;
     const data = await readResponse(response);
     const user = sanitizeUser(data.user);
-    if (!user || user.role !== 'customer' || user.id == null) return null;
+    if (!user || !(ALLOWED_APP_ROLES as readonly string[]).includes(user.role) || user.id == null) return null;
     return user.id;
   } catch {
     return null;
@@ -142,7 +153,7 @@ export async function serverRefresh(): Promise<AuthResponse> {
   const data = await readResponse(response);
   if (!response.ok) throw new Error(String(data.message || 'Access denied during refresh'));
 
-  const user = requireCustomer(data.user, 'Access denied during refresh');
+  const user = requireAllowedRole(data.user, 'Access denied during refresh. This app is for members only.');
   const token = stringValue(data.refreshedToken) || stringValue(data.token);
   if (token) {
     cookieStore.set(AUTH_COOKIE, token, {

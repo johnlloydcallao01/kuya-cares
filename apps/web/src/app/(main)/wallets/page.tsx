@@ -76,6 +76,17 @@ function WalletsContent() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [welcomedReturn, setWelcomedReturn] = useState(false);
 
+  // Member-safe: signed-in members have no customer doc (WALLET_NO_CUSTOMER).
+  // They see the 0.00 hero + empty history, never a red error wall.
+  const applyNoCustomerEmpty = useCallback(() => {
+    setWallet({ balance: 0, currency: 'PHP', status: 'active', walletId: null });
+    setStats({ toppedUp: 0, spent: 0, cashback: 0, refunded: 0, totalDocs: 0 });
+    setHistory([]);
+    setPage(1);
+    setTotalPages(1);
+    setError(null);
+  }, []);
+
   const loadPage = useCallback(
     async (nextPage: number, opts: { silent?: boolean; reset?: boolean; type?: TypeFilter; q?: string } = {}) => {
       try {
@@ -97,14 +108,21 @@ function WalletsContent() {
         setPage(summary.history.page);
         setTotalPages(summary.history.totalPages);
       } catch (e: any) {
+        const msg = String(e?.message || '');
+        if (msg.includes('WALLET_NO_CUSTOMER')) {
+          applyNoCustomerEmpty();
+          if (opts.silent) toast.error('Wallet not available for this account yet');
+          return;
+        }
         if (!opts.silent) setError(e?.message || 'Failed to load wallet');
+        else toast.error(e?.message || 'Refresh failed — showing saved data');
       } finally {
         setLoading(false);
         setRefreshing(false);
         setLoadingMore(false);
       }
     },
-    [typeFilter, searchQuery],
+    [typeFilter, searchQuery, applyNoCustomerEmpty],
   );
 
   const loadPageRef = useRef(loadPage);
@@ -186,7 +204,9 @@ function WalletsContent() {
         setWithdrawOpen(false);
         await loadPage(1, { reset: true });
       } catch (e: any) {
-        toast.error(e?.message || 'Withdrawal failed');
+        const msg = String(e?.message || '');
+        if (msg.includes('WALLET_NO_CUSTOMER')) toast.error('Wallet not available for this account yet');
+        else toast.error(e?.message || 'Withdrawal failed');
       } finally {
         setWithdrawing(false);
         withdrawGuardRef.current = false;
@@ -217,7 +237,8 @@ function WalletsContent() {
 
   if (loading) return <WalletsPageSkeleton />;
 
-  if (error && !wallet) {
+  // Member-safe: WALLET_NO_CUSTOMER is handled as a 0.00 empty state above.
+  if (error && !wallet && !error.includes('WALLET_NO_CUSTOMER')) {
     const noSession = error.includes('WALLET_NO_SESSION');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -259,7 +280,7 @@ function WalletsContent() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-20">
+      <div className="bg-white shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>

@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember } from '@/utils/mediaLibrary'
 import { sanitizeAccountUser } from '../_shared'
 
 const CLEARABLE = ['recent-searches', 'recent-views', 'wishlists'] as const
@@ -15,7 +15,7 @@ const CLEARABLE = ['recent-searches', 'recent-views', 'wishlists'] as const
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>

@@ -68,7 +68,7 @@ export default function PortalLayout({
   }
 
   return (
-    <RoleProtectedRoute allowedRoles={['customer']}>
+    <RoleProtectedRoute allowedRoles={['member']}>
       <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
         {/* Header - Same as main app for consistency */}
         <Header

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember } from '@/utils/mediaLibrary'
 import { sendAccountEmail } from '../../_shared'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -17,7 +17,7 @@ const TOKEN_TTL_MIN = 60
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>

@@ -260,6 +260,9 @@ function SignInContent() {
                   <p className="text-gray-600">
                     One Tap, Brings Yum
                   </p>
+                  <p className="mt-2 text-xs font-medium text-gray-500">
+                    Members only — admins may supervise members from this app.
+                  </p>
                 </div>
 
               {/* Mobile Form Header */}
@@ -277,6 +280,9 @@ function SignInContent() {
                 </h2>
                 <p className="text-gray-600 text-sm">
                   One Tap, Brings Yum
+                </p>
+                <p className="mt-1 text-xs font-medium text-gray-500">
+                  Members only.
                 </p>
               </div>
 

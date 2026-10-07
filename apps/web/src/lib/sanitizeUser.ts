@@ -7,7 +7,7 @@
 
 import type { User } from '@/types/auth';
 
-const USER_ROLES = ['admin', 'customer', 'service', 'vendor', 'driver', 'instructor', 'trainee'] as const;
+const USER_ROLES = ['admin', 'customer', 'member', 'service', 'vendor', 'driver', 'instructor', 'trainee'] as const;
 
 function optionalString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;

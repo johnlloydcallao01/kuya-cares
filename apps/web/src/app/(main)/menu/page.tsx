@@ -87,6 +87,10 @@ export default function MenuPage() {
   const formattedAddress =
     activeAddress?.formatted_address || activeAddress?.formattedAddress || null;
 
+  // Member-safe: signed-in members have no customer doc. fetchAccountOverview
+  // now settles per-leg (customer:null + zeroed order/review counts) instead
+  // of fail-fast throwing — the snapshot below renders, never a red wall.
+  // The NO_CUSTOMER branch below is defensive for any legacy throw.
   const loadData = useCallback(async () => {
     if (!user?.id) {
       setOverview(null);
@@ -97,8 +101,23 @@ export default function MenuPage() {
     try {
       const data = await fetchAccountOverview(user.id);
       setOverview(data);
-    } catch (err) {
-      console.error('Failed to load account overview:', err);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.includes('NO_CUSTOMER')) {
+        setOverview({
+          customer: null,
+          stats: {
+            orderCount: 0,
+            totalSpent: 0,
+            favoriteCount: 0,
+            reviewCount: 0,
+            addressCount: 0,
+            unreadNotificationCount: 0,
+          },
+        });
+      } else {
+        console.error('Failed to load account overview:', err);
+      }
     } finally {
       setIsLoading(false);
     }

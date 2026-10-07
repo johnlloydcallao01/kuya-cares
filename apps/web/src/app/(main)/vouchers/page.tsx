@@ -59,6 +59,18 @@ function VouchersContent() {
   const [claimingId, setClaimingId] = useState<string | number | null>(null);
   const [detail, setDetail] = useState<VoucherUI | null>(null);
 
+  // Member-safe: signed-in members have no customer doc (VOUCHERS_NO_CUSTOMER).
+  // They still see the claimable pool as to_claim, never a red error wall.
+  const applyClaimableOnly = useCallback((claimable: VoucherUI[]) => {
+    const byKey = new Map<string, WalletEntry>();
+    for (const v of claimable) {
+      const key = `${String(v.code).toUpperCase()}::${String((v as any).id)}`;
+      if (!byKey.has(key)) byKey.set(key, { voucher: { ...v, claimed: false, used: false }, state: 'to_claim' });
+    }
+    setEntries([...byKey.values()]);
+    setError(null);
+  }, []);
+
   const loadAll = useCallback(async (opts: { silent?: boolean; reset?: boolean } = {}) => {
     try {
       if (!opts.silent) {
@@ -68,10 +80,37 @@ function VouchersContent() {
       setError(null);
       // Two calls, not four (§4 single query): mine?filter=all returns all
       // three buckets in one claims scan; the page splits by computedStatus.
-      const [claimable, mineAll] = await Promise.all([
-        fetchClaimableVouchers({ limit: 50 }),
-        fetchMyVouchers('all'),
-      ]);
+      // Member-safe: either leg may throw VOUCHERS_NO_CUSTOMER — fall back to
+      // claimable-pool-as-to_claim instead of a red wall.
+      let claimable: VoucherUI[] = [];
+      let mineAll: MyVoucher[] = [];
+      try {
+        [claimable, mineAll] = await Promise.all([
+          fetchClaimableVouchers({ limit: 50 }),
+          fetchMyVouchers('all'),
+        ]);
+      } catch (legErr: any) {
+        const msg = String(legErr?.message || '');
+        if (msg.includes('VOUCHERS_NO_CUSTOMER')) {
+          // Try claimable pool alone; if that also has no customer, empty pool.
+          try {
+            claimable = await fetchClaimableVouchers({ limit: 50 });
+          } catch (inner: any) {
+            const innerMsg = String(inner?.message || '');
+            if (innerMsg.includes('VOUCHERS_NO_CUSTOMER')) {
+              setEntries([]);
+              setError(null);
+              if (opts.silent) toast.error('Vouchers not available for this account yet');
+              return;
+            }
+            throw inner;
+          }
+          applyClaimableOnly(claimable);
+          if (opts.silent) toast.error('Voucher wallet limited for this account');
+          return;
+        }
+        throw legErr;
+      }
       const available = mineAll.filter((m) => m.computedStatus === 'available');
       const used = mineAll.filter((m) => m.computedStatus === 'used');
       const expired = mineAll.filter((m) => m.computedStatus === 'expired');
@@ -111,13 +150,28 @@ function VouchersContent() {
       });
       setEntries(merged);
     } catch (e: any) {
-      if (!opts.silent) setError(e?.message || 'Failed to load vouchers');
+      const msg = String(e?.message || '');
+      if (msg.includes('VOUCHERS_NO_CUSTOMER')) {
+        // Defensive: inner legs already handle this, but never red-wall.
+        setEntries((prev) => prev);
+        setError(null);
+        if (opts.silent) toast.error('Vouchers not available for this account yet');
+        else {
+          try {
+            const pool = await fetchClaimableVouchers({ limit: 50 });
+            applyClaimableOnly(pool);
+          } catch {
+            setEntries([]);
+            setError(null);
+          }
+        }
+      } else if (!opts.silent) setError(e?.message || 'Failed to load vouchers');
       else toast.error(e?.message || 'Refresh failed — showing saved list');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [applyClaimableOnly]);
 
   const loadRef = useRef(loadAll);
   loadRef.current = loadAll;
@@ -149,7 +203,9 @@ function VouchersContent() {
       );
       await loadRef.current({ silent: true });
     } catch (e: any) {
-      toast.error(e?.message || 'Claim failed');
+      const msg = String(e?.message || '');
+      if (msg.includes('VOUCHERS_NO_CUSTOMER')) toast.error('Vouchers not available for this account yet');
+      else toast.error(e?.message || 'Claim failed');
     } finally {
       setClaimingId(null);
     }
@@ -165,7 +221,9 @@ function VouchersContent() {
       setCodeInput('');
       await loadRef.current({ reset: true });
     } catch (e: any) {
-      toast.error(e?.message || 'Invalid code');
+      const msg = String(e?.message || '');
+      if (msg.includes('VOUCHERS_NO_CUSTOMER')) toast.error('Vouchers not available for this account yet');
+      else toast.error(e?.message || 'Invalid code');
     } finally {
       setCodeBusy(false);
     }
@@ -199,7 +257,8 @@ function VouchersContent() {
 
   if (loading) return <VouchersPageSkeleton />;
 
-  if (error && entries.length === 0) {
+  // Member-safe: VOUCHERS_NO_CUSTOMER renders the claimable pool, never the wall.
+  if (error && entries.length === 0 && !error.includes('VOUCHERS_NO_CUSTOMER')) {
     const noSession = error.includes('VOUCHERS_NO_SESSION');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -237,7 +296,7 @@ function VouchersContent() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-20">
+      <div className="bg-white shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>

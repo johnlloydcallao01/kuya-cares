@@ -125,7 +125,11 @@ export async function createAddressAction(input: AddressInput): Promise<{ addres
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Create failed (${res.status})`));
+  if (!res.ok) {
+    if (res.status === 404 && (json?.code === 'NO_CUSTOMER' || json?.data?.code === 'NO_CUSTOMER' || !json?.code))
+      throw new Error('ADDRESSES_NO_CUSTOMER');
+    throw new Error(String(json?.error || `Create failed (${res.status})`));
+  }
   const activeId = json?.data?.activeAddressId != null ? String(json.data.activeAddressId) : null;
   return { address: mapAddress(json?.data?.address ?? {}, activeId), activeAddressId: activeId };
 }
@@ -144,7 +148,11 @@ export async function updateAddressAction(
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Update failed (${res.status})`));
+  if (!res.ok) {
+    if (res.status === 404 && (json?.code === 'NO_CUSTOMER' || json?.data?.code === 'NO_CUSTOMER' || !json?.code))
+      throw new Error('ADDRESSES_NO_CUSTOMER');
+    throw new Error(String(json?.error || `Update failed (${res.status})`));
+  }
   return { address: json?.data?.address };
 }
 
@@ -159,7 +167,11 @@ export async function deleteAddressAction(id: string | number): Promise<{ delete
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Delete failed (${res.status})`));
+  if (!res.ok) {
+    if (res.status === 404 && (json?.code === 'NO_CUSTOMER' || json?.data?.code === 'NO_CUSTOMER' || !json?.code))
+      throw new Error('ADDRESSES_NO_CUSTOMER');
+    throw new Error(String(json?.error || `Delete failed (${res.status})`));
+  }
   return { deleted: true, clearedActive: !!json?.data?.clearedActive };
 }
 
@@ -174,6 +186,10 @@ export async function setActiveAddressAction(addressId: string | number): Promis
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Set active failed (${res.status})`));
+  if (!res.ok) {
+    if (res.status === 404 && (json?.code === 'NO_CUSTOMER' || json?.data?.code === 'NO_CUSTOMER' || !json?.code))
+      throw new Error('ADDRESSES_NO_CUSTOMER');
+    throw new Error(String(json?.error || `Set active failed (${res.status})`));
+  }
   return { activeAddressId: String(json?.data?.activeAddressId ?? addressId) };
 }

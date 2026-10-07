@@ -38,6 +38,13 @@ async function readJson(res: Response): Promise<any> {
   }
 }
 
+function throwIfNoCustomer(res: Response, json: any): void {
+  const code = json?.code ?? json?.data?.code;
+  if (res.status === 404 && (code === 'NO_CUSTOMER' || code == null)) {
+    throw new Error('LOYALTY_NO_CUSTOMER');
+  }
+}
+
 function mapEntry(d: any): PointsEntry {
   return {
     id: d.id,
@@ -60,7 +67,10 @@ export async function getLoyaltySummary(): Promise<LoyaltySummary> {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Loyalty unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Loyalty unavailable (${res.status})`));
+  }
   const d = json?.data ?? {};
   return {
     customerId: d.customerId,
@@ -91,7 +101,10 @@ export async function getLoyaltyHistory(input: {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `History unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `History unavailable (${res.status})`));
+  }
   const d = json?.data ?? {};
   const p = d.pagination ?? {};
   return {
@@ -118,7 +131,10 @@ export async function getLoyaltyCatalog(category?: string): Promise<{
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Catalog unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Catalog unavailable (${res.status})`));
+  }
   const d = json?.data ?? {};
   return {
     pointsBalance: Math.floor(Number(d.pointsBalance ?? 0)),
@@ -139,7 +155,10 @@ export async function redeemRewardAction(rewardId: string | number, idempotencyK
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Redeem failed (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Redeem failed (${res.status})`));
+  }
   return json?.data as { redemptionId: string | number; newBalance: number; claimId: string | number | null; cost: number };
 }
 
@@ -154,7 +173,10 @@ export async function claimAchievementAction(achievementId: string | number) {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Claim failed (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Claim failed (${res.status})`));
+  }
   return json?.data as { granted: number; newBalance: number; entryId: string | number };
 }
 
@@ -168,6 +190,9 @@ export async function getMembership() {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Membership unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Membership unavailable (${res.status})`));
+  }
   return json?.data;
 }

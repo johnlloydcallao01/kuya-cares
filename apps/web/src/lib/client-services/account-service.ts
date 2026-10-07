@@ -55,18 +55,48 @@ export function asObject(value: any): any | null {
   return typeof value === 'object' ? value : null;
 }
 
+type DocsResult = { docs: any[]; totalDocs: number };
+
+const EMPTY_RESULT: DocsResult = { docs: [], totalDocs: 0 };
+
+function settledValue(
+  result: PromiseSettledResult<DocsResult>,
+  fallback: DocsResult = EMPTY_RESULT,
+): DocsResult {
+  return result.status === 'fulfilled' ? result.value : fallback;
+}
+
 export async function fetchAccountOverview(userId: string | number): Promise<AccountOverview> {
-  const [customerRes, ordersRes, favoritesRes, reviewsRes, addressesRes, unreadRes] =
-    await Promise.all([
-      fetchDocs(`${API_BASE}/customers?where[user][equals]=${userId}&depth=2&limit=1`),
-      fetchDocs(`${API_BASE}/orders?where[customer.user][equals]=${userId}&depth=0&sort=-placed_at&limit=100`),
-      fetchDocs(`${API_BASE}/wishlists?where[user][equals]=${userId}&depth=0&limit=1`),
-      fetchDocs(`${API_BASE}/reviews?where[customer.user][equals]=${userId}&depth=0&limit=1`),
-      fetchDocs(`${API_BASE}/addresses?where[user][equals]=${userId}&depth=0&limit=1`),
-      fetchDocs(
-        `${API_BASE}/user-notifications?where[user][equals]=${userId}&where[status][equals]=unread&depth=0&limit=1`,
-      ),
-    ]);
+  // Member-safe: one leg 403/500 must not kill all stats. Each leg settles
+  // independently; user-scoped legs (wishlists/addresses/notifications) stay
+  // live even when no customer doc exists (members).
+  const results = await Promise.allSettled([
+    fetchDocs(`${API_BASE}/customers?where[user][equals]=${userId}&depth=2&limit=1`),
+    fetchDocs(`${API_BASE}/orders?where[customer.user][equals]=${userId}&depth=0&sort=-placed_at&limit=100`),
+    fetchDocs(`${API_BASE}/wishlists?where[user][equals]=${userId}&depth=0&limit=1`),
+    fetchDocs(`${API_BASE}/reviews?where[customer.user][equals]=${userId}&depth=0&limit=1`),
+    fetchDocs(`${API_BASE}/addresses?where[user][equals]=${userId}&depth=0&limit=1`),
+    fetchDocs(
+      `${API_BASE}/user-notifications?where[user][equals]=${userId}&where[status][equals]=unread&depth=0&limit=1`,
+    ),
+  ]);
+
+  const customerRes = settledValue(results[0]);
+  let ordersRes = settledValue(results[1]);
+  const favoritesRes = settledValue(results[2]);
+  let reviewsRes = settledValue(results[3]);
+  const addressesRes = settledValue(results[4]);
+  const unreadRes = settledValue(results[5]);
+
+  const customer = customerRes.docs[0] ?? null;
+
+  // Without a customer doc (members), order/review legs are scoped to
+  // customer.user and cannot yield meaningful counts — zero them while
+  // keeping wishlists/addresses/notifications live.
+  if (!customer) {
+    ordersRes = EMPTY_RESULT;
+    reviewsRes = EMPTY_RESULT;
+  }
 
   const totalSpent = ordersRes.docs.reduce((sum: number, order: any) => {
     const total = Number(order.total);
@@ -74,7 +104,7 @@ export async function fetchAccountOverview(userId: string | number): Promise<Acc
   }, 0);
 
   return {
-    customer: customerRes.docs[0] ?? null,
+    customer,
     stats: {
       orderCount: ordersRes.totalDocs,
       totalSpent,

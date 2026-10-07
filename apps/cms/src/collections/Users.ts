@@ -107,6 +107,42 @@ export const Users: CollectionConfig = {
         }
         return doc
       },
+      // Option A companion-customers provisioning: a unified member keeps a
+      // single users row (role member) for member-listings/orders/invites
+      // PLUS one companion customers row for cart/checkout/orders/reviews.
+      // No schema change to Orders/CartItems/Reviews. Best-effort only —
+      // never throw, never block the auth write.
+      async ({ doc, operation, req }) => {
+        try {
+          if (operation !== 'create' || !doc) return doc
+          const role = (doc as Record<string, any>)?.role
+          if (role !== 'customer' && role !== 'member') return doc
+          const userId = (doc as Record<string, any>)?.id
+          if (userId == null) return doc
+          const existing = await req.payload
+            .find({
+              collection: 'customers',
+              where: { user: { equals: userId } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            })
+            .catch(() => null)
+          if (existing && (existing.docs?.length ?? 0) > 0) return doc
+          await req.payload.create({
+            collection: 'customers',
+            data: {
+              user: userId,
+              enrollmentDate: new Date().toISOString(),
+              currentLevel: 'beginner',
+            },
+            overrideAccess: true,
+          })
+        } catch (err) {
+          console.error('[Users afterChange companion-customer provision] failed:', err)
+        }
+        return doc
+      },
     ],
     beforeDelete: [
       async ({ req, id }) => {

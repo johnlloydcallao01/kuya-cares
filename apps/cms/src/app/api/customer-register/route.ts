@@ -9,6 +9,8 @@ interface CustomerRegistrationBody {
   middleName?: string
   email: string
   password: string
+  role?: 'customer' | 'member'
+  inviteCode?: string
 }
 
 // Simple CORS headers - allow all origins
@@ -66,6 +68,62 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ All required fields validated successfully')
 
+    // Resolve requested role (default customer). Member = unified account:
+    // single users row (role member) for member-listings/orders/invites
+    // PLUS one companion customers row for food commerce (Option A).
+    const requestedRole: 'customer' | 'member' =
+      body.role === 'member' ? 'member' : 'customer'
+    console.log('🔍 Requested role:', requestedRole)
+
+    // Invite handling (fail-fast BEFORE user creation so an invalid code
+    // never leaves an orphan user row behind).
+    // Decision (2026-10-07): invite gating is NOT enforced yet — no
+    // existing route validates inviteCode, so member signup without a code
+    // is accepted (logged). When a code IS supplied it is validated
+    // (pending + not expired) and claimed with claimedBy after user create.
+    const rawInviteCode =
+      typeof body.inviteCode === 'string' ? body.inviteCode.trim().toUpperCase() : ''
+    let inviteToClaim: any = null
+    if (requestedRole === 'member') {
+      if (rawInviteCode) {
+        console.log('🎟️ Validating member invite code...')
+        const { docs: inviteDocs } = await payload.find({
+          collection: 'member-invites',
+          where: { code: { equals: rawInviteCode } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const invite = inviteDocs[0] as unknown as Record<string, unknown> | undefined
+        const status = invite ? String(invite.status) : null
+        const expiresAt = invite?.expiresAt ? new Date(String(invite.expiresAt)).getTime() : null
+        const isExpired = expiresAt != null && Number.isFinite(expiresAt) && expiresAt <= Date.now()
+        if (!invite || status !== 'pending' || isExpired) {
+          console.error('❌ Invalid or unusable invite code:', {
+            code: rawInviteCode,
+            found: !!invite,
+            status,
+            isExpired,
+          })
+          return NextResponse.json(
+            {
+              error: 'Invalid or expired invite code',
+              message: 'This invite code is invalid, already claimed, or expired.',
+              field: 'inviteCode',
+              type: 'validation',
+            },
+            { status: 400, headers: corsHeaders }
+          )
+        }
+        inviteToClaim = invite
+        console.log('✅ Invite code validated (pending, not expired):', rawInviteCode)
+      } else {
+        console.log(
+          '[customer-register] member signup without inviteCode — invite gating not enforced yet, accepting.'
+        )
+      }
+    }
+
     // Step 1: Create user account
     console.log('👤 Creating user account...')
 
@@ -75,7 +133,7 @@ export async function POST(request: NextRequest) {
       lastName: body.lastName,
       email: body.email,
       password: body.password,
-      role: 'customer' as const,
+      role: requestedRole,
       ...(body.middleName && { middleName: body.middleName }),
     }
 
@@ -168,11 +226,36 @@ export async function POST(request: NextRequest) {
 
     // Emergency contact creation removed
 
+    // Claim the invite now that the member user exists (hook stamps claimedAt).
+    // Best-effort: the user + companion customer already exist, so a claim
+    // failure must not fail the registration — log loudly instead.
+    if (inviteToClaim) {
+      try {
+        console.log('🎟️ Claiming invite for new member:', inviteToClaim.id)
+        await payload.update({
+          collection: 'member-invites',
+          id: inviteToClaim.id,
+          data: {
+            status: 'claimed',
+            claimedBy: user.id,
+          },
+          overrideAccess: true,
+          depth: 0,
+        })
+        console.log('✅ Invite claimed successfully')
+      } catch (claimError) {
+        console.error('⚠️ INVITE CLAIM FAILED (registration still succeeds):', claimError)
+      }
+    }
+
     console.log('🎉 === CUSTOMER REGISTRATION COMPLETED SUCCESSFULLY ===')
 
     const successResponse = {
       success: true,
-      message: 'Customer registration successful! Welcome to Kuya Cares.',
+      message:
+        requestedRole === 'member'
+          ? 'Member registration successful! Welcome to the Kuya Cares circle — your food ordering account is ready too.'
+          : 'Customer registration successful! Welcome to Kuya Cares.',
       data: {
         user: {
           id: user.id,

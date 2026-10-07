@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getServerToken, getServerUserId } from '@/app/actions/auth';
+import { getServerToken, getServerUser, getServerUserId } from '@/app/actions/auth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '');
 
@@ -83,6 +83,35 @@ function normalizeMessage(message: unknown, currentUserId: string | number | nul
     isMine: senderId != null && currentUserId != null && senderId === String(currentUserId),
     createdAt: String(m.createdAt ?? ''),
   };
+}
+
+async function resolveSenderRole(): Promise<'member' | 'customer'> {
+  try {
+    const sessionUser = await getServerUser();
+    const role = (sessionUser as { role?: unknown } | null)?.role;
+    if (role === 'member') return 'member';
+    if (role === 'customer') return 'customer';
+  } catch {
+    /* fall through to JWT lookup below */
+  }
+  // getServerUser() narrows to customer-only; members resolve to null there,
+  // so fall back to a direct depth-0 /users/me read (same as getServerUserId)
+  // to recover the true role without touching auth-core helpers.
+  try {
+    const token = await getServerToken();
+    if (!token) return 'customer';
+    const res = await fetch(
+      `${API_BASE_URL}/users/me?depth=0`,
+      { headers: { Authorization: `JWT ${token}` }, cache: 'no-store' },
+    );
+    if (!res.ok) return 'customer';
+    const data = await res.json().catch(() => ({}));
+    const role = (data as any)?.user?.role;
+    if (role === 'member') return 'member';
+  } catch {
+    /* default below */
+  }
+  return 'customer';
 }
 
 function extractLexicalText(node: unknown): string {
@@ -206,11 +235,13 @@ export async function replyToSupportTicket(ticketId: string, message: string): P
   revalidatePath('/support');
   revalidatePath(`/support/${ticketId}`);
 
+  const senderRole = await resolveSenderRole();
+
   return {
     id: String(raw.id ?? `temp-${Date.now()}`),
     plainText: extractLexicalText(raw.message) || message,
     senderName: 'You',
-    senderRole: 'customer',
+    senderRole,
     senderId,
     isMine: true,
     createdAt: String(raw.createdAt ?? new Date().toISOString()),

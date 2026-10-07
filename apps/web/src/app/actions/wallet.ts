@@ -150,7 +150,11 @@ export async function createWalletTopupAction(input: {
     cache: 'no-store',
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(String(data?.error || `Top-up failed (${res.status})`));
+  if (!res.ok) {
+    const code = (data as any)?.code ?? (data as any)?.data?.code;
+    if (res.status === 404 && (code === 'NO_CUSTOMER' || code == null)) throw new Error('WALLET_NO_CUSTOMER');
+    throw new Error(String(data?.error || `Top-up failed (${res.status})`));
+  }
   const d = data?.data ?? {};
   const pi = d.paymentIntent?.data ?? d.paymentIntent ?? {};
   return {
@@ -178,6 +182,10 @@ export async function requestWalletWithdrawalAction(input: {
     cache: 'no-store',
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(String(data?.error || `Withdrawal failed (${res.status})`));
+  if (!res.ok) {
+    const code = (data as any)?.code ?? (data as any)?.data?.code;
+    if (res.status === 404 && (code === 'NO_CUSTOMER' || code == null)) throw new Error('WALLET_NO_CUSTOMER');
+    throw new Error(String(data?.error || `Withdrawal failed (${res.status})`));
+  }
   return { entryId: data?.data?.entryId, amount: data?.data?.amount ?? input.amount };
 }

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember } from '@/utils/mediaLibrary'
 
 function shape(m: any) {
   return {
@@ -27,7 +27,7 @@ function shape(m: any) {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const res = await payload.find({
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>

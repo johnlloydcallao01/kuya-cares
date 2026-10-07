@@ -60,6 +60,43 @@ export class LocationBasedMerchantService {
     return String(value ?? '').toLowerCase() === 'uncategorized';
   }
 
+  /**
+   * No-usable-address classifier (member-safe).
+   * CMS `merchantLocationBasedDisplay` throws a family of messages for the
+   * same UX state — missing row, dangling pointer, or coordinates without
+   * GPS ("Customer has no active address", "Address not found",
+   * "Address missing coordinates", "Address has null coordinates", ...).
+   * Its HTTP categorizer only matches lowercase 'customer'/'address', so
+   * capitalized variants surface as INTERNAL_SERVER_ERROR 500. The code
+   * field is also environment-dependent (original message in dev, generic
+   * "Customer or address data retrieval failed" in prod). Match
+   * case-insensitively on the raw body so every variant maps to the
+   * friendly empty state instead of LOCATION_FETCH_FAILED.
+   */
+  static isNoActiveAddressResponse(errorText: string): boolean {
+    const lowered = String(errorText ?? '').toLowerCase();
+    if (!lowered) return false;
+    const markers = [
+      'customer_data_error',
+      'no_active_address',
+      'no active address',
+      'active address',
+      'no_customer',
+      'no customer',
+      'customer not found',
+      'address not found',
+      'address missing',
+      'missing coordinates',
+      'null coordinates',
+      'invalid coordinate',
+      'invalid activeaddress',
+      'no address',
+      'no gps',
+      'no_gps',
+    ];
+    return markers.some((m) => lowered.includes(m));
+  }
+
   static async getLocationBasedMerchants(options: LocationBasedMerchantServiceOptions): Promise<LocationBasedMerchant[]> {
     const { customerId, limit = 10, categoryId } = options;
     // Backend parses categoryId as int — 'uncategorized' would silently
@@ -139,13 +176,27 @@ export class LocationBasedMerchantService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        // Expected fallback path (customer without an active address):
+        // Expected fallback path (customer without a usable address):
         // stay quiet so browsing fallbacks don't spam the console.
         // Genuine failures still log at error level.
+        // NOTE: case-insensitive on purpose — CMS throws capitalized
+        // variants ("Address not found", "Address missing coordinates")
+        // that its own categorizer misses, surfacing as 500
+        // INTERNAL_SERVER_ERROR. All of them mean the same UX state.
         const isNoAddress =
-          errorText.includes('CUSTOMER_DATA_ERROR') || errorText.includes('no active address');
+          LocationBasedMerchantService.isNoActiveAddressResponse(errorText);
         if (!isNoAddress) {
           console.error('❌ API Error Response:', errorText);
+        } else {
+          // Negative cache: without this every homepage section
+          // (merchants + categories + header/search index) re-hits the
+          // 500 on every mount. [] is truthy-safe for dataCache.get
+          // (null = miss), and clearCache()/address-change busts it.
+          try {
+            dataCache.set(cacheKey, [], CACHE_TTL.MERCHANTS);
+          } catch {
+            // Cache is best-effort; the graceful return below stands.
+          }
         }
         const err: Error & { code?: string } = new Error(
           `Failed to fetch location-based merchants: ${response.status}`,
@@ -186,7 +237,13 @@ export class LocationBasedMerchantService {
 
       return enriched;
     } catch (error) {
-      console.error('❌ Error fetching location-based merchants:', error);
+      // NO_ACTIVE_ADDRESS is an expected UX state (member without a usable
+      // address), not a failure — return the friendly empty list quietly so
+      // the homepage never spams repeated 500s in the console.
+      const code = (error as Error & { code?: string })?.code;
+      if (code !== 'NO_ACTIVE_ADDRESS') {
+        console.error('❌ Error fetching location-based merchants:', error);
+      }
       return []; // Graceful fallback
     }
     });
@@ -705,9 +762,18 @@ export class LocationBasedMerchantService {
 
       try {
         const url = `${this.API_BASE}/customer/me`;
+        // Cross-origin CMS calls never carry the session cookie, so Path 1
+        // always 401'd for members (authenticateCustomerOrMember saw no
+        // token) and every homepage mount fell through to the API-key
+        // fallback. Forward the mirrored JWT (same keys AuthContext
+        // persists) so /customer/me can 200 — or 404 NO_CUSTOMER, which
+        // still resolves gracefully without touching the geospatial 500.
+        const jwt = LocationBasedMerchantService.getStoredJwt();
+        const meHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (jwt) meHeaders['Authorization'] = `JWT ${jwt}`;
         const response = await fetch(url, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers: meHeaders,
           credentials: 'include',
           cache: 'no-store',
         });
@@ -738,6 +804,24 @@ export class LocationBasedMerchantService {
       return null;
     }
     });
+  }
+
+  /**
+   * Read the mirrored session JWT (same keys AuthContext/lib/auth persist).
+   * Used only to authenticate /customer/me cross-origin; the geospatial
+   * endpoint itself keeps using the service API key (never member JWT).
+   */
+  private static getStoredJwt(): string | null {
+    if (typeof window === 'undefined') return null;
+    for (const key of ['kuyacares_auth_token', 'grandline_auth_token']) {
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (raw && raw.trim() !== '') return raw;
+      } catch {
+        // Try the next key.
+      }
+    }
+    return null;
   }
 
   /**

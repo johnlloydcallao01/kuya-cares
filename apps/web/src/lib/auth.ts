@@ -333,6 +333,36 @@ export function emitAuthEvent(event: string, data?: unknown): void {
   }
 }
 
+/**
+ * Ensure the companion customers row exists (Option A provisioning).
+ * Unified members keep a single users row (role member) PLUS one customers
+ * row so existing food commerce (cart/checkout/orders/reviews) works
+ * unchanged. Idempotent POST to CMS `/api/customers/ensure` with the
+ * mirrored JWT — the server find-or-creates and returns `{ customerId }`.
+ *
+ * Best-effort by contract: never throws, silent fail so login and session
+ * restore are never broken by a provisioning hiccup. Callers clear the
+ * `current-customer-id` + address caches afterwards (see AuthContext).
+ */
+export async function ensureCustomerProvisioned(): Promise<void> {
+  try {
+    if (typeof window === 'undefined') return;
+    const token = getStoredToken();
+    if (!token) return;
+    await fetch(`${API_BASE_URL}/customers/ensure`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `JWT ${token}`,
+      },
+      credentials: 'omit',
+      cache: 'no-store',
+    }).catch(() => null);
+  } catch {
+    // Silent — provisioning must never break auth.
+  }
+}
+
 // ========================================
 // SESSION MONITORING (defined, NOT auto-wired)
 // ========================================

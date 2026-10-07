@@ -232,7 +232,10 @@ function getInitials(user: User): string {
 
 /**
  * Hook for checking user permissions/roles
- */
+ * Members-only app: only `member` (+ supervising `admin`) may use apps/web.
+  * `isCustomer` / `isInstructor` / `isAdmin` were removed — only `member`
+  *  may use this app; every other role is denied at the auth gate.
+  */
 export function usePermissions() {
   const { user, isAuthenticated } = useAuth();
   
@@ -248,9 +251,7 @@ export function usePermissions() {
     hasRole,
     hasAnyRole,
     userRole: user?.role,
-    isCustomer: hasRole('customer'),
-    isAdmin: hasRole('admin'),
-    isInstructor: hasRole('instructor'),
+    isMember: hasRole('member'),
   };
 }
 

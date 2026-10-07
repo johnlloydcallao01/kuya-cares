@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember } from '@/utils/mediaLibrary'
 
 /**
  * GET /api/customer/me
@@ -14,7 +14,7 @@ import { authenticateCustomer } from '@/utils/mediaLibrary'
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -196,7 +196,12 @@ function SettingsContent() {
       setActivityPage(1);
       setActivityMore(s.recentActivity.length >= 10);
     } catch (e: any) {
-      if (!opts.silent) setError(e?.message || 'Failed to load settings');
+      const msg = String(e?.message || 'Failed to load settings');
+      // Member-safe: a member without a customer doc surfaces NO_CUSTOMER.
+      // Keep it as a soft empty (customer:null snapshot below), never a wall.
+      // NO_CUSTOMER is handled gracefully in render; all other errors wall.
+      if (!opts.silent) setError(msg);
+      else if (!msg.includes('NO_CUSTOMER')) toast.error(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -582,6 +587,38 @@ function SettingsContent() {
   }, []);
 
   if (loading) return <SettingsPageSkeleton />;
+
+  // Member-safe: NO_CUSTOMER (member without a customer doc) renders a
+  // customer:null snapshot below, never a red error wall. NO_SESSION keeps
+  // the sign-in wall.
+  if (error?.includes('NO_CUSTOMER') && !summary) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="w-full px-2.5 py-5 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center">
+              <i className="fas fa-user-circle text-gray-300 text-xl" />
+            </div>
+            <h2 className="text-lg font-extrabold text-gray-900 mb-2">Account snapshot</h2>
+            <p className="text-sm text-gray-500 mb-1">
+              Signed in{ctxUser?.email ? ` as ${ctxUser.email}` : ''} — no customer profile yet.
+            </p>
+            <p className="text-sm text-gray-500 mb-5">
+              Profile settings stay available; customer extras (orders, addresses) show empty until a profile is created.
+            </p>
+            <button
+              onClick={handleHardRefresh}
+              className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
+              style={{ backgroundColor: BRAND }}
+            >
+              <i className="fas fa-sync-alt mr-2" />
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (error && !summary) {
     const noSession = error.includes('SETTINGS_NO_SESSION');

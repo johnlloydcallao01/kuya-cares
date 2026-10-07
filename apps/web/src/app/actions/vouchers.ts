@@ -31,6 +31,13 @@ async function readJson(res: Response): Promise<any> {
   }
 }
 
+function throwIfNoCustomer(res: Response, json: any): void {
+  const code = json?.code ?? json?.data?.code;
+  if (res.status === 404 && (code === 'NO_CUSTOMER' || code == null)) {
+    throw new Error('VOUCHERS_NO_CUSTOMER');
+  }
+}
+
 function mapVoucher(d: any): VoucherUI {
   return {
     id: d.id,
@@ -82,7 +89,10 @@ export async function getClaimableVouchers(input: {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Vouchers unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Vouchers unavailable (${res.status})`));
+  }
   return Array.isArray(json?.data) ? json.data.map(mapVoucher) : [];
 }
 
@@ -96,7 +106,10 @@ export async function getMyVouchers(filter: MineFilter | 'all' = 'available'): P
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Vouchers unavailable (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Vouchers unavailable (${res.status})`));
+  }
   return Array.isArray(json?.data)
     ? json.data.map((d: any) => ({
         ...mapVoucher(d),
@@ -121,7 +134,10 @@ export async function claimVoucherAction(input: {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Claim failed (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Claim failed (${res.status})`));
+  }
   return mapVoucher(json?.data ?? {});
 }
 
@@ -137,7 +153,10 @@ export async function applyBestVoucherAction(orderId: string | number) {
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Apply failed (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Apply failed (${res.status})`));
+  }
   return json?.data as {
     code: string;
     foodDiscount: number;
@@ -159,6 +178,9 @@ export async function detachVoucherAction(orderId: string | number, code?: strin
     cache: 'no-store',
   });
   const json = await readJson(res);
-  if (!res.ok) throw new Error(String(json?.error || `Detach failed (${res.status})`));
+  if (!res.ok) {
+    throwIfNoCustomer(res, json);
+    throw new Error(String(json?.error || `Detach failed (${res.status})`));
+  }
   return json?.data as { removed: string[]; removedTotal: number; discountTotal: number; orderTotal: number };
 }

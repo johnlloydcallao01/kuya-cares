@@ -101,6 +101,27 @@ function PointsContent() {
   const [claimingId, setClaimingId] = useState<string | number | null>(null);
   const [filteringHistory, setFilteringHistory] = useState(false);
 
+  // Member-safe: signed-in members have no customer doc (LOYALTY_NO_CUSTOMER).
+  // They see the 0 pts hero + empty lists, never a red error wall.
+  const applyNoCustomerEmpty = useCallback(() => {
+    setSummary({
+      customerId: '',
+      balance: 0,
+      lifetimeEarned: 0,
+      lifetimeRedeemed: 0,
+      thisMonthEarned: 0,
+      tier: { name: 'Bronze', multiplier: 1, deliveredOrders: 0, next: null },
+      recent: [],
+    });
+    setRules([]);
+    setRewards([]);
+    setAchievements([]);
+    setHistory([]);
+    setHistoryPage(1);
+    setHistoryMore(false);
+    setError(null);
+  }, []);
+
   const loadAll = useCallback(async (opts: { silent?: boolean; reset?: boolean } = {}) => {
     try {
       if (!opts.silent) {
@@ -121,13 +142,19 @@ function PointsContent() {
       setHistoryPage(h.page);
       setHistoryMore(h.hasNextPage);
     } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('LOYALTY_NO_CUSTOMER')) {
+        applyNoCustomerEmpty();
+        if (opts.silent) toast.error('Points not available for this account yet');
+        return;
+      }
       if (!opts.silent) setError(e?.message || 'Failed to load points');
       else toast.error(e?.message || 'Refresh failed — showing saved data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [applyNoCustomerEmpty]);
 
   const loadRef = useRef(loadAll);
   loadRef.current = loadAll;
@@ -147,9 +174,13 @@ function PointsContent() {
       setRewards(catalog.rewards);
       setAchievements(catalog.achievements);
     } catch (e: any) {
-      toast.error(e?.message || 'Refresh failed');
+      const msg = String(e?.message || '');
+      if (msg.includes('LOYALTY_NO_CUSTOMER')) {
+        applyNoCustomerEmpty();
+        toast.error('Points not available for this account yet');
+      } else toast.error(e?.message || 'Refresh failed');
     }
-  }, []);
+  }, [applyNoCustomerEmpty]);
 
   const loadHistoryPage = useCallback(async (nextPage: number, type: HistoryFilter) => {
     try {
@@ -162,7 +193,9 @@ function PointsContent() {
       setHistoryPage(h.page);
       setHistoryMore(h.hasNextPage);
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to load history');
+      const msg = String(e?.message || '');
+      if (msg.includes('LOYALTY_NO_CUSTOMER')) toast.error('Points history not available for this account yet');
+      else toast.error(e?.message || 'Failed to load history');
     } finally {
       setLoadingMore(false);
       setFilteringHistory(false);
@@ -193,7 +226,9 @@ function PointsContent() {
       await refreshCatalog();
       await loadHistoryPage(1, historyFilter);
     } catch (e: any) {
-      toast.error(e?.message || 'Redeem failed');
+      const msg = String(e?.message || '');
+      if (msg.includes('LOYALTY_NO_CUSTOMER')) toast.error('Rewards not available for this account yet');
+      else toast.error(e?.message || 'Redeem failed');
     } finally {
       setRedeemingId(null);
     }
@@ -211,7 +246,9 @@ function PointsContent() {
         // appears without a manual reload (was: invisible until revisit).
         await loadHistoryPage(1, historyFilter);
       } catch (e: any) {
-        toast.error(e?.message || 'Claim failed');
+        const msg = String(e?.message || '');
+        if (msg.includes('LOYALTY_NO_CUSTOMER')) toast.error('Achievements not available for this account yet');
+        else toast.error(e?.message || 'Claim failed');
       } finally {
         setClaimingId(null);
       }
@@ -226,7 +263,8 @@ function PointsContent() {
 
   if (loading) return <PointsPageSkeleton />;
 
-  if (error && !summary) {
+  // Member-safe: LOYALTY_NO_CUSTOMER renders the 0 pts hero, never the wall.
+  if (error && !summary && !error.includes('LOYALTY_NO_CUSTOMER')) {
     const noSession = error.includes('LOYALTY_NO_SESSION');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

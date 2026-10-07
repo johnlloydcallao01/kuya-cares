@@ -326,6 +326,15 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
       });
       setMerchants(locationMerchants);
     } catch (err) {
+      // NO_ACTIVE_ADDRESS is an expected UX state (member without a usable
+      // address) — friendly empty list, never the error panel. Only genuine
+      // failures (network, 401/403, geospatial outage) surface an error.
+      const code = (err as Error & { code?: string })?.code;
+      if (code === 'NO_ACTIVE_ADDRESS') {
+        setMerchants([]);
+        setError(null);
+        return;
+      }
       console.error('Error fetching merchants:', err);
       setError('Failed to load merchants. Please try again.');
     } finally {
@@ -493,6 +502,31 @@ export function LocationBasedMerchants({ limit = 9999, categoryId, customerId: c
         fetchLocationBasedMerchants(cid);
       });
   });
+
+  // Companion-customer race: AuthContext provisions the customers row async
+  // (void, best-effort) while the page resolves identity once. A fresh
+  // member can resolve to null before the row exists and would otherwise
+  // sit on an empty list until reload. Re-resolve when provisioning
+  // settles; the fetch is cache/singleflight-guarded so existing sessions
+  // just hit cache.
+  useEffect(() => {
+    const onProvisionSettled = () => {
+      getCurrentCustomerId()
+        .catch(() => null)
+        .then((cid) => {
+          setResolvedCustomerId(cid);
+          fetchLocationBasedMerchants(cid);
+        });
+    };
+    window.addEventListener('auth:customer_provisioned', onProvisionSettled);
+    window.addEventListener('auth:login_success', onProvisionSettled);
+    window.addEventListener('auth:session_restored', onProvisionSettled);
+    return () => {
+      window.removeEventListener('auth:customer_provisioned', onProvisionSettled);
+      window.removeEventListener('auth:login_success', onProvisionSettled);
+      window.removeEventListener('auth:session_restored', onProvisionSettled);
+    };
+  }, [fetchLocationBasedMerchants]);
 
   // Calculate bounds when merchants change or component mounts (for carousel)
   useEffect(() => {

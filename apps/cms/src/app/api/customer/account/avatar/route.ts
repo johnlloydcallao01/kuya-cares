@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer, generateUniqueFilename } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember, generateUniqueFilename } from '@/utils/mediaLibrary'
 import { sanitizeAccountUser } from '../_shared'
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024
@@ -16,7 +16,7 @@ const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/g
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let formData: FormData
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     try {

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateCustomer } from '@/utils/mediaLibrary'
+import { authenticateCustomerOrMember } from '@/utils/mediaLibrary'
 
 const TOGGLES = [
   'orderEmail',
@@ -52,7 +52,7 @@ async function getOrCreate(payload: any, userId: number) {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const prefs = await getOrCreate(payload, Number(authUser.id))
     return NextResponse.json({ data: shape(prefs) })
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateCustomer(payload, request)
+    const authUser = await authenticateCustomerOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>
