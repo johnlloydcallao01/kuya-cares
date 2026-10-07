@@ -139,6 +139,9 @@ export interface Config {
     'commission-rules': CommissionRule;
     'vendor-entitlements': VendorEntitlement;
     'membership-audit-log': MembershipAuditLog;
+    'member-invites': MemberInvite;
+    'member-listings': MemberListing;
+    'member-orders': MemberOrder;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -217,6 +220,9 @@ export interface Config {
     'commission-rules': CommissionRulesSelect<false> | CommissionRulesSelect<true>;
     'vendor-entitlements': VendorEntitlementsSelect<false> | VendorEntitlementsSelect<true>;
     'membership-audit-log': MembershipAuditLogSelect<false> | MembershipAuditLogSelect<true>;
+    'member-invites': MemberInvitesSelect<false> | MemberInvitesSelect<true>;
+    'member-listings': MemberListingsSelect<false> | MemberListingsSelect<true>;
+    'member-orders': MemberOrdersSelect<false> | MemberOrdersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -306,9 +312,9 @@ export interface User {
    */
   completeAddress?: string | null;
   /**
-   * User role determines access permissions. Service accounts are for API key authentication.
+   * User role determines access permissions. Member = unified private-marketplace account (buys+sells same account); Admin supervises all. Service accounts are for API key authentication.
    */
-  role: 'admin' | 'customer' | 'service' | 'vendor' | 'driver';
+  role: 'admin' | 'member' | 'customer' | 'service' | 'vendor' | 'driver';
   /**
    * Inactive users cannot log in
    */
@@ -4198,6 +4204,159 @@ export interface MembershipAuditLog {
   createdAt: string;
 }
 /**
+ * Private-circle invite codes. Admin supervises; members buy+sell with one account.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-invites".
+ */
+export interface MemberInvite {
+  id: number;
+  /**
+   * Invite code, normalized to uppercase (min 6 chars)
+   */
+  code: string;
+  /**
+   * Optional invitee email
+   */
+  email?: string | null;
+  /**
+   * Invite lifecycle status
+   */
+  status: 'pending' | 'claimed' | 'revoked' | 'expired';
+  /**
+   * User who issued the invite (auto-set for member creators)
+   */
+  invitedBy: number | User;
+  /**
+   * User who redeemed the invite
+   */
+  claimedBy?: (number | null) | User;
+  /**
+   * Invite expiry (defaults to +30d on create)
+   */
+  expiresAt?: string | null;
+  /**
+   * When the invite was claimed
+   */
+  claimedAt?: string | null;
+  /**
+   * Internal notes about this invite
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Private-circle listings. Members buy+sell with one account; admin supervises.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-listings".
+ */
+export interface MemberListing {
+  id: number;
+  /**
+   * Listing owner (auto-set from the signed-in member)
+   */
+  seller: number | User;
+  /**
+   * Listing title (3-120 chars)
+   */
+  title: string;
+  /**
+   * Optional details (max 2000 chars)
+   */
+  description?: string | null;
+  /**
+   * Price in listing currency (>= 0)
+   */
+  price: number;
+  /**
+   * ISO currency code
+   */
+  currency?: string | null;
+  condition?: ('new' | 'like_new' | 'good' | 'fair' | 'for_parts') | null;
+  /**
+   * Optional free-form category
+   */
+  category?: string | null;
+  /**
+   * Available quantity (>= 1)
+   */
+  quantity?: number | null;
+  status: 'draft' | 'active' | 'reserved' | 'sold' | 'removed';
+  /**
+   * Up to 5 photos
+   */
+  images?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Optional meetup / handover notes
+   */
+  meetupNotes?: string | null;
+  /**
+   * Visible in the private catalog
+   */
+  isActive?: boolean | null;
+  /**
+   * When the listing was sold
+   */
+  soldAt?: string | null;
+  /**
+   * Buyer recorded when the listing is sold
+   */
+  buyer?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Private-circle orders. Buyer+seller share one member account type; admin supervises.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-orders".
+ */
+export interface MemberOrder {
+  id: number;
+  /**
+   * Listing being purchased (immutable)
+   */
+  listing: number | MemberListing;
+  /**
+   * Buying member (auto-set from the signed-in user)
+   */
+  buyer: number | User;
+  /**
+   * Selling member (snapshot from the listing)
+   */
+  seller: number | User;
+  /**
+   * Agreed price snapshot (>= 0, immutable)
+   */
+  price: number;
+  /**
+   * Quantity purchased (>= 1)
+   */
+  quantity?: number | null;
+  status: 'pending' | 'confirmed' | 'handed_over' | 'completed' | 'cancelled';
+  /**
+   * Handover / meetup coordination notes
+   */
+  meetupNotes?: string | null;
+  /**
+   * Reason when the order is cancelled
+   */
+  cancelledReason?: string | null;
+  /**
+   * When the order completed
+   */
+  completedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
@@ -4491,6 +4650,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'membership-audit-log';
         value: number | MembershipAuditLog;
+      } | null)
+    | ({
+        relationTo: 'member-invites';
+        value: number | MemberInvite;
+      } | null)
+    | ({
+        relationTo: 'member-listings';
+        value: number | MemberListing;
+      } | null)
+    | ({
+        relationTo: 'member-orders';
+        value: number | MemberOrder;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -6144,6 +6315,66 @@ export interface MembershipAuditLogSelect<T extends boolean = true> {
   actor?: T;
   metadata?: T;
   eventId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-invites_select".
+ */
+export interface MemberInvitesSelect<T extends boolean = true> {
+  code?: T;
+  email?: T;
+  status?: T;
+  invitedBy?: T;
+  claimedBy?: T;
+  expiresAt?: T;
+  claimedAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-listings_select".
+ */
+export interface MemberListingsSelect<T extends boolean = true> {
+  seller?: T;
+  title?: T;
+  description?: T;
+  price?: T;
+  currency?: T;
+  condition?: T;
+  category?: T;
+  quantity?: T;
+  status?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  meetupNotes?: T;
+  isActive?: T;
+  soldAt?: T;
+  buyer?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-orders_select".
+ */
+export interface MemberOrdersSelect<T extends boolean = true> {
+  listing?: T;
+  buyer?: T;
+  seller?: T;
+  price?: T;
+  quantity?: T;
+  status?: T;
+  meetupNotes?: T;
+  cancelledReason?: T;
+  completedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

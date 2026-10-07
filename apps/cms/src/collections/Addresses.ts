@@ -18,8 +18,9 @@ export const Addresses: CollectionConfig = {
         if (user.role === 'service' || user.role === 'admin') {
           return true
         }
-        // Allow customers and vendors to read their own addresses
-        if (user.role === 'customer' || user.role === 'vendor') {
+        // Allow customers, vendors, and members (unified buy+sell) to read
+        // their own addresses
+        if (user.role === 'customer' || user.role === 'vendor' || user.role === 'member') {
           return {
             user: {
               equals: user.id,
@@ -32,8 +33,9 @@ export const Addresses: CollectionConfig = {
       return false
     },
     create: ({ req: { user } }) => {
-      // Allow service accounts, admins, customers, and vendors to create addresses
-      return user?.role === 'service' || user?.role === 'admin' || user?.role === 'customer' || user?.role === 'vendor' || false
+      // Allow service accounts, admins, customers, vendors, and members
+      // (unified private-marketplace buy+sell) to create addresses
+      return user?.role === 'service' || user?.role === 'admin' || user?.role === 'customer' || user?.role === 'vendor' || user?.role === 'member' || false
     },
     update: ({ req: { user } }) => {
       // If user exists, they've been authenticated
@@ -42,8 +44,8 @@ export const Addresses: CollectionConfig = {
         if (user.role === 'service' || user.role === 'admin') {
           return true
         }
-        // Allow customers and vendors to update their own addresses
-        if (user.role === 'customer' || user.role === 'vendor') {
+        // Allow customers, vendors, and members to update their own addresses
+        if (user.role === 'customer' || user.role === 'vendor' || user.role === 'member') {
           return {
             user: {
               equals: user.id,
@@ -60,8 +62,8 @@ export const Addresses: CollectionConfig = {
         if (user.role === 'service' || user.role === 'admin') {
           return true
         }
-        // Allow customers and vendors to delete their own addresses
-        if (user.role === 'customer' || user.role === 'vendor') {
+        // Allow customers, vendors, and members to delete their own addresses
+        if (user.role === 'customer' || user.role === 'vendor' || user.role === 'member') {
           return {
             user: {
               equals: user.id,

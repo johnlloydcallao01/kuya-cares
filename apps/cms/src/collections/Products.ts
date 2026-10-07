@@ -18,7 +18,9 @@ export const Products: CollectionConfig = {
         // Vendors need read access so the merchant portal (vendor JWT) can
         // populate product_id.media.primaryImage for merchant-products search
         // (see apps/web-merchant search routes, parity with apps/web-admin).
-        if (user.role === 'service' || user.role === 'admin' || user.role === 'vendor') {
+        // Members (unified private-marketplace buy+sell) get read-only catalog
+        // visibility; admin supervises. Writes stay service|admin only.
+        if (user.role === 'service' || user.role === 'admin' || user.role === 'vendor' || user.role === 'member') {
           return true
         }
       }

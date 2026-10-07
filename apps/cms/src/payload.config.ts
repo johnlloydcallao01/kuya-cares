@@ -96,6 +96,10 @@ import { SubscriptionInvoices } from './collections/SubscriptionInvoices'
 import { CommissionRules } from './collections/CommissionRules'
 import { VendorEntitlements } from './collections/VendorEntitlements'
 import { MembershipAuditLog } from './collections/MembershipAuditLog'
+// Private members-only marketplace (unified buy+sell)
+import { MemberInvites } from './collections/MemberInvites'
+import { MemberListings } from './collections/MemberListings'
+import { MemberOrders } from './collections/MemberOrders'
 
 // Product Management Collections
 import { ProdAttributes } from './collections/ProdAttributes'
@@ -221,6 +225,11 @@ export default buildConfig({
     CommissionRules,
     VendorEntitlements,
     MembershipAuditLog,
+
+    // Private members-only marketplace (unified buy+sell)
+    MemberInvites,
+    MemberListings,
+    MemberOrders,
   ],
   globals: [
     SystemSettings,
@@ -317,13 +326,14 @@ export default buildConfig({
             );
           }
 
-          // Security Check 3: Verify user role (customer access only for web app)
-          if (user.role !== 'customer') {
+          // Security Check 3: Verify user role (customer/member web-app access;
+          // admin allowed for supervision. Service/vendor/driver stay denied.)
+          if (user.role !== 'customer' && user.role !== 'member' && user.role !== 'admin') {
             const logContext = createAuthLogContext(requestId, req, user.id, user.email, user.role, Date.now() - startTime);
-            authLogger.logRoleViolation(logContext, 'customer', user.role);
+            authLogger.logRoleViolation(logContext, 'customer|member|admin', user.role);
 
             return Response.json({
-              error: 'Access denied. Only customers can access this application.',
+              error: 'Access denied. Only customers, members, and admins can access this application.',
               code: 'ROLE_DENIED',
               timestamp: new Date().toISOString(),
               requestId

@@ -1,5 +1,7 @@
 import type { Access, FieldAccess } from 'payload'
 
+export * from './roles'
+
 // API Key Cache for Performance Optimization
 interface ApiKeyCache {
   [key: string]: {
@@ -40,8 +42,13 @@ const cleanupCache = () => {
 }
 
 // LMS role hierarchy levels
+// Unified private marketplace: MEMBER (2) sits above CUSTOMER/VENDOR/DRIVER
+// (1) and below SERVICE (3). Admin supervises all.
 export const ROLE_LEVELS = {
   CUSTOMER: 1,
+  VENDOR: 1,
+  DRIVER: 1,
+  MEMBER: 2,
   SERVICE: 3, // Step 2: Add service account role level (between customer and admin)
   ADMIN: 10,
 } as const
@@ -49,6 +56,9 @@ export const ROLE_LEVELS = {
 // Legacy role mapping for backward compatibility
 export const LEGACY_ROLE_LEVELS = {
   'customer': ROLE_LEVELS.CUSTOMER,
+  'vendor': ROLE_LEVELS.VENDOR,
+  'driver': ROLE_LEVELS.DRIVER,
+  'member': ROLE_LEVELS.MEMBER,
   'service': ROLE_LEVELS.SERVICE, // Step 2: Map service role for API key users
   'admin': ROLE_LEVELS.ADMIN,
 } as const

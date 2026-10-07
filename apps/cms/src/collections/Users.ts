@@ -182,6 +182,84 @@ export const Users: CollectionConfig = {
             }).catch(() => {});
           }
 
+          // Private members-only marketplace cleanup: remove invites, listings,
+          // and orders tied to this user. Unified member accounts buy+sell, so
+          // all three must be purged. Never throw — best-effort cleanup only.
+          const memberInvitesInvitedBy = await payload.find({
+            collection: 'member-invites',
+            where: { invitedBy: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
+          }).catch(() => ({ docs: [] as { id: string | number }[] }));
+
+          for (const invite of memberInvitesInvitedBy.docs) {
+            await payload.delete({
+              collection: 'member-invites',
+              id: invite.id,
+              overrideAccess: true,
+            }).catch(() => {});
+          }
+
+          const memberInvitesClaimedBy = await payload.find({
+            collection: 'member-invites',
+            where: { claimedBy: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
+          }).catch(() => ({ docs: [] as { id: string | number }[] }));
+
+          for (const invite of memberInvitesClaimedBy.docs) {
+            await payload.delete({
+              collection: 'member-invites',
+              id: invite.id,
+              overrideAccess: true,
+            }).catch(() => {});
+          }
+
+          const memberListings = await payload.find({
+            collection: 'member-listings',
+            where: { seller: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
+          }).catch(() => ({ docs: [] as { id: string | number }[] }));
+
+          for (const listing of memberListings.docs) {
+            await payload.delete({
+              collection: 'member-listings',
+              id: listing.id,
+              overrideAccess: true,
+            }).catch(() => {});
+          }
+
+          const memberOrdersBuyer = await payload.find({
+            collection: 'member-orders',
+            where: { buyer: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
+          }).catch(() => ({ docs: [] as { id: string | number }[] }));
+
+          for (const order of memberOrdersBuyer.docs) {
+            await payload.delete({
+              collection: 'member-orders',
+              id: order.id,
+              overrideAccess: true,
+            }).catch(() => {});
+          }
+
+          const memberOrdersSeller = await payload.find({
+            collection: 'member-orders',
+            where: { seller: { equals: id } },
+            overrideAccess: true,
+            depth: 0,
+          }).catch(() => ({ docs: [] as { id: string | number }[] }));
+
+          for (const order of memberOrdersSeller.docs) {
+            await payload.delete({
+              collection: 'member-orders',
+              id: order.id,
+              overrideAccess: true,
+            }).catch(() => {});
+          }
+
           console.log(`✅ Successfully cleaned up related records for user ${id}`);
         } catch (error) {
           console.warn(`⚠️ Warning cleaning up related records for user ${id}:`, error);
@@ -296,6 +374,10 @@ export const Users: CollectionConfig = {
           value: 'admin',
         },
         {
+          label: 'Member',
+          value: 'member',
+        },
+        {
               label: 'Customer',
               value: 'customer',
             },
@@ -312,10 +394,14 @@ export const Users: CollectionConfig = {
           value: 'driver',
         },
       ],
+      // NOTE: DB default stays 'customer' to avoid an existing-data migration
+      // risk. The app layer must set role:'member' explicitly when creating
+      // private-marketplace signups (unified buy+sell account).
       defaultValue: 'customer',
       required: true,
       admin: {
-        description: 'User role determines access permissions. Service accounts are for API key authentication.',
+        description:
+          'User role determines access permissions. Member = unified private-marketplace account (buys+sells same account); Admin supervises all. Service accounts are for API key authentication.',
       },
     },
     {
