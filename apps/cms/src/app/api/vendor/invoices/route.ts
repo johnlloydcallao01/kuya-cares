@@ -6,20 +6,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
-import { sanitizeInvoice, clampLimit, resolveOwnVendorId } from '@/utils/membershipApi'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
+import { sanitizeInvoice, clampLimit, resolveOwnVendorId, resolveOwnedVendorId } from '@/utils/membershipApi'
 
 const STATUSES = new Set(['pending', 'paid', 'failed', 'past_due', 'void', 'refunded'])
 
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const vendorUser = await authenticateVendor(payload, request)
-    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-    const vendorId = await resolveOwnVendorId(payload, vendorUser.id)
-    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
-
     const { searchParams } = new URL(request.url)
+    const vendorUser = await authenticateVendorOrMember(payload, request)
+    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: seller authentication required' }, { status: 401 })
+    const requestedVendorId = searchParams.get('vendorId')
+    if (vendorUser.role === 'member' && !requestedVendorId) {
+      return NextResponse.json({ error: 'vendorId is required' }, { status: 400 })
+    }
+    const vendorId = requestedVendorId
+      ? await resolveOwnedVendorId(payload, vendorUser.id, requestedVendorId)
+      : await resolveOwnVendorId(payload, vendorUser.id)
+    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found or not owned by account' }, { status: requestedVendorId ? 403 : 404 })
+
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
     const limit = clampLimit(searchParams.get('limit'))
     const status = searchParams.get('status')?.trim() || ''

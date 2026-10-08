@@ -6,13 +6,13 @@
  * GLOBAL platform definitions (no vendor FK, slug unique). Merchants/vendors must not
  * rename/disable/delete shared attributes. This endpoint exposes a read-only catalog:
  * active + inactive list with term counts, stats, filters, pagination.
- * All reads overrideAccess:true; authenticateVendor at the gate.
+ * All reads overrideAccess:true; authenticate active vendor/member accounts at the gate.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,9 +41,9 @@ const ATTRIBUTE_TYPES = new Set(['select', 'color', 'button', 'radio'])
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)

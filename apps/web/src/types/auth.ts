@@ -15,6 +15,7 @@ export interface User {
   middleName?: string | null;
   nameExtension?: string | null;
   username?: string | null;
+  phone?: string | null;
   role: 'admin' | 'customer' | 'member' | 'instructor';
   isActive?: boolean | null;
   createdAt: string;

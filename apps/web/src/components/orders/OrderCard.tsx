@@ -40,15 +40,15 @@ export default function OrderCard({
 
   return (
     <article
-      className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 ${
-        isActive ? 'border-green-100 ring-1 ring-green-50' : 'border-gray-100'
+      className={`bg-white dark:bg-[#151515] rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-all duration-300 ${
+        isActive ? 'border-green-100 dark:border-green-900 ring-1 ring-green-50 dark:ring-green-950/50' : 'border-gray-100 dark:border-[#292929]'
       }`}
     >
       {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+      <div className="p-4 bg-gradient-to-r from-gray-50 to-white dark:from-[#1c1c1c] dark:to-[#151515] border-b border-gray-100 dark:border-[#292929]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-white dark:bg-[#202020] border border-gray-100 dark:border-[#333333] shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0">
               {order.merchantLogo ? (
                 <Image
                   src={order.merchantLogo}
@@ -62,22 +62,22 @@ export default function OrderCard({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate">{order.restaurant}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{order.restaurant}</p>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                 <button
                   type="button"
                   onClick={() => onCopy(order)}
                   title="Copy order number"
-                  className="text-[11px] text-gray-500 hover:text-gray-800 font-medium"
+                  className="text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 font-medium"
                 >
                   {order.orderNumber} <i className="far fa-copy ml-0.5 text-[10px]" />
                 </button>
-                <span className="text-[11px] text-gray-300">•</span>
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[11px] text-gray-300 dark:text-gray-600">•</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
                   {order.placedAt || formatOrderDateTime(String(order.placedAtTs))}
                 </span>
-                <span className="text-[11px] text-gray-300">•</span>
-                <span className="text-[11px] text-gray-500 capitalize">
+                <span className="text-[11px] text-gray-300 dark:text-gray-600">•</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 capitalize">
                   <i className={`fas ${order.fulfillmentType === 'pickup' ? 'fa-shopping-bag' : 'fa-motorcycle'} mr-1`} />
                   {order.fulfillmentType}
                 </span>
@@ -90,7 +90,7 @@ export default function OrderCard({
               {meta.label}
             </span>
             {order.isPaid && (
-              <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-semibold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-900 px-2 py-0.5 rounded-full">
                 <i className="fas fa-lock mr-1" />Paid
               </span>
             )}
@@ -110,7 +110,7 @@ export default function OrderCard({
                     alt={item.name}
                     width={76}
                     height={76}
-                    className="w-[76px] h-[76px] object-cover rounded-xl bg-gray-100 border border-gray-100"
+                    className="w-[76px] h-[76px] object-cover rounded-xl bg-gray-100 dark:bg-[#252525] border border-gray-100 dark:border-[#333333]"
                   />
                   {item.quantity > 1 && (
                     <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold">
@@ -118,33 +118,33 @@ export default function OrderCard({
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-700 mt-1.5 line-clamp-2 leading-tight font-medium">
+                <p className="text-[10px] text-gray-700 dark:text-gray-300 mt-1.5 line-clamp-2 leading-tight font-medium">
                   {item.quantity}x {item.name}
                 </p>
-                <p className="text-[10px] text-gray-900 font-bold mt-0.5">{formatPHP(item.totalPrice)}</p>
+                <p className="text-[10px] text-gray-900 dark:text-gray-100 font-bold mt-0.5">{formatPHP(item.totalPrice)}</p>
               </div>
             ))}
             {extraCount > 0 && (
               <div className="flex-shrink-0 w-[76px]">
-                <div className="w-[76px] h-[76px] rounded-xl bg-gray-50 border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-500">
+                <div className="w-[76px] h-[76px] rounded-xl bg-gray-50 dark:bg-[#202020] border border-dashed border-gray-200 dark:border-[#383838] flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                   <span className="text-sm font-bold">+{extraCount}</span>
                   <span className="text-[10px]">more</span>
                 </div>
               </div>
             )}
             {order.items.length === 0 && (
-              <p className="text-xs text-gray-400 py-4">No items found for this order.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 py-4">No items found for this order.</p>
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-dashed border-gray-200">
-            <span className="text-xs text-gray-500">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-dashed border-gray-200 dark:border-[#383838]">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {totalQty} item{totalQty === 1 ? '' : 's'}
               {order.paymentMethod ? ` • ${order.paymentMethod.replace(/_/g, ' ')}` : ''}
             </span>
             <span className="text-right">
-              <span className="text-[11px] text-gray-500 mr-1.5">Total</span>
-              <span className="font-extrabold text-gray-900 text-base">{formatPHP(order.total)}</span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 mr-1.5">Total</span>
+              <span className="font-extrabold text-gray-900 dark:text-white text-base">{formatPHP(order.total)}</span>
             </span>
           </div>
         </div>
@@ -180,14 +180,14 @@ export default function OrderCard({
         )}
         <Link
           href={`/orders/${order.orderId}`}
-          className="flex-1 min-w-[110px] py-2.5 px-4 bg-gray-100 text-gray-800 rounded-xl font-bold text-[13px] text-center hover:bg-gray-200 active:scale-[0.98] transition-all"
+          className="flex-1 min-w-[110px] py-2.5 px-4 bg-gray-100 dark:bg-[#292929] text-gray-800 dark:text-gray-200 rounded-xl font-bold text-[13px] text-center hover:bg-gray-200 dark:hover:bg-[#383838] active:scale-[0.98] transition-all"
         >
           Details
         </Link>
         <button
           type="button"
           onClick={() => onReceipt(order)}
-          className="py-2.5 px-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-[13px] hover:bg-gray-50 active:scale-[0.98] transition-all"
+          className="py-2.5 px-3.5 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#383838] text-gray-700 dark:text-gray-200 rounded-xl font-bold text-[13px] hover:bg-gray-50 dark:hover:bg-[#292929] active:scale-[0.98] transition-all"
           title="View receipt"
         >
           <i className="fas fa-receipt" />
@@ -196,7 +196,7 @@ export default function OrderCard({
           <button
             type="button"
             onClick={() => onRate(order)}
-            className="py-2.5 px-3.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-bold text-[13px] hover:bg-amber-100 active:scale-[0.98] transition-all"
+            className="py-2.5 px-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 rounded-xl font-bold text-[13px] hover:bg-amber-100 dark:hover:bg-amber-950/70 active:scale-[0.98] transition-all"
             title="Rate order"
           >
             <i className="fas fa-star mr-1" />Rate
@@ -207,7 +207,7 @@ export default function OrderCard({
             type="button"
             disabled={isBusy}
             onClick={() => onCancel(order)}
-            className="py-2.5 px-3.5 bg-white border border-red-200 text-red-600 rounded-xl font-bold text-[13px] hover:bg-red-50 active:scale-[0.98] transition-all disabled:opacity-60"
+            className="py-2.5 px-3.5 bg-white dark:bg-[#1c1c1c] border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-xl font-bold text-[13px] hover:bg-red-50 dark:hover:bg-red-950/40 active:scale-[0.98] transition-all disabled:opacity-60"
             title="Cancel order"
           >
             {cancellingId === order.orderId ? (

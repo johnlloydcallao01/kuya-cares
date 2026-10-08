@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { resolveSellerVendorScope } from '@/utils/sellerVendorScope'
 import { normalizeCouponCode, validateCouponFields } from '@/collections/Coupons'
 
 function str(v: unknown, fb = ''): string {
@@ -110,28 +110,6 @@ const PATCH_FIELDS = [
   'first_order_only', 'allowed_payment_methods', 'time_windows',
 ] as const
 
-async function resolveVendorContext(payload: any, userId: string) {
-  const vendorRes = await payload.find({
-    collection: 'vendors',
-    where: { user: { equals: userId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-  if (!vendor) return { vendor: null, vendorId: null as number | null, merchantIds: [] as number[] }
-  const vendorId = Number(vendor.id)
-  const merchantsRes = await payload.find({
-    collection: 'merchants',
-    where: { vendor: { equals: vendorId } },
-    limit: 1000,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const merchantIds = (merchantsRes.docs as Record<string, any>[]).map((m) => Number(m.id)).filter((v) => Number.isFinite(v))
-  return { vendor, vendorId, merchantIds }
-}
-
 async function loadOwnedCoupon(payload: any, id: string, vendorId: number) {
   let doc: Record<string, any>
   try {
@@ -149,11 +127,10 @@ async function loadOwnedCoupon(payload: any, id: string, vendorId: number) {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
-    const { vendorId } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, searchParams.get('vendorId'))
+    if (scope.error) return scope.error
+    const { vendorId } = scope
     if (vendorId == null) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     const { id } = await params
     const { doc, error } = await loadOwnedCoupon(payload, id, vendorId)
@@ -168,9 +145,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-
     let body: Record<string, any>
     try {
       body = await request.json()
@@ -182,8 +156,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'code, vendor and discount_type are locked after creation. Archive this coupon and create a new one.' }, { status: 400 })
     }
 
-    const userId = body.userId ? String(body.userId) : String(authUser.id)
-    const { vendorId, merchantIds } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, typeof body.vendorId === 'string' ? body.vendorId : null)
+    if (scope.error) return scope.error
+    const { vendorId, merchantIds } = scope
     if (vendorId == null) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     const { id } = await params
     const { doc: existing, error } = await loadOwnedCoupon(payload, id, vendorId)
@@ -239,11 +214,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
-    const { vendorId } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, searchParams.get('vendorId'))
+    if (scope.error) return scope.error
+    const { vendorId } = scope
     if (vendorId == null) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     const { id } = await params
     const { error } = await loadOwnedCoupon(payload, id, vendorId)

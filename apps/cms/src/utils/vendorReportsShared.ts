@@ -8,7 +8,36 @@
  * the collections it needs (all depth: 0).
  */
 
+import type { Payload } from 'payload'
+
 export type VendorReportDoc = Record<string, unknown>
+
+export async function findVendorReportsScope(payload: Payload, userId: string) {
+  const vendorsRes = await payload.find({
+    collection: 'vendors',
+    where: { user: { equals: userId } },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const vendorsDocs = vendorsRes.docs as unknown as VendorReportDoc[]
+  if (vendorsDocs.length === 0) return null
+
+  const vendorIds = Array.from(new Set(vendorsDocs.map((vendor) => String(vendor.id))))
+  const merchantsRes = await payload.find({
+    collection: 'merchants',
+    where: { vendor: { in: vendorIds } },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  return {
+    vendorId: vendorIds.join(','),
+    vendorName: vendorsDocs.map((vendor) => getStr(vendor.businessName, 'Vendor')).join(', '),
+    merchantsDocs: merchantsRes.docs as unknown as VendorReportDoc[],
+  }
+}
 
 export function getNum(v: unknown, fb = 0): number {
   if (typeof v === 'number' && Number.isFinite(v)) return v

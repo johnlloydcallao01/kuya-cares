@@ -19,7 +19,7 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
     <>
       <aside
         data-sidebar="main"
-        className={`fixed left-0 bg-white border-r border-gray-200 transition-all duration-300 overflow-y-auto z-40 hidden lg:block ${
+        className={`fixed left-0 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-[#262626] transition-all duration-300 overflow-y-auto z-40 hidden lg:block ${
           isOpen
             ? 'w-60 translate-x-0'
             : 'w-20 translate-x-0'
@@ -52,11 +52,11 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
 
           </div>
 
-          {isOpen && <hr className="my-3 border-gray-200" />}
+          {isOpen && <hr className="my-3 border-gray-200 dark:border-[#262626]" />}
 
           {/* Account section */}
           <div className="space-y-1">
-            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900">Account</div>}
+            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-[#ededed]">Account</div>}
             <SidebarItem 
               icon="receipt" 
               label="Orders" 
@@ -87,11 +87,11 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
             />
           </div>
 
-          {isOpen && <hr className="my-3 border-gray-200" />}
+          {isOpen && <hr className="my-3 border-gray-200 dark:border-[#262626]" />}
 
           {/* Perks section */}
           <div className="space-y-1">
-            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900">Perks</div>}
+            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-[#ededed]">Perks</div>}
             <SidebarItem
               icon="voucher"
               label="Vouchers"
@@ -108,11 +108,11 @@ export function Sidebar({ isOpen, onToggle, onScroll }: SidebarProps) {
             />
           </div>
 
-          {isOpen && <hr className="my-3 border-gray-200" />}
+          {isOpen && <hr className="my-3 border-gray-200 dark:border-[#262626]" />}
 
           {/* General section */}
           <div className="space-y-1">
-            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900">General</div>}
+            {isOpen && <div className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-[#ededed]">General</div>}
             <SidebarItem 
               icon="settings" 
               label="Settings" 

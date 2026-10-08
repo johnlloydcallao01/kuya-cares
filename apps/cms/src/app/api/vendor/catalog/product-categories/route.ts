@@ -1,16 +1,16 @@
 /**
  * @file apps/cms/src/app/api/vendor/catalog/product-categories/route.ts
- * @description Read-only BFF aggregation for web-merchant /product-categories.
+ * @description Read-only BFF aggregation for merchant and seller product-categories pages.
  *
  * Product categories is a global service/admin taxonomy. This vendor BFF returns the full category
- * hierarchy with per-category product counts scoped to the vendor's owned products only. All writes
+ * hierarchy with per-category product counts scoped to the authenticated account's owned products. All writes
  * are absent for merchants — they create categories via the admin console or CMS batch import.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,13 +71,17 @@ const ALLOWED_SORTS = new Set(['-createdAt', 'createdAt', '-updatedAt', 'updated
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -92,23 +96,23 @@ export async function GET(request: NextRequest) {
     const levelParam = (searchParams.get('categoryLevel') || searchParams.get('level') || '').trim()
     const parentParam = (searchParams.get('parentCategory') || searchParams.get('parent') || '').trim()
 
-    // 1. Resolve vendor + merchants + owned products.
+    // 1. Resolve all vendor profiles, merchants, and products owned by the account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -119,7 +123,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },

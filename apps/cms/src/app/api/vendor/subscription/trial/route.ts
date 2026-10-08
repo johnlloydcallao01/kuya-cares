@@ -7,23 +7,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import crypto from 'crypto'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import {
   audit,
   checkRateLimit,
   isMissingCollection,
   periodEndFor,
   resolveOwnVendorId,
+  resolveOwnedVendorId,
   forbidCrossVendor,
 } from '@/utils/membershipApi'
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const vendorUser = await authenticateVendor(payload, request)
-    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-    const vendorId = await resolveOwnVendorId(payload, vendorUser.id)
-    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
+    const vendorUser = await authenticateVendorOrMember(payload, request)
+    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: seller authentication required' }, { status: 401 })
+    const requestedVendorId = new URL(request.url).searchParams.get('vendorId')
+    if (vendorUser.role === 'member' && !requestedVendorId) {
+      return NextResponse.json({ error: 'vendorId is required' }, { status: 400 })
+    }
+    const vendorId = requestedVendorId
+      ? await resolveOwnedVendorId(payload, vendorUser.id, requestedVendorId)
+      : await resolveOwnVendorId(payload, vendorUser.id)
+    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found or not owned by account' }, { status: requestedVendorId ? 403 : 404 })
     const limited = checkRateLimit('vendor-trial', `vendor:${vendorId}`, 5, 60 * 60 * 1000)
     if (limited) return limited
 

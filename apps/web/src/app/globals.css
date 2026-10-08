@@ -12,19 +12,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* DISABLED DARK MODE - Always use light theme for professional maritime app */
-/*
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 }
-*/
 
 body {
-  background: #ffffff !important; /* Force white background */
-  color: #171717 !important; /* Force dark text */
+  background: var(--background);
+  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -172,6 +170,39 @@ aside[data-sidebar="main"]::-webkit-scrollbar-thumb {
 
 aside[data-sidebar="main"]::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Thin scrollbar for sidebar - minimal 4px, hidden until hover, dark-aware, matches admin */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+.sidebar-scroll:hover {
+  scrollbar-color: rgba(156,163,175,0.5) transparent;
+}
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(156,163,175,0.5);
+}
+.dark .sidebar-scroll {
+  scrollbar-color: transparent transparent;
+}
+.dark .sidebar-scroll:hover {
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.dark .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
 }
 
 /* Smooth transitions for layout components */
@@ -579,4 +610,271 @@ main {
   .facebook-pulse-ring {
     display: none;
   }
+}
+
+/* Apply the selected app theme to storefront surfaces that predate dark-mode utilities. */
+html.dark body,
+html.dark main,
+html.dark main > div {
+  background-color: #0a0a0a !important;
+  color: #ededed;
+}
+
+html.dark .bg-white:not([class*="dark:bg-"]),
+html.dark .bg-gray-50:not([class*="dark:bg-"]),
+html.dark .bg-gray-100:not([class*="dark:bg-"]),
+html.dark .bg-slate-50:not([class*="dark:bg-"]) {
+  background-color: #171717 !important;
+}
+
+html.dark .bg-gray-200:not([class*="dark:bg-"]),
+html.dark .bg-gray-300:not([class*="dark:bg-"]),
+html.dark .bg-slate-100:not([class*="dark:bg-"]) {
+  background-color: #262626 !important;
+}
+
+html.dark .text-gray-900:not([class*="dark:text-"]),
+html.dark .text-gray-800:not([class*="dark:text-"]),
+html.dark .text-gray-700:not([class*="dark:text-"]),
+html.dark .text-black:not([class*="dark:text-"]) {
+  color: #ededed !important;
+}
+
+html.dark .text-gray-600:not([class*="dark:text-"]) {
+  color: #d4d4d8 !important;
+}
+
+html.dark .text-gray-500:not([class*="dark:text-"]),
+html.dark .text-gray-400:not([class*="dark:text-"]) {
+  color: #a1a1aa !important;
+}
+
+html.dark .border-gray-100:not([class*="dark:border-"]),
+html.dark .border-gray-200:not([class*="dark:border-"]),
+html.dark .border-gray-300:not([class*="dark:border-"]),
+html.dark .border-slate-100:not([class*="dark:border-"]),
+html.dark .border-slate-200:not([class*="dark:border-"]) {
+  border-color: #262626 !important;
+}
+
+/* Keep legacy light-theme interaction utilities dark across every route. */
+html.dark [class~="hover:bg-white"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-gray-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-gray-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-gray-200"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-slate-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-slate-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-blue-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-blue-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-green-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-green-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-amber-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-amber-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-yellow-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-yellow-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-red-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-red-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-rose-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-purple-50"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="hover:bg-purple-100"]:hover:not([class*="dark:hover:bg-"]),
+html.dark [class~="focus:bg-white"]:focus:not([class*="dark:focus:bg-"]),
+html.dark [class~="focus:bg-gray-50"]:focus:not([class*="dark:focus:bg-"]),
+html.dark [class~="focus:bg-gray-100"]:focus:not([class*="dark:focus:bg-"]),
+html.dark [class~="focus:bg-gray-200"]:focus:not([class*="dark:focus:bg-"]) {
+  background-color: #262626 !important;
+}
+
+html.dark .group:hover [class~="group-hover:bg-white"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-gray-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-gray-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-gray-200"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-slate-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-slate-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-blue-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-blue-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-green-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-green-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-amber-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-amber-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-yellow-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-yellow-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-red-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-red-100"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-rose-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-purple-50"]:not([class*="dark:group-hover:bg-"]),
+html.dark .group:hover [class~="group-hover:bg-purple-100"]:not([class*="dark:group-hover:bg-"]) {
+  background-color: #262626 !important;
+}
+
+html.dark [class~="hover:text-gray-900"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-gray-800"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-gray-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="focus:text-gray-900"]:focus:not([class*="dark:focus:text-"]),
+html.dark [class~="focus:text-gray-800"]:focus:not([class*="dark:focus:text-"]),
+html.dark [class~="focus:text-gray-700"]:focus:not([class*="dark:focus:text-"]),
+html.dark .group:hover [class~="group-hover:text-gray-900"]:not([class*="dark:group-hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-gray-800"]:not([class*="dark:group-hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-gray-700"]:not([class*="dark:group-hover:text-"]) {
+  color: #ededed !important;
+}
+
+html.dark [class~="hover:text-blue-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-blue-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="focus:text-blue-600"]:focus:not([class*="dark:focus:text-"]),
+html.dark [class~="focus:text-blue-700"]:focus:not([class*="dark:focus:text-"]),
+html.dark .group:hover [class~="group-hover:text-blue-600"]:not([class*="dark:group-hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-blue-700"]:not([class*="dark:group-hover:text-"]) {
+  color: #93c5fd !important;
+}
+
+html.dark [class~="hover:text-green-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-green-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-emerald-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-emerald-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-green-600"]:not([class*="dark:group-hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-green-700"]:not([class*="dark:group-hover:text-"]) {
+  color: #86efac !important;
+}
+
+html.dark [class~="hover:text-red-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-red-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-rose-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-red-600"]:not([class*="dark:group-hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-red-700"]:not([class*="dark:group-hover:text-"]) {
+  color: #fca5a5 !important;
+}
+
+html.dark [class~="hover:text-amber-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-amber-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-yellow-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-yellow-700"]:hover:not([class*="dark:hover:text-"]),
+html.dark .group:hover [class~="group-hover:text-amber-700"]:not([class*="dark:group-hover:text-"]) {
+  color: #fcd34d !important;
+}
+
+html.dark [class~="hover:text-purple-600"]:hover:not([class*="dark:hover:text-"]),
+html.dark [class~="hover:text-purple-700"]:hover:not([class*="dark:hover:text-"]) {
+  color: #c4b5fd !important;
+}
+
+html.dark .settings-theme.min-h-screen {
+  background-color: #0a0a0a !important;
+  color: #ededed;
+}
+
+html.dark .settings-theme [class~="bg-white/90"],
+html.dark .settings-theme [class~="bg-white/95"],
+html.dark .settings-theme [class~="bg-white/80"] {
+  background-color: #262626 !important;
+}
+
+html.dark .settings-theme [class~="bg-green-50"],
+html.dark .settings-theme [class~="bg-emerald-50"] {
+  background-color: #10251b !important;
+}
+
+html.dark .settings-theme [class~="bg-sky-50"],
+html.dark .settings-theme [class~="bg-blue-50"] {
+  background-color: #111f2b !important;
+}
+
+html.dark .settings-theme [class~="bg-amber-50"],
+html.dark .settings-theme [class~="bg-yellow-50"] {
+  background-color: #2a2110 !important;
+}
+
+html.dark .settings-theme [class~="bg-red-50"],
+html.dark .settings-theme [class~="bg-rose-50"] {
+  background-color: #2a1417 !important;
+}
+
+html.dark .settings-theme [class~="hover:bg-gray-50"]:hover,
+html.dark .settings-theme [class~="hover:bg-gray-100"]:hover,
+html.dark .settings-theme [class~="hover:bg-gray-200"]:hover,
+html.dark .settings-theme [class~="hover:bg-white"]:hover {
+  background-color: #262626 !important;
+}
+
+html.dark .settings-theme [class~="hover:bg-amber-100"]:hover,
+html.dark .settings-theme [class~="hover:bg-yellow-100"]:hover {
+  background-color: #33280f !important;
+}
+
+html.dark .settings-theme [class~="hover:bg-red-50"]:hover,
+html.dark .settings-theme [class~="hover:bg-rose-50"]:hover {
+  background-color: #351b1b !important;
+}
+
+html.dark .settings-theme [class~="hover:bg-red-700"]:hover {
+  background-color: #b91c1c !important;
+}
+
+html.dark .settings-theme [class~="focus:bg-white"]:focus {
+  background-color: #262626 !important;
+}
+
+html.dark .settings-theme [class~="text-slate-900"],
+html.dark .settings-theme [class~="text-slate-800"],
+html.dark .settings-theme [class~="text-slate-700"],
+html.dark .settings-theme [class~="text-slate-600"] {
+  color: #ededed !important;
+}
+
+html.dark .settings-theme [class~="text-green-700"],
+html.dark .settings-theme [class~="text-emerald-700"],
+html.dark .settings-theme [class~="text-sky-700"],
+html.dark .settings-theme [class~="text-blue-700"] {
+  color: #86efac !important;
+}
+
+html.dark .settings-theme [class~="text-amber-700"],
+html.dark .settings-theme [class~="text-amber-800"],
+html.dark .settings-theme [class~="text-yellow-700"] {
+  color: #fcd34d !important;
+}
+
+html.dark .settings-theme [class~="text-red-700"],
+html.dark .settings-theme [class~="text-red-600"],
+html.dark .settings-theme [class~="text-rose-700"] {
+  color: #fca5a5 !important;
+}
+
+html.dark .settings-theme [class~="border-green-100"],
+html.dark .settings-theme [class~="border-green-200"],
+html.dark .settings-theme [class~="border-emerald-100"],
+html.dark .settings-theme [class~="border-emerald-200"] {
+  border-color: #14532d !important;
+}
+
+html.dark .settings-theme [class~="border-sky-100"],
+html.dark .settings-theme [class~="border-sky-200"],
+html.dark .settings-theme [class~="border-blue-100"],
+html.dark .settings-theme [class~="border-blue-200"] {
+  border-color: #1e3a5f !important;
+}
+
+html.dark .settings-theme [class~="border-amber-100"],
+html.dark .settings-theme [class~="border-amber-200"],
+html.dark .settings-theme [class~="border-yellow-100"],
+html.dark .settings-theme [class~="border-yellow-200"] {
+  border-color: #713f12 !important;
+}
+
+html.dark .settings-theme [class~="border-red-100"],
+html.dark .settings-theme [class~="border-red-200"],
+html.dark .settings-theme [class~="border-rose-100"],
+html.dark .settings-theme [class~="border-rose-200"] {
+  border-color: #7f1d1d !important;
+}
+
+html.dark .settings-theme input,
+html.dark .settings-theme select,
+html.dark .settings-theme textarea {
+  color-scheme: dark;
+}
+
+html.dark .settings-theme input::placeholder,
+html.dark .settings-theme textarea::placeholder {
+  color: #a1a1aa;
+  opacity: 1;
 }

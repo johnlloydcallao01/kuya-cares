@@ -2,7 +2,7 @@ import React from 'react';
 
 export function SettingsPageSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="settings-theme min-h-screen bg-gray-50 pb-20">
       <div className="w-full px-2.5 py-5 space-y-0 animate-pulse">
         <div className="h-[156px] sm:h-[184px] rounded-t-2xl bg-gray-200" />
         <div className="bg-white border border-gray-200 border-t-0 rounded-b-2xl p-6 sm:p-8">

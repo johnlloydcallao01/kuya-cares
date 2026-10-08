@@ -348,6 +348,32 @@ export async function resolveOwnVendorId(
   }
 }
 
+/** Resolve a requested vendor profile only when it belongs to the authenticated user. */
+export async function resolveOwnedVendorId(
+  payload: any,
+  userId: string | number,
+  requestedVendorId: string,
+): Promise<string | null> {
+  try {
+    const res = await payload.find({
+      collection: 'vendors',
+      where: {
+        and: [
+          { id: { equals: requestedVendorId } },
+          { user: { equals: userId } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const id = res?.docs?.[0]?.id
+    return id == null ? null : String(id)
+  } catch {
+    return null
+  }
+}
+
 /**
  * Guard against cross-vendor access: when the caller supplies an explicit
  * vendor id (body.vendorId / query vendor), it must equal the owned vendor.

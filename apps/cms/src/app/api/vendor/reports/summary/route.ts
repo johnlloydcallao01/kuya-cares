@@ -6,8 +6,8 @@ import {
   VendorReportDoc,
   buildVendorReportsCacheQuery,
   buildVendorReportsCore,
+  findVendorReportsScope,
   getNum,
-  getStr,
   parseVendorReportsParams,
 } from '@/utils/vendorReportsShared'
 
@@ -18,33 +18,16 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
-    const cacheKey = `vendor:reports:summary:${userId}:${buildVendorReportsCacheQuery(searchParams)}`
+    const cacheKey = `vendor:reports:summary:v2:${userId}:${buildVendorReportsCacheQuery(searchParams)}`
     const cached = await getCached<Record<string, unknown>>(cacheKey)
     if (cached) return NextResponse.json(cached, { headers: { 'X-VendorReports-Cache': 'HIT' } })
 
     const params = parseVendorReportsParams(searchParams)
     const { days, label, now, periodStart } = params
 
-    const vendorsRes = await payload.find({
-      collection: 'vendors',
-      where: { user: { equals: userId } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const vendor = vendorsRes.docs[0] as unknown as Record<string, unknown> | undefined
-    if (!vendor) return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
-    const vendorId = String(vendor.id)
-    const vendorName = getStr(vendor.businessName, 'Vendor')
-
-    const merchantsRes = await payload.find({
-      collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
-      limit: 1000,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const merchantsDocs = merchantsRes.docs as unknown as VendorReportDoc[]
+    const scope = await findVendorReportsScope(payload, userId)
+    if (!scope) return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+    const { vendorId, vendorName, merchantsDocs } = scope
     const merchantIds = new Set(merchantsDocs.map((m) => String(m.id)))
 
     if (merchantIds.size === 0) {

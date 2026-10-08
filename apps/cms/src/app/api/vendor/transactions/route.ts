@@ -1,12 +1,12 @@
 /**
  * @file apps/cms/src/app/api/vendor/transactions/route.ts
- * @description BFF aggregation endpoint for web-merchant payments/transactions page.
+ * @description BFF aggregation endpoint for merchant and seller payments/transactions pages.
  * Follows docs/BFF-pattern.md: backend owns context resolution, joins, filtering, pagination,
  * and sanitization with overrideAccess:true. Frontend is thin consumer.
  *
  * GET /api/vendor/transactions?userId=1&page=1&limit=10&search=&status=paid,pending&payment_method=card,gcash&currency=PHP&sort=-paid_at
  *     -> { docs, pagination, stats, meta }
- * Access: vendor-only via authenticateVendor (JWT Bearer/JWT or payload-token cookie).
+ * Access: vendor/member via authenticateVendorOrMember (JWT Bearer/JWT or payload-token cookie).
  * Scope: transactions whose order belongs to one of the vendor's merchants
  * (transactions.order -> orders.merchant -> merchants.vendor -> vendors.user).
  * Read-only: no POST/PATCH/DELETE (transactions are immutable financial records).
@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -187,11 +187,15 @@ function zeroedStats() {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const vendorUser = await authenticateVendor(payload, request)
-    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+    const vendorUser = await authenticateVendorOrMember(payload, request)
+    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')?.trim() || String((vendorUser as any).id ?? '')
+    const requestedUserId = searchParams.get('userId')?.trim()
+    if (requestedUserId && requestedUserId !== String(vendorUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(vendorUser.id)
 
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10', 10) || 10))
@@ -203,23 +207,23 @@ export async function GET(request: NextRequest) {
     const paymentMethodCsv = parseCsv(searchParams.get('payment_method'))
     const currencyParam = searchParams.get('currency')?.trim() || ''
 
-    // 1. Resolve vendor record for this user.
+    // 1. Resolve all vendor profiles for this account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: Number(userId) || userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendorDoc = (vendorRes.docs as unknown as Record<string, any>[])[0]
-    if (!vendorDoc) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
-    const vendorId = Number(vendorDoc.id)
+    const vendorDocs = vendorRes.docs as unknown as Record<string, any>[]
+    if (!vendorDocs.length) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
+    const vendorIds = vendorDocs.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
-    // 2. Resolve merchant outlets owned by this vendor.
+    // 2. Resolve merchant outlets owned by all vendor profiles on this account.
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
-      limit: 200,
+      where: { vendor: { in: vendorIds } },
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })

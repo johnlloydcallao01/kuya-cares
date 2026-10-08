@@ -3,8 +3,8 @@
  * @description Read-only BFF aggregation for web-merchant /catalog/variation-values.
  *
  * Divergence from admin (cms/.../admin/catalog/variation-values): prod-variation-values
- * link a variation <-> attribute <-> term with NO vendor FK. Merchants only see values
- * attached to THEIR variations (variations -> owned products chain), with per-id
+ * link a variation <-> attribute <-> term with NO vendor FK. Accounts only see values
+ * attached to their variations (variations -> owned products chain), with per-id
  * ownership guard on variationId filter. attributeId/termId filters are global shared
  * catalog references and stay open. Write endpoints absent.
  */
@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,13 +80,17 @@ function sanitizeDoc(raw: Record<string, any>): Record<string, any> {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -95,24 +99,24 @@ export async function GET(request: NextRequest) {
     const attributeIdRaw = searchParams.get('attributeId') || searchParams.get('attribute_id')
     const termIdRaw = searchParams.get('termId') || searchParams.get('term_id')
 
-    // 1. Resolve vendor.
+    // 1. Resolve all vendor profiles owned by the authenticated account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
-    // 2. Owned products -> owned variations.
+    // 2. Account-owned products -> owned variations.
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -123,7 +127,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },
@@ -153,12 +157,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ docs: [], variations, attributes: [], stats: null, pagination: { page, limit, totalDocs: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false } })
     }
 
-    // 3. variationId filter must be one of the vendor's variations.
+    // 3. variationId filter must be one of this account's variations.
     if (variationIdRaw) {
       const n = Number(variationIdRaw)
       if (!Number.isFinite(n)) return NextResponse.json({ error: 'variationId must be numeric' }, { status: 400 })
       if (!ownedVariationIds.has(n)) {
-        return NextResponse.json({ error: 'Forbidden: variation does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: variation does not belong to this account' }, { status: 403 })
       }
     }
 

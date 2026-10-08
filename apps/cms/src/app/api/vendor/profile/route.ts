@@ -1,18 +1,18 @@
 /**
  * @file apps/cms/src/app/api/vendor/profile/route.ts
- * @description BFF aggregation endpoint for web-merchant vendor profile page.
+ * @description BFF aggregation endpoint for seller profile pages.
  * Follows same BFF thin consumer pattern as apps/cms/src/app/api/admin/profile/route.ts
  * but scoped to vendor role with business identity join.
  *
  * GET  /api/vendor/profile?userId=123  -> aggregated profile (user + vendor + merchants summary + activities)
  * PATCH /api/vendor/profile            -> update personal profile fields (users collection)
- * Auth: vendor JWT via Authorization: JWT <token> or payload-token cookie (authenticateVendor)
+ * Auth: vendor or member JWT via Authorization: JWT <token> or payload-token cookie
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 function optionalString(v: unknown): string | null {
   return typeof v === 'string' ? v : null
@@ -130,22 +130,13 @@ function badRequest(message: string, details?: unknown) {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: seller authentication required' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const rawUserId = searchParams.get('userId') || String(authUser.id)
-    const userIdNum = Number(rawUserId)
-    if (!rawUserId || Number.isNaN(userIdNum)) {
-      return badRequest('userId is required and must be numeric')
-    }
-
-    // Vendor can only fetch own profile (no cross-user admin privilege like system admin)
-    if (String(authUser.id) !== String(userIdNum)) {
-      return NextResponse.json({ error: 'Forbidden: can only fetch own profile' }, { status: 403 })
-    }
+    const userIdNum = Number(authUser.id)
+    if (!Number.isFinite(userIdNum)) return badRequest('Authenticated user id must be numeric')
 
     // 1. Resolve user
     let userDoc: Record<string, any>
@@ -160,44 +151,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found', details: e?.message }, { status: 404 })
     }
 
-    if (!userDoc || userDoc.role !== 'vendor') {
-      return NextResponse.json({ error: 'User not found or not vendor' }, { status: 404 })
+    if (!userDoc || !['vendor', 'member'].includes(String(userDoc.role))) {
+      return NextResponse.json({ error: 'User not found or not a seller' }, { status: 404 })
     }
 
-    // 2. Resolve vendor business record
-    let vendorDoc: Record<string, any> | null = null
-    try {
-      const vendorRes = await payload.find({
-        collection: 'vendors',
-        where: { user: { equals: userIdNum } },
-        limit: 1,
-        depth: 2,
-        overrideAccess: true,
-      })
-      vendorDoc = (vendorRes.docs[0] as Record<string, any>) || null
-    } catch {
-      vendorDoc = null
-    }
-
-    // 3. Resolve merchants summary (outlets belonging to this vendor)
-    let merchants: Record<string, any>[] = []
-    let merchantsCount = 0
-    if (vendorDoc?.id) {
-      try {
-        const mRes = await payload.find({
+    const vendorRes = await payload.find({
+      collection: 'vendors',
+      where: { user: { equals: userIdNum } },
+      limit: 1000,
+      depth: 2,
+      overrideAccess: true,
+    })
+    const vendorDocs = vendorRes.docs as unknown as Record<string, any>[]
+    const vendorIds = vendorDocs.map((vendor) => String(vendor.id))
+    const merchantRes = vendorIds.length
+      ? await payload.find({
           collection: 'merchants',
-          where: { vendor: { equals: vendorDoc.id } },
-          limit: 50,
+          where: { vendor: { in: vendorIds } },
+          limit: 1000,
           depth: 0,
           sort: '-createdAt',
           overrideAccess: true,
         })
-        merchants = mRes.docs as unknown as Record<string, any>[]
-        merchantsCount = typeof mRes.totalDocs === 'number' ? mRes.totalDocs : merchants.length
-      } catch {
-        merchants = []
-      }
+      : null
+    const merchants = (merchantRes?.docs ?? []) as unknown as Record<string, any>[]
+    const merchantVendorId = (merchant: Record<string, any>) => {
+      const relation = merchant.vendor
+      if (relation && typeof relation === 'object' && 'id' in relation) return String(relation.id)
+      return String(relation ?? '')
     }
+    const vendors = vendorDocs.map((doc) => {
+      const vendor = sanitizeVendorForResponse(doc)
+      const relatedMerchants = merchants.filter((merchant) => merchantVendorId(merchant) === String(doc.id))
+      return {
+        ...vendor,
+        merchants: sanitizeMerchants(relatedMerchants),
+        merchantsCount: relatedMerchants.length,
+      }
+    })
+    const vendorDoc = vendorDocs[0] ?? null
+    const merchantsCount = typeof merchantRes?.totalDocs === 'number' ? merchantRes.totalDocs : merchants.length
 
     // 4. Recent activities
     let activities: Record<string, any>[] = []
@@ -233,6 +226,7 @@ export async function GET(request: NextRequest) {
       user,
       raw,
       vendor,
+      vendors,
       merchants: sanitizedMerchants,
       merchantsCount,
       activities: sanitizedActivities,
@@ -246,7 +240,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

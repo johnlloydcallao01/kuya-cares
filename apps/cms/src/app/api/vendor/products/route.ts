@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,13 +53,17 @@ function sanitizeMedia(mediaObj: unknown): Record<string, any> | null {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const merchantParam = searchParams.get('merchantId') || searchParams.get('outletId')
     const vendorParam = searchParams.get('vendorId')
     const search = (searchParams.get('search') || '').trim().toLowerCase()
@@ -72,16 +76,18 @@ export async function GET(request: NextRequest) {
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
+    const vendorById = new Map(vendors.map((vendor) => [Number(vendor.id), vendor]))
+    const vendorIds = Array.from(vendorById.keys()).filter(Number.isFinite)
 
-    // 2. Scope merchants: outlet context (ownership-guarded) | explicit vendor | all vendor merchants.
+    // 2. Scope merchants to all vendor profiles owned by the authenticated user.
     let merchantIds: number[] | null = null
     if (merchantParam) {
       const n = Number(merchantParam)
@@ -93,22 +99,30 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Merchant outlet not found' }, { status: 404 })
       }
       if (!merchant) return NextResponse.json({ error: 'Merchant outlet not found' }, { status: 404 })
-      if (String(relId(merchant.vendor)) !== String(vendor.id)) {
-        return NextResponse.json({ error: 'Forbidden: outlet does not belong to vendor' }, { status: 403 })
+      const outletVendorId = relId(merchant.vendor)
+      if (outletVendorId == null || !vendorById.has(outletVendorId)) {
+        return NextResponse.json({ error: 'Forbidden: outlet does not belong to this account' }, { status: 403 })
       }
       merchantIds = [Number(merchant.id)]
     } else if (vendorParam) {
       const n = Number(vendorParam)
-      if (!Number.isFinite(n) || String(n) !== String(vendor.id)) {
-        return NextResponse.json({ error: 'Forbidden: vendor does not belong to user' }, { status: 403 })
+      if (!Number.isFinite(n) || !vendorById.has(n)) {
+        return NextResponse.json({ error: 'Forbidden: vendor does not belong to this account' }, { status: 403 })
       }
-      merchantIds = null // all merchants below
+      const mRes = await payload.find({
+        collection: 'merchants',
+        where: { vendor: { equals: n } },
+        limit: 1000,
+        depth: 0,
+        overrideAccess: true,
+      })
+      merchantIds = (mRes.docs as Record<string, any>[]).map((m) => Number(m.id)).filter(Number.isFinite)
     }
 
     if (merchantIds === null) {
       const mRes = await payload.find({
         collection: 'merchants',
-        where: { vendor: { equals: vendor.id } },
+        where: { vendor: { in: vendorIds } },
         limit: 1000,
         depth: 0,
         overrideAccess: true,
@@ -118,7 +132,8 @@ export async function GET(request: NextRequest) {
 
     if (merchantIds.length === 0) {
       return NextResponse.json({
-        vendor: { id: String(vendor.id), businessName: getStr(vendor.businessName) },
+        vendor: { id: String(vendors[0].id), businessName: getStr(vendors[0].businessName) },
+        vendors: vendors.map((vendor) => ({ id: String(vendor.id), businessName: getStr(vendor.businessName) })),
         metrics: { totalListings: 0, activeListings: 0, availableListings: 0, outOfStock: 0, totalProducts: 0 },
         products: [],
         pagination: { page, limit, totalDocs: 0, totalPages: 1 },
@@ -218,7 +233,8 @@ export async function GET(request: NextRequest) {
     const paged = rows.slice((safePage - 1) * limit, safePage * limit)
 
     return NextResponse.json({
-      vendor: { id: String(vendor.id), businessName: getStr(vendor.businessName) },
+      vendor: { id: String(vendors[0].id), businessName: getStr(vendors[0].businessName) },
+      vendors: vendors.map((vendor) => ({ id: String(vendor.id), businessName: getStr(vendor.businessName) })),
       metrics,
       products: paged,
       pagination: { page: safePage, limit, totalDocs: rows.length, totalPages },

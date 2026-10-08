@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getCached, setCached } from '@encreasl/cache'
+import { findDashboardMerchants } from '../_shared'
 
 function getNum(val: unknown, fallback = 0): number {
   if (typeof val === 'number') return val
@@ -43,33 +44,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
 
-    const cacheKey = `merchant:dashboard:tables:${userId}`
+    const cacheKey = `merchant:dashboard:tables:v2:${userId}`
     const cached = await getCached<Record<string, unknown>>(cacheKey)
     if (cached) return NextResponse.json(cached, { headers: { 'X-MerchantDashboard-Cache': 'HIT' } })
 
     const payload = await getPayload({ config: configPromise })
 
-    const vendorsRes = await payload.find({
-      collection: 'vendors',
-      where: { user: { equals: userId } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const vendor = vendorsRes.docs[0] as unknown as Record<string, unknown> | undefined
-    if (!vendor) {
+    const merchantsDocs = await findDashboardMerchants(payload, userId)
+    if (!merchantsDocs) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
-    const vendorId = String(vendor.id)
-
-    const merchantsRes = await payload.find({
-      collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
-      limit: 1000,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const merchantsDocs = merchantsRes.docs as unknown as Record<string, unknown>[]
     const merchantIds = Array.from(new Set(merchantsDocs.map((m) => String(m.id))))
     const outletNameById = new Map<string, string>()
     merchantsDocs.forEach((m) => outletNameById.set(String(m.id), getStr(m.outletName, `Outlet #${m.id}`)))

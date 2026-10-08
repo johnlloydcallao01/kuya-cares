@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 const VALID_STATUSES = new Set(['open', 'closed', 'busy', 'temp_closed', 'maintenance'])
 
@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>
@@ -35,12 +35,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: authUser.id } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0]
-    if (!vendor) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
+    const vendors = vendorRes.docs
+    if (!vendors.length) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
 
     const merchant = await payload.findByID({
       collection: 'merchants',
@@ -51,7 +51,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!merchant) return NextResponse.json({ error: 'Outlet not found' }, { status: 404 })
 
     const merchantVendorId = typeof merchant.vendor === 'object' ? (merchant.vendor as any).id : merchant.vendor
-    if (String(merchantVendorId) !== String(vendor.id)) {
+    const vendor = vendors.find((item) => String(item.id) === String(merchantVendorId))
+    if (!vendor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

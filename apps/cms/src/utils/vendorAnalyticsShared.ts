@@ -9,7 +9,37 @@
  * buildVendorAnalyticsCore() to get the shared intermediates.
  */
 
+import type { Payload } from 'payload'
+
 export type VendorDoc = Record<string, unknown>
+
+export async function findVendorAnalyticsScope(payload: Payload, userId: string) {
+  const vendorsRes = await payload.find({
+    collection: 'vendors',
+    where: { user: { equals: userId } },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const vendorsDocs = vendorsRes.docs as unknown as VendorDoc[]
+  if (vendorsDocs.length === 0) return null
+
+  const vendorIds = Array.from(new Set(vendorsDocs.map((vendor) => String(vendor.id))))
+  const merchantsRes = await payload.find({
+    collection: 'merchants',
+    where: { vendor: { in: vendorIds } },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  return {
+    vendorsDocs,
+    merchantsDocs: merchantsRes.docs as unknown as VendorDoc[],
+    vendorId: vendorIds.join(','),
+    vendorName: vendorsDocs.map((vendor) => getStr(vendor.businessName, 'Vendor')).join(', '),
+  }
+}
 
 export function getNum(val: unknown, fallback = 0): number {
   if (typeof val === 'number' && Number.isFinite(val)) return val

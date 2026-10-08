@@ -298,19 +298,19 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#202020] rounded-full flex items-center justify-center">
             <i className="fas fa-map-marker-alt text-xl text-gray-400" />
           </div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Tracking unavailable</h2>
-          <p className="text-sm text-gray-500 mb-5">
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">Tracking unavailable</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
             {loadError ?? 'Tracking information not available.'}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => router.back()}
-              className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-[#292929] rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#383838]"
             >
               Go back
             </button>
@@ -328,7 +328,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col">
       {/* Header */}
       <OrderHeader
         onBack={() => router.back()}
@@ -340,7 +340,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
       />
 
       {/* Immersive Map Background (Top 50-60%) */}
-      <div className="h-[60vh] w-full relative bg-gray-200">
+      <div className="h-[60vh] w-full relative bg-gray-200 dark:bg-[#252525]">
         {isLoaded ? (
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
@@ -389,7 +389,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             />
           </GoogleMap>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
             Loading Map...
           </div>
         )}
@@ -397,10 +397,10 @@ export default function OrderTrackingPage({ params }: PageProps) {
       
       {/* Bottom Content Area — live timeline, driver & addresses.
           Previously a placeholder while C2–C4 hydrated for zero pixels. */}
-      <div className="flex-1 bg-white p-4 space-y-4 pb-24">
+      <div className="flex-1 bg-white dark:bg-[#111111] p-4 space-y-4 pb-24">
         {data.driver && (
-          <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-2xl p-3.5">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#1c1c1c] border border-gray-100 dark:border-[#292929] rounded-2xl p-3.5">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-[#333333] flex-shrink-0 flex items-center justify-center">
               {data.driver.photo ? (
                 <Image
                   src={data.driver.photo}
@@ -410,12 +410,12 @@ export default function OrderTrackingPage({ params }: PageProps) {
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <i className="fas fa-motorcycle text-gray-400" />
+                <i className="fas fa-motorcycle text-gray-400 dark:text-gray-500" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate">{data.driver.name}</p>
-              <p className="text-xs text-gray-500 truncate">
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{data.driver.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {[data.driver.vehicleModel, data.driver.vehicleColor, data.driver.vehiclePlate]
                   .filter(Boolean)
                   .join(' • ') || data.driver.vehicleType || 'Delivery rider'}
@@ -425,7 +425,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             {data.driver.phone && (
               <a
                 href={`tel:${data.driver.phone}`}
-                className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50"
+                className="w-10 h-10 rounded-full bg-white dark:bg-[#202020] border border-gray-200 dark:border-[#383838] flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#292929]"
                 aria-label={`Call ${data.driver.name}`}
               >
                 <i className="fas fa-phone text-sm" />
@@ -435,29 +435,29 @@ export default function OrderTrackingPage({ params }: PageProps) {
         )}
 
         {data.deliveryLocation && (
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-3.5 space-y-2">
+          <div className="bg-gray-50 dark:bg-[#1c1c1c] border border-gray-100 dark:border-[#292929] rounded-2xl p-3.5 space-y-2">
             <div className="flex items-start gap-2.5">
               <i className="fas fa-location-dot text-red-500 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">Deliver to</p>
-                <p className="text-sm font-medium text-gray-900 leading-snug">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Deliver to</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">
                   {data.deliveryLocation.formattedAddress || '—'}
                 </p>
                 {data.deliveryLocation.deliveryInstructions && (
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     “{data.deliveryLocation.deliveryInstructions}”
                   </p>
                 )}
               </div>
             </div>
             {data.deliveryLocation.merchantFormattedAddress && (
-              <div className="flex items-start gap-2.5 pt-2 border-t border-gray-200/70">
-                <i className="fas fa-store text-gray-400 mt-0.5" />
+              <div className="flex items-start gap-2.5 pt-2 border-t border-gray-200/70 dark:border-[#383838]">
+                <i className="fas fa-store text-gray-400 dark:text-gray-500 mt-0.5" />
                 <div className="min-w-0">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                     {data.deliveryLocation.merchantLabel || 'Pickup from'}
                   </p>
-                  <p className="text-sm font-medium text-gray-900 leading-snug">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">
                     {data.deliveryLocation.merchantFormattedAddress}
                   </p>
                 </div>
@@ -467,19 +467,19 @@ export default function OrderTrackingPage({ params }: PageProps) {
         )}
 
         <div>
-          <h2 className="text-sm font-bold text-gray-900 mb-2.5">Tracking history</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5">Tracking history</h2>
           {data.events.length > 0 ? (
-            <ol className="relative border-l-2 border-gray-100 ml-2 space-y-4">
+            <ol className="relative border-l-2 border-gray-100 dark:border-[#292929] ml-2 space-y-4">
               {data.events.map((ev) => (
                 <li key={ev.id} className="ml-4">
                   <span className="absolute -left-[7px] mt-1 w-3 h-3 rounded-full bg-green-500 ring-4 ring-green-50" />
-                  <p className="text-sm font-bold text-gray-900 capitalize">
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 capitalize">
                     {String(ev.status).replace(/_/g, ' ')}
                   </p>
                   {ev.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">{ev.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ev.description}</p>
                   )}
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                     {ev.timestamp ? formatOrderDateTime(ev.timestamp) : ''}
                     {ev.actor?.name ? ` • ${ev.actor.name}` : ''}
                   </p>
@@ -487,7 +487,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
               ))}
             </ol>
           ) : (
-            <p className="text-sm text-gray-400">No tracking events yet — check back soon.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">No tracking events yet — check back soon.</p>
           )}
         </div>
       </div>

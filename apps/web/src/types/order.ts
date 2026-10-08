@@ -84,7 +84,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   pending: {
     label: 'Pending',
     shortLabel: 'Pending',
-    pill: 'bg-amber-100 text-amber-800 border border-amber-200',
+    pill: 'bg-amber-100 dark:bg-amber-700 text-amber-800 dark:text-white border border-amber-200 dark:border-amber-600',
     dot: 'bg-amber-500',
     icon: 'fas fa-clock',
     description: 'Order placed, waiting for confirmation',
@@ -93,7 +93,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   accepted: {
     label: 'Accepted',
     shortLabel: 'Accepted',
-    pill: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+    pill: 'bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white border border-indigo-200 dark:border-indigo-600',
     dot: 'bg-indigo-500',
     icon: 'fas fa-clipboard-check',
     description: 'Merchant accepted your order',
@@ -102,7 +102,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   preparing: {
     label: 'Preparing',
     shortLabel: 'Preparing',
-    pill: 'bg-orange-100 text-orange-800 border border-orange-200',
+    pill: 'bg-orange-100 dark:bg-orange-700 text-orange-800 dark:text-white border border-orange-200 dark:border-orange-600',
     dot: 'bg-orange-500',
     icon: 'fas fa-utensils',
     description: 'Kitchen is preparing your food',
@@ -111,7 +111,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   ready_for_pickup: {
     label: 'Ready for Pickup',
     shortLabel: 'Ready',
-    pill: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+    pill: 'bg-yellow-100 dark:bg-yellow-700 text-yellow-800 dark:text-white border border-yellow-200 dark:border-yellow-600',
     dot: 'bg-yellow-500',
     icon: 'fas fa-shopping-bag',
     description: 'Ready for pickup or rider assignment',
@@ -120,7 +120,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   on_delivery: {
     label: 'On Delivery',
     shortLabel: 'On the way',
-    pill: 'bg-blue-100 text-blue-800 border border-blue-200',
+    pill: 'bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-white border border-blue-200 dark:border-blue-600',
     dot: 'bg-blue-500',
     icon: 'fas fa-motorcycle',
     description: 'Rider is on the way',
@@ -129,7 +129,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   delivered: {
     label: 'Delivered',
     shortLabel: 'Delivered',
-    pill: 'bg-green-100 text-green-800 border border-green-200',
+    pill: 'bg-green-100 dark:bg-green-700 text-green-800 dark:text-white border border-green-200 dark:border-green-600',
     dot: 'bg-green-600',
     icon: 'fas fa-check-circle',
     description: 'Order completed',
@@ -138,7 +138,7 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   cancelled: {
     label: 'Cancelled',
     shortLabel: 'Cancelled',
-    pill: 'bg-red-100 text-red-700 border border-red-200',
+    pill: 'bg-red-100 dark:bg-red-700 text-red-700 dark:text-white border border-red-200 dark:border-red-600',
     dot: 'bg-red-500',
     icon: 'fas fa-times-circle',
     description: 'Order was cancelled',
@@ -160,7 +160,7 @@ export function getStatusMeta(status: string): StatusMeta {
   return {
     label: String(status).replace(/_/g, ' '),
     shortLabel: String(status).replace(/_/g, ' '),
-    pill: 'bg-gray-100 text-gray-700 border border-gray-200',
+    pill: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700',
     dot: 'bg-gray-400',
     icon: 'fas fa-receipt',
     description: '',

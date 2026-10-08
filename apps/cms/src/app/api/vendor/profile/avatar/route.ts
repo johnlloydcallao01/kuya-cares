@@ -1,6 +1,6 @@
 /**
  * @file apps/cms/src/app/api/vendor/profile/avatar/route.ts
- * @description BFF for vendor avatar upload/remove. Backend owns media creation and user linking.
+ * @description BFF for seller avatar upload/remove. Backend owns media creation and user linking.
  * POST   /api/vendor/profile/avatar?userId=123  (multipart form-data, field "file")
  * DELETE /api/vendor/profile/avatar?userId=123  (removes profilePicture)
  */
@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor, generateUniqueFilename } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember, generateUniqueFilename } from '@/utils/mediaLibrary'
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'])
@@ -51,7 +51,7 @@ function sanitizeUser(raw: Record<string, any>): Record<string, any> {
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)

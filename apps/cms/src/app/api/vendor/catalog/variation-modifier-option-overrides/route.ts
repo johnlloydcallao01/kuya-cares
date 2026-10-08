@@ -5,14 +5,14 @@
  * Divergence from admin (cms/.../admin/catalog/variation-modifier-option-overrides): this override
  * collection keys on variation_id + base_modifier_option_id (VariationModifierOptionOverrides.ts:40-52).
  * The base_modifier_option_id points to product-level modifier-options (NOT variation-modifier-options).
- * Merchant scope derives via variation -> product -> owner chain. variationId and baseModifierOptionId
- * filters are ownership-guarded. Stat toggles and writes absent for merchants.
+ * Account scope derives via variation -> product -> owner chain. variationId and baseModifierOptionId
+ * filters are ownership-guarded. Stat toggles and writes absent for member accounts.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,13 +102,17 @@ const AVAILABILITY_BEHAVIORS = new Set(['inherit', 'available', 'unavailable'])
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -121,23 +125,23 @@ export async function GET(request: NextRequest) {
     const isActiveParam = searchParams.get('is_active')
     const isActiveFilter = isActiveParam === 'true' ? true : isActiveParam === 'false' ? false : null
 
-    // 1. Resolve vendor + owned products.
+    // 1. Resolve all vendor profiles and products owned by the authenticated account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -148,7 +152,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },
@@ -224,14 +228,14 @@ export async function GET(request: NextRequest) {
       const vid = Number(variationIdParam)
       if (!Number.isFinite(vid)) return NextResponse.json({ error: 'variationId must be numeric' }, { status: 400 })
       if (!ownedVariationIds.has(vid)) {
-        return NextResponse.json({ error: 'Forbidden: variation does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: variation does not belong to this account' }, { status: 403 })
       }
     }
     if (baseOptionParam) {
       const oid = Number(baseOptionParam)
       if (!Number.isFinite(oid)) return NextResponse.json({ error: 'baseModifierOptionId must be numeric' }, { status: 400 })
       if (!ownedOptionIds.has(oid)) {
-        return NextResponse.json({ error: 'Forbidden: modifier option does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: modifier option does not belong to this account' }, { status: 403 })
       }
     }
 

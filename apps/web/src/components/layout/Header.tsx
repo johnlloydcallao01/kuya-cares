@@ -575,10 +575,10 @@ export function Header({
 
   return (
     <>
-      <header className={`lg:sticky lg:top-0 fixed top-0 left-0 right-0 lg:bg-white z-50 lg:transition-none transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : 'lg:translate-y-0 -translate-y-full'
-        }`} style={{ backgroundColor: '#fff' }}>
+      <header className={`lg:sticky lg:top-0 fixed top-0 left-0 right-0 bg-white dark:bg-[#171717] z-50 lg:transition-none transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : 'lg:translate-y-0 -translate-y-full'
+        }`}>
         {!pathname?.startsWith('/results') && (
-          <div className="lg:hidden flex items-center justify-between px-2.5 py-2 h-14" style={{ backgroundColor: '#fff' }}>
+          <div className="lg:hidden flex items-center justify-between px-2.5 py-2 h-14 bg-white dark:bg-[#171717]">
             <div className="flex-1 min-w-0">
               <LocationSelector
                 onLocationSelect={(location) => {
@@ -588,6 +588,17 @@ export function Header({
               />
             </div>
             <div className="flex items-center space-x-3">
+              {isAuthenticated && !pathname?.startsWith('/seller') && (
+                <button
+                  onClick={() => router.push('/seller' as any)}
+                  className="flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold text-white"
+                  style={{ backgroundColor: '#239459' }}
+                  aria-label="Go to seller dashboard"
+                >
+                  <i className="fa fa-store"></i>
+                  Sell
+                </button>
+              )}
               <button className="p-2 rounded-full hover:bg-gray-100 transition-colors" onClick={() => setIsSearchOpen(true)} aria-label="Open search">
                 <i className="fa fa-search text-gray-600 text-lg"></i>
               </button>
@@ -628,14 +639,17 @@ export function Header({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <Image
-              src="/kuya-cares.png"
-              alt="Calsiter Inc Logo"
-              width={270}
-              height={72}
-              className="h-16 w-auto rounded-lg p-[3px]"
-              priority
-            />
+            <div className="flex items-center space-x-2">
+              <Image
+                src="/kuya-cares.png"
+                alt="Kuya Cares"
+                width={40}
+                height={40}
+                className="w-10 h-10 rounded-lg object-contain"
+                priority
+              />
+              <span className="text-xl font-semibold text-gray-900 dark:text-white">Kuya Cares</span>
+            </div>
             {/* Location Selector - Added after logo */}
             <LocationSelector
               onLocationSelect={(location) => {
@@ -832,6 +846,18 @@ export function Header({
 
           {/* Right section - Desktop */}
           <div className="flex items-center space-x-4">
+            {/* Sell / Seller entry — buyer mode defaults to /seller foundation */}
+            {isAuthenticated && !pathname?.startsWith('/seller') && (
+              <button
+                onClick={() => router.push('/seller' as any)}
+                className="flex items-center gap-2 px-4 h-10 rounded-full text-sm font-semibold text-white transition-colors"
+                style={{ backgroundColor: '#239459' }}
+                aria-label="Go to seller dashboard"
+              >
+                <i className="fa fa-store text-sm"></i>
+                Sell
+              </button>
+            )}
             {/* Cart Icon */}
             <button
               onClick={() => router.push('/carts' as any)}

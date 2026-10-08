@@ -302,13 +302,13 @@ export default function OrdersPage() {
 
   if (error && orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center">
             <i className="fas fa-exclamation-triangle text-red-500 text-xl" />
           </div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Couldn&apos;t load orders</h2>
-          <p className="text-sm text-gray-500 mb-5">{error}</p>
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">Couldn&apos;t load orders</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">{error}</p>
           <button
             onClick={() => load({ reset: true })}
             className="w-full py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90"
@@ -324,20 +324,20 @@ export default function OrdersPage() {
   const isFiltered = searchQuery !== '' || activeFilter !== 'all' || fulfillment !== 'all' || dateRange !== 'all';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white dark:bg-[#111111] shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">My Orders</h1>
-              <p className="text-gray-500 mt-0.5 text-sm">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">My Orders</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">
                 {totalDocs > 0 ? `${totalDocs} order${totalDocs === 1 ? '' : 's'} • ` : ''}Track, reorder & manage
                 {/* Server paging is a client slice over a 100-row prefetch
                     cap (§12 honest totals): disclose truncation instead of
                     implying the full history is shown. */}
                 {totalDocs > orders.length && (
-                  <span className="block text-xs text-amber-600 font-medium mt-0.5">
+                  <span className="block text-xs text-amber-600 dark:text-amber-400 font-medium mt-0.5">
                     Showing latest {orders.length} of {totalDocs} — pull to refresh for newer orders.
                   </span>
                 )}
@@ -346,7 +346,7 @@ export default function OrdersPage() {
             <button
               onClick={() => load({ reset: true })}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-[#383838] text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#202020] active:scale-[0.98] transition-all disabled:opacity-60"
             >
               <i className={`fas fa-sync-alt ${refreshing ? 'fa-spin' : ''}`} style={{ color: BRAND }} />
               {refreshing ? 'Refreshing' : 'Refresh'}
@@ -357,16 +357,16 @@ export default function OrdersPage() {
           {orders.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
               {[
-                { label: 'Total orders', value: String(stats.total), icon: 'fa-receipt', bg: 'bg-gray-50', fg: 'text-gray-700' },
-                { label: 'Active', value: String(stats.active), icon: 'fa-motorcycle', bg: 'bg-blue-50', fg: 'text-blue-700' },
-                { label: 'Delivered', value: String(stats.delivered), icon: 'fa-check-circle', bg: 'bg-green-50', fg: 'text-green-700' },
-                { label: 'Total spent', value: formatPHP(stats.spent), icon: 'fa-wallet', bg: 'bg-amber-50', fg: 'text-amber-700' },
+                { label: 'Total orders', value: String(stats.total), icon: 'fa-receipt', bg: 'bg-gray-50 dark:bg-[#1c1c1c]', fg: 'text-gray-700 dark:text-gray-200' },
+                { label: 'Active', value: String(stats.active), icon: 'fa-motorcycle', bg: 'bg-blue-50 dark:bg-blue-950/40', fg: 'text-blue-700 dark:text-blue-300' },
+                { label: 'Delivered', value: String(stats.delivered), icon: 'fa-check-circle', bg: 'bg-green-50 dark:bg-green-950/40', fg: 'text-green-700 dark:text-green-300' },
+                { label: 'Total spent', value: formatPHP(stats.spent), icon: 'fa-wallet', bg: 'bg-amber-50 dark:bg-amber-950/40', fg: 'text-amber-700 dark:text-amber-300' },
               ].map((s) => (
                 <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2.5 flex items-center gap-2.5`}>
                   <i className={`fas ${s.icon} ${s.fg}`} />
                   <div className="min-w-0">
                     <p className={`text-sm font-extrabold truncate ${s.fg}`}>{s.value}</p>
-                    <p className="text-[11px] text-gray-500 font-medium">{s.label}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
                   </div>
                 </div>
               ))}
@@ -375,11 +375,11 @@ export default function OrdersPage() {
         </div>
 
         {/* Status tabs — native scroll (accessible, enterprise) */}
-        <div className="border-t border-gray-100">
+        <div className="border-t border-gray-100 dark:border-[#292929]">
           <div className="flex items-center">
             <button
               onClick={() => scrollTabs(-1)}
-              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700"
+              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               aria-label="Scroll tabs left"
             >
               <i className="fas fa-chevron-left text-xs" />
@@ -395,12 +395,12 @@ export default function OrdersPage() {
                     className={`flex-shrink-0 px-3.5 py-2 rounded-xl font-bold text-[13px] transition-all border ${
                       active
                         ? 'text-white shadow-md border-transparent'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        : 'bg-white dark:bg-[#171717] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-[#383838] hover:border-gray-300 dark:hover:border-[#505050] hover:bg-gray-50 dark:hover:bg-[#242424]'
                     }`}
                     style={active ? { backgroundColor: BRAND } : {}}
                   >
                     {t.label}
-                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
                       {count}
                     </span>
                   </button>
@@ -409,7 +409,7 @@ export default function OrdersPage() {
             </div>
             <button
               onClick={() => scrollTabs(1)}
-              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700"
+              className="hidden sm:flex px-2 py-3 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               aria-label="Scroll tabs right"
             >
               <i className="fas fa-chevron-right text-xs" />
@@ -420,7 +420,7 @@ export default function OrdersPage() {
 
       <div className="w-full px-3 sm:px-4 py-4">
         {/* Toolbar: search + sort + filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3.5 mb-4">
+        <div className="bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-3.5 mb-4">
           <div className="flex flex-col xl:flex-row gap-3">
             <div className="flex-1 relative">
               <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
@@ -429,12 +429,12 @@ export default function OrdersPage() {
                 placeholder="Search by order #, restaurant, or item…"
                 value={searchInput}
                 onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
-                className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:ring-2 focus:bg-white focus:border-transparent transition-all text-sm outline-none"
+                className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-[#202020] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-transparent rounded-xl focus:ring-2 focus:bg-white dark:focus:bg-[#262626] focus:border-transparent transition-all text-sm outline-none"
               />
               {searchInput && (
                 <button
                   onClick={() => setSearchInput('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   aria-label="Clear search"
                 >
                   <i className="fas fa-times-circle" />
@@ -442,38 +442,38 @@ export default function OrdersPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-600">
+              <label className="inline-flex items-center gap-2 text-[13px] font-semibold text-gray-600 dark:text-gray-300">
                 <i className="fas fa-sort text-gray-400" />
                 <select
                   value={sort}
                   onChange={(e) => { setSort(e.target.value as SortKey); setPage(1); }}
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-2.5 text-[13px] font-bold text-gray-700 outline-none"
+                  className="bg-gray-50 dark:bg-[#202020] border border-gray-200 dark:border-[#383838] rounded-xl px-2.5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 outline-none"
                 >
                   {SORTS.map((s) => (
                     <option key={s.id} value={s.id}>{s.label}</option>
                   ))}
                 </select>
               </label>
-              <div className="inline-flex bg-gray-50 border border-gray-200 rounded-xl p-1">
+              <div className="inline-flex bg-gray-50 dark:bg-[#202020] border border-gray-200 dark:border-[#383838] rounded-xl p-1">
                 {(['all', 'delivery', 'pickup'] as FulfillmentFilter[]).map((f) => (
                   <button
                     key={f}
                     onClick={() => { setFulfillment(f); setPage(1); }}
                     className={`px-3 py-1.5 rounded-lg text-[12px] font-bold capitalize transition-all ${
-                      fulfillment === f ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                      fulfillment === f ? 'bg-white dark:bg-[#353535] shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
                     {f === 'all' ? 'All types' : f}
                   </button>
                 ))}
               </div>
-              <div className="inline-flex bg-gray-50 border border-gray-200 rounded-xl p-1">
+              <div className="inline-flex bg-gray-50 dark:bg-[#202020] border border-gray-200 dark:border-[#383838] rounded-xl p-1">
                 {(['all', 'today', '7d', '30d'] as DateRangeFilter[]).map((d) => (
                   <button
                     key={d}
                     onClick={() => { setDateRange(d); setPage(1); }}
                     className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all ${
-                      dateRange === d ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                      dateRange === d ? 'bg-white dark:bg-[#353535] shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
                     {d === 'all' ? 'Anytime' : d === 'today' ? 'Today' : `Last ${d}`}
@@ -483,9 +483,9 @@ export default function OrdersPage() {
             </div>
           </div>
           {isFiltered && (
-            <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100">
-              <p className="text-xs text-gray-500">
-                <span className="font-bold text-gray-800">{filtered.length}</span> result{filtered.length === 1 ? '' : 's'}
+            <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-100 dark:border-[#292929]">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-bold text-gray-800 dark:text-gray-200">{filtered.length}</span> result{filtered.length === 1 ? '' : 's'}
               </p>
               <button onClick={clearFilters} className="text-xs font-bold hover:opacity-80" style={{ color: BRAND }}>
                 <i className="fas fa-times mr-1" />Clear all filters
@@ -518,7 +518,7 @@ export default function OrdersPage() {
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={loadingMore}
-                  className="px-8 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-sm disabled:opacity-60"
+                  className="px-8 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#383838] text-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-[#242424] shadow-sm disabled:opacity-60"
                 >
                   {loadingMore ? <i className="fas fa-spinner fa-spin mr-2" /> : <i className="fas fa-chevron-down mr-2" />}
                   Show more ({filtered.length - visible.length} left)
@@ -528,14 +528,14 @@ export default function OrdersPage() {
           </>
         ) : (
           <div className="text-center py-12">
-            <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 rounded-full flex items-center justify-center">
-                <i className={`fas ${isFiltered ? 'fa-search' : 'fa-shopping-bag'} text-2xl text-gray-300`} />
+            <div className="max-w-md mx-auto bg-white dark:bg-[#151515] rounded-2xl border border-gray-100 dark:border-[#292929] shadow-sm p-8">
+              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 dark:bg-[#202020] rounded-full flex items-center justify-center">
+                <i className={`fas ${isFiltered ? 'fa-search' : 'fa-shopping-bag'} text-2xl text-gray-300 dark:text-gray-500`} />
               </div>
-              <h3 className="text-lg font-extrabold text-gray-900 mb-2">
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">
                 {isFiltered ? 'No matching orders' : 'No orders yet'}
               </h3>
-              <p className="text-gray-500 mb-6 text-sm">
+              <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
                 {isFiltered
                   ? 'Try a different keyword, status, or date range.'
                   : 'Your food orders will appear here. Hungry? Let\'s fix that.'}
@@ -565,15 +565,15 @@ export default function OrdersPage() {
       {/* Cancel confirm */}
       {cancelTarget && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setCancelTarget(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-extrabold text-gray-900 mb-1">Cancel this order?</h3>
-            <p className="text-sm text-gray-500 mb-5">
+          <div className="bg-white dark:bg-[#171717] rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-extrabold text-gray-900 dark:text-white mb-1">Cancel this order?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               {cancelTarget.orderNumber} • {cancelTarget.restaurant} • {formatPHP(cancelTarget.total)}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setCancelTarget(null)}
-                className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-[#292929] rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#383838]"
               >
                 Keep order
               </button>

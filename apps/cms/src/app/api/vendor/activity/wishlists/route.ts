@@ -1,10 +1,10 @@
 /**
  * @file apps/cms/src/app/api/vendor/activity/wishlists/route.ts
- * @description BFF aggregation endpoint for web-merchant /activity/wishlists (vendor-scoped, read-only).
- * Follows docs/BFF-pattern.md: backend owns userId -> vendors.user -> merchants.vendor
+ * @description BFF aggregation endpoint for vendor and member seller wishlist activity.
+ * Follows docs/BFF-pattern.md: backend validates vendorId ownership -> merchants.vendor
  * resolution, joins, filtering, pagination and sanitization with overrideAccess:true.
  *
- * GET /api/vendor/activity/wishlists?userId=&page=&limit=&search=&outletId=&itemType=&sort=
+ * GET /api/vendor/activity/wishlists?vendorId=&page=&limit=&search=&outletId=&itemType=&sort=
  *     -> { docs, pagination, stats, meta }
  *
  * Merchant differences vs admin BFF (admin/customer-activity/wishlists): scope is limited
@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { resolveSellerVendorScope } from '@/utils/sellerVendorScope'
 
 function str(v: unknown, fb = ''): string {
   return typeof v === 'string' ? v : fb
@@ -70,42 +70,25 @@ function parseCsv(value: string | null): string[] {
   return value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
 }
 
-async function resolveVendorContext(payload: any, userId: string) {
-  const vendorRes = await payload.find({
-    collection: 'vendors',
-    where: { user: { equals: userId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-  if (!vendor) return { vendor: null, vendorId: null as number | null, merchantIds: [] as number[], merchants: [] as Record<string, any>[] }
-  const vendorId = Number(vendor.id)
-  const merchantsRes = await payload.find({
-    collection: 'merchants',
-    where: { vendor: { equals: vendorId } },
-    limit: 1000,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const merchantDocs = merchantsRes.docs as Record<string, any>[]
-  const merchantIds = merchantDocs.map((m) => Number(m.id)).filter((v) => Number.isFinite(v))
-  return { vendor, vendorId, merchantIds, merchants: merchantDocs }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
-
-    const { vendor, vendorId, merchantIds, merchants } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, searchParams.get('vendorId'))
+    if (scope.error) return scope.error
+    const { vendor, vendorId, merchantIds } = scope
     if (!vendor || vendorId == null) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
+    const merchantsRes = await payload.find({
+      collection: 'merchants',
+      where: { vendor: { equals: vendorId } },
+      limit: 1000,
+      depth: 0,
+      sort: 'outletName',
+      overrideAccess: true,
+    })
+    const merchants = merchantsRes.docs as Record<string, any>[]
 
     const emptyOut = (page: number, limit: number, stats: Record<string, any> | null = null) => ({
       vendor: { id: String(vendorId), businessName: str((vendor as any).businessName, '') },

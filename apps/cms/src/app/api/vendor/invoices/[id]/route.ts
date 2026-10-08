@@ -6,8 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
-import { sanitizeInvoice, resolveOwnVendorId } from '@/utils/membershipApi'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
+import { sanitizeInvoice, resolveOwnVendorId, resolveOwnedVendorId } from '@/utils/membershipApi'
 
 export async function GET(
   request: NextRequest,
@@ -15,10 +15,16 @@ export async function GET(
 ) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const vendorUser = await authenticateVendor(payload, request)
-    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-    const vendorId = await resolveOwnVendorId(payload, vendorUser.id)
-    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
+    const vendorUser = await authenticateVendorOrMember(payload, request)
+    if (!vendorUser) return NextResponse.json({ error: 'Unauthorized: seller authentication required' }, { status: 401 })
+    const requestedVendorId = new URL(request.url).searchParams.get('vendorId')
+    if (vendorUser.role === 'member' && !requestedVendorId) {
+      return NextResponse.json({ error: 'vendorId is required' }, { status: 400 })
+    }
+    const vendorId = requestedVendorId
+      ? await resolveOwnedVendorId(payload, vendorUser.id, requestedVendorId)
+      : await resolveOwnVendorId(payload, vendorUser.id)
+    if (!vendorId) return NextResponse.json({ error: 'Vendor profile not found or not owned by account' }, { status: requestedVendorId ? 403 : 404 })
 
     const { id } = await params
     let invoice: any = null

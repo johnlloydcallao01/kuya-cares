@@ -1,18 +1,18 @@
 /**
  * @file apps/cms/src/app/api/vendor/profile/password/route.ts
- * @description BFF for vendor password change. Backend owns verification and policy.
+ * @description BFF for seller password change. Backend owns verification and policy.
  * POST /api/vendor/profile/password  body: { userId?, currentPassword, newPassword }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     let body: Record<string, any>

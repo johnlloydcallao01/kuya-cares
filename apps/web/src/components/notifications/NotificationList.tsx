@@ -46,7 +46,7 @@ export function NotificationList({
   if (isLoading && !refreshing) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#239459] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-gray-200 dark:border-[#333333] border-t-[#239459] rounded-full animate-spin" />
       </div>
     );
   }
@@ -54,11 +54,11 @@ export function NotificationList({
   if (notifications.length === 0) {
     return (
       <div className="flex flex-col items-center px-8 py-12 text-center">
-        <div className="w-[120px] h-[120px] bg-gray-100 rounded-full flex items-center justify-center mb-6">
-          <i className="fa fa-bell text-gray-400 text-4xl" />
+        <div className="w-[120px] h-[120px] bg-gray-100 dark:bg-[#1c1c1c] rounded-full flex items-center justify-center mb-6">
+          <i className="fa fa-bell text-gray-400 dark:text-gray-500 text-4xl" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">No notifications yet</h3>
-        <p className="text-gray-500 leading-6">
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No notifications yet</h3>
+        <p className="text-gray-500 dark:text-gray-400 leading-6">
           We&apos;ll notify you about order updates, promotions, and more!
         </p>
       </div>
@@ -71,17 +71,17 @@ export function NotificationList({
         <div
           className={
             compact
-              ? 'px-4 py-3 bg-amber-50 border-b border-amber-200'
-              : 'rounded-lg px-4 py-3 bg-amber-50 border border-amber-200'
+              ? 'px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900'
+              : 'rounded-lg px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900'
           }
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-amber-800">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
               You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
             </p>
             <button
               onClick={onMarkAllAsRead}
-              className="shrink-0 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
+              className="shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-200 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
             >
               Mark all read
             </button>
@@ -89,7 +89,7 @@ export function NotificationList({
         </div>
       )}
 
-      <div className={compact ? 'divide-y divide-gray-100' : 'space-y-3'}>
+      <div className={compact ? 'divide-y divide-gray-100 dark:divide-[#292929]' : 'space-y-3'}>
         {notifications.map((item) => {
           const isUnread = item.status === 'unread';
           const style = getDomainStyle(item.domain);
@@ -99,13 +99,13 @@ export function NotificationList({
               onClick={() => handlePress(item)}
               className={
                 compact
-                  ? `px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                      isUnread ? 'bg-emerald-50/50' : ''
+                  ? `px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#202020] transition-colors cursor-pointer ${
+                      isUnread ? 'bg-emerald-50/50 dark:bg-emerald-950/30' : ''
                     }`
                   : `rounded-xl p-4 cursor-pointer transition-colors border-l-4 shadow-sm ${
                       isUnread
-                        ? 'bg-emerald-50 border-l-[#239459] border-t border-r border-b border-gray-100'
-                        : 'bg-white border-l-gray-200 border border-gray-100'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-l-[#239459] border-t border-r border-b border-gray-100 dark:border-[#292929]'
+                        : 'bg-white dark:bg-[#151515] border-l-gray-200 dark:border-l-[#3a3a3a] border border-gray-100 dark:border-[#292929]'
                     }`
               }
             >
@@ -119,7 +119,7 @@ export function NotificationList({
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p
                       className={`text-base flex-1 ${
-                        isUnread ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'
+                        isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-semibold text-gray-700 dark:text-gray-200'
                       }`}
                     >
                       {item.title}
@@ -128,8 +128,8 @@ export function NotificationList({
                       <span className="w-2 h-2 bg-[#239459] rounded-full shrink-0 mt-1.5 ml-2" />
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 leading-5 mb-2">{item.body}</p>
-                  <p className="text-xs font-medium text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-5 mb-2">{item.body}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-500">
                     {formatNotificationTime(item.deliveredAt)}
                   </p>
                   <button
@@ -138,14 +138,14 @@ export function NotificationList({
                       e.stopPropagation();
                       onToggleRead(item.id);
                     }}
-                    className="inline-flex items-center self-start mt-3 bg-white px-2.5 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center self-start mt-3 bg-white dark:bg-[#1c1c1c] px-2.5 py-1.5 rounded-full border border-gray-200 dark:border-[#383838] hover:bg-gray-50 dark:hover:bg-[#292929] transition-colors"
                   >
                     <i
                       className={`fa ${
                         isUnread ? 'fa-check-circle' : 'fa-rotate-left'
-                      } text-sm text-gray-500`}
+                      } text-sm text-gray-500 dark:text-gray-400`}
                     />
-                    <span className="text-xs font-semibold text-gray-500 ml-1">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-300 ml-1">
                       {isUnread ? 'Mark as read' : 'Mark as unread'}
                     </span>
                   </button>

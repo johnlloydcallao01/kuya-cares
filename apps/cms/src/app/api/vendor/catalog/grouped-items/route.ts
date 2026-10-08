@@ -4,15 +4,15 @@
  *
  * Divergence from admin (cms/.../admin/catalog/grouped-items): the prod-grouped-items collection is an
  * open read/write junction (parent_product_id + child_product_id → products, default_quantity, sort_order)
- * with no merchant FK. Merchant scope is derived by restricting to rows where the parent OR child is one
- * of the vendor's owned products. parent_product_id / child_product_id filters are each ownership-guarded.
- * Writes absent for merchants.
+ * with no merchant FK. Account scope is derived by restricting to rows where the parent OR child is one
+ * of the authenticated account's owned products. parent_product_id / child_product_id filters are each
+ * ownership-guarded. Writes absent for members.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,13 +60,17 @@ const ALLOWED_SORTS = new Set(['-createdAt', 'createdAt', '-updatedAt', 'updated
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -75,23 +79,23 @@ export async function GET(request: NextRequest) {
     const childFilter = (searchParams.get('child_product_id') || searchParams.get('child') || '').trim()
     const safeSort = ALLOWED_SORTS.has(sort) ? sort : '-createdAt'
 
-    // 1. Resolve vendor + owned merchants + owned products.
+    // 1. Resolve all vendor profiles, merchants, and products owned by the account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -102,7 +106,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },
@@ -122,15 +126,13 @@ export async function GET(request: NextRequest) {
     // 2. Ownership guards on id filter params.
     if (parentFilter) {
       const pid = Number(parentFilter)
-      if (!Number.isNaN(pid) && !ownedProductIds.has(pid)) {
-        return NextResponse.json({ error: 'Forbidden: parent product does not belong to vendor' }, { status: 403 })
-      }
+      if (!Number.isFinite(pid)) return NextResponse.json({ error: 'parent_product_id must be numeric' }, { status: 400 })
+      if (!ownedProductIds.has(pid)) return NextResponse.json({ error: 'Forbidden: parent product does not belong to this account' }, { status: 403 })
     }
     if (childFilter) {
       const cid = Number(childFilter)
-      if (!Number.isNaN(cid) && !ownedProductIds.has(cid)) {
-        return NextResponse.json({ error: 'Forbidden: child product does not belong to vendor' }, { status: 403 })
-      }
+      if (!Number.isFinite(cid)) return NextResponse.json({ error: 'child_product_id must be numeric' }, { status: 400 })
+      if (!ownedProductIds.has(cid)) return NextResponse.json({ error: 'Forbidden: child product does not belong to this account' }, { status: 403 })
     }
 
     // 3. Build where: scoped to rows where parent OR child is an owned product.
@@ -152,28 +154,14 @@ export async function GET(request: NextRequest) {
       if (!Number.isNaN(cid)) where.child_product_id = { equals: cid }
     }
 
-    // Search: find product names matching, then restrict to those product ids.
+    // Search the already-scoped product list so names from other accounts cannot affect results.
     if (search) {
-      try {
-        const searchProdRes = await payload.find({
-          collection: 'products',
-          where: { name: { contains: search } },
-          limit: 200,
-          depth: 0,
-          overrideAccess: true,
-          pagination: false,
-        } as any)
-        const matchIds = (searchProdRes.docs as unknown as Record<string, any>[]).map((d) => Number(d.id)).filter((id) => Number.isFinite(id))
-        // Also scope to owned products.
-        const scopedMatchIds = matchIds.filter((id) => ownedProductIds.has(id))
-        if (scopedMatchIds.length > 0) {
-          and.push({ or: [{ parent_product_id: { in: scopedMatchIds } }, { child_product_id: { in: scopedMatchIds } }] })
-        } else {
-          and.push({ parent_product_id: { equals: -1 } })
-        }
-      } catch {
-        and.push({ parent_product_id: { equals: -1 } })
-      }
+      const matchingProductIds = ownedProducts
+        .filter((product) => product.name.toLowerCase().includes(search.toLowerCase()))
+        .map((product) => product.id)
+      and.push(matchingProductIds.length
+        ? { or: [{ parent_product_id: { in: matchingProductIds } }, { child_product_id: { in: matchingProductIds } }] }
+        : { parent_product_id: { equals: -1 } })
     }
 
     const hasWhere = Object.keys(where).length > 0

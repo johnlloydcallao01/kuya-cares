@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { resolveSellerVendorScope } from '@/utils/sellerVendorScope'
 
 function str(v: unknown, fb = ''): string {
   return typeof v === 'string' ? v : fb
@@ -100,29 +100,13 @@ function sanitizeRedemption(raw: Record<string, any>): Record<string, any> {
 
 const STATUS_SET = new Set(['held', 'applied', 'refunded', 'cancelled'])
 
-async function resolveVendorContext(payload: any, userId: string) {
-  const vendorRes = await payload.find({
-    collection: 'vendors',
-    where: { user: { equals: userId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-  if (!vendor) return { vendor: null, vendorId: null as number | null }
-  return { vendor, vendorId: Number(vendor.id) }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
-
-    const { vendor, vendorId } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, searchParams.get('vendorId'))
+    if (scope.error) return scope.error
+    const { vendor, vendorId } = scope
     if (!vendor || vendorId == null) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }

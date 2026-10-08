@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import { getStoreHoursStatus } from '@/utils/storeHours'
 
 export const dynamic = 'force-dynamic'
@@ -136,31 +136,29 @@ function sanitizeMerchant(m: Record<string, any>): Record<string, any> {
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const userId = String(authUser.id)
 
-    // 1. Resolve vendor for user
-    const vendorRes = await payload.find({
+    const vendorsRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorsRes.docs as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
 
-    // 2. Query merchants (outlets) for vendor
+    // Include outlets from every vendor profile owned by this user.
     const merchantsRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendor.id } },
+      where: { vendor: { in: vendors.map((vendor) => String(vendor.id)) } },
       limit: 500,
       depth: 2,
       sort: '-createdAt',
@@ -181,8 +179,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       vendor: {
-        id: String(vendor.id),
-        businessName: getStr(vendor.businessName),
+        id: vendors.map((vendor) => String(vendor.id)).join(','),
+        businessName: vendors.map((vendor) => getStr(vendor.businessName)).join(', '),
       },
       metrics,
       outlets,
@@ -196,7 +194,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
     }
@@ -208,11 +206,11 @@ export async function POST(request: NextRequest) {
       return badRequest('Invalid JSON body')
     }
 
-    const userId = body.userId ? String(body.userId) : String(authUser.id)
+    const userId = String(authUser.id)
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })

@@ -28,12 +28,15 @@ export interface CategoryCircleProps {
 export interface HeaderProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onToggleMobileSidebar?: () => void;
   onSearch?: (query: string) => void;
 }
 
 export interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
   onScroll?: (e: React.UIEvent<HTMLElement>) => void;
 }
 
@@ -45,6 +48,49 @@ export interface LayoutProps {
 
 // Icon mapping type
 export type IconName =
+  | 'dashboard'
+  | 'posts'
+  | 'settings'
+  | 'users'
+  | 'analytics'
+  | 'reports'
+  | 'content'
+  | 'media'
+  | 'pages'
+  | 'categories'
+  | 'tags'
+  | 'comments'
+  | 'orders'
+  | 'products'
+  | 'inventory'
+  | 'customers'
+  | 'payments'
+  | 'shipping'
+  | 'campaigns'
+  | 'email'
+  | 'social'
+  | 'seo'
+  | 'ads'
+  | 'team'
+  | 'roles'
+  | 'permissions'
+  | 'audit'
+  | 'logs'
+  | 'backup'
+  | 'security'
+  | 'api'
+  | 'integrations'
+  | 'notifications'
+  | 'help'
+  | 'support'
+  | 'billing'
+  | 'profile'
+  | 'outlets'
+  | 'business'
+  | 'fulfillment'
+  | 'modifiers'
+  | 'reviews'
+  | 'activity'
   | 'home'
   | 'trending'
   | 'music'
@@ -56,16 +102,7 @@ export type IconName =
   | 'innovation'
   | 'leadership'
   | 'consulting'
-  | 'settings'
-  | 'help'
   | 'feedback'
-  | 'notifications'
-  | 'profile'
-  | 'billing'
-  | 'integrations'
-  | 'api'
-  | 'security'
-  | 'backup'
   | 'heart'
   | 'receipt'
   | 'history'

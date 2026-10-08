@@ -81,7 +81,7 @@ export default function MainLayout({
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
         {/* Header - Persistent across all pages except addresses; hide on mobile/tablet for specific pages */}
         {!isAddressesPage && !((isMerchantsPage || isMerchantPage || isResultsPage) && !isDesktop) && (
           <Header
@@ -101,16 +101,15 @@ export default function MainLayout({
 
         {/* Main Content Area - Only this changes during navigation */}
         <main
-          className={`transition-all duration-300 bg-gray-50 ${
+          className={`transition-all duration-300 bg-gray-50 dark:bg-[#0a0a0a] ${
             isAddressesPage 
               ? '' // No margin for addresses page (full screen)
               : sidebarOpen ? 'lg:ml-60' : 'lg:ml-20'
           }`}
-          style={{ backgroundColor: '#f9fafb' }}
           data-addresses-page={isAddressesPage ? "true" : undefined}
           data-hide-header-on-mobile={!isDesktop && (isMerchantsPage || isMerchantPage || isResultsPage) ? "true" : undefined}
         >
-          <div className="min-h-full bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
+          <div className="min-h-full bg-gray-50 dark:bg-[#0a0a0a]">
             {children}
           </div>
         </main>

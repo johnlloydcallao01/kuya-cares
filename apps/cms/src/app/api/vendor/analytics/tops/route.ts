@@ -8,6 +8,7 @@ import {
   buildVendorAnalyticsCore,
   getNum,
   getStr,
+  findVendorAnalyticsScope,
   isInCurrentPeriod,
   parseVendorAnalyticsParams,
   resolveId,
@@ -20,31 +21,16 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     if (!userId) return NextResponse.json({ error: 'userId is required' }, { status: 400 })
 
-    const cacheKey = `vendor:analytics:tops:${userId}:${buildVendorAnalyticsCacheQuery(searchParams)}`
+    const cacheKey = `vendor:analytics:tops:v2:${userId}:${buildVendorAnalyticsCacheQuery(searchParams)}`
     const cached = await getCached<Record<string, unknown>>(cacheKey)
     if (cached) return NextResponse.json(cached, { headers: { 'X-VendorAnalytics-Cache': 'HIT' } })
 
     const params = parseVendorAnalyticsParams(searchParams)
     const { days } = params
 
-    const vendorsRes = await payload.find({
-      collection: 'vendors',
-      where: { user: { equals: userId } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const vendor = vendorsRes.docs[0] as unknown as Record<string, unknown> | undefined
-    if (!vendor) return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
-
-    const merchantsRes = await payload.find({
-      collection: 'merchants',
-      where: { vendor: { equals: String(vendor.id) } },
-      limit: 1000,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const merchantsDocs = merchantsRes.docs as unknown as VendorDoc[]
+    const scope = await findVendorAnalyticsScope(payload, userId)
+    if (!scope) return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+    const { merchantsDocs } = scope
     const merchantIds = new Set(merchantsDocs.map((m) => String(m.id)))
 
     if (merchantIds.size === 0) {

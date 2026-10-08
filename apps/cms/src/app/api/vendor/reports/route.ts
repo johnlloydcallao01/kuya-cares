@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { getCached, setCached } from '@encreasl/cache'
+import { findVendorReportsScope } from '@/utils/vendorReportsShared'
 
 function getNum(v: unknown, fb = 0): number { if (typeof v === 'number' && Number.isFinite(v)) return v; if (typeof v === 'string') return parseFloat(v) || fb; return fb }
 function getStr(v: unknown, fb = ''): string {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest){
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
       .join('&') || 'range=30d'
-    const cacheKey = `vendor:reports:${userId}:${cacheQuery}`
+    const cacheKey = `vendor:reports:v2:${userId}:${cacheQuery}`
     const cached = await getCached<Record<string, unknown>>(cacheKey)
     if (cached) return NextResponse.json(cached, { headers: { 'X-VendorReports-Cache': 'HIT' } })
 
@@ -38,14 +39,9 @@ export async function GET(request: NextRequest){
     const now=new Date()
     const periodStart=days===0?null:new Date(now.getTime()-days*24*60*60*1000)
 
-    const vendorsRes=await payload.find({collection:'vendors', where:{user:{equals:userId}}, limit:1, depth:0, overrideAccess:true})
-    const vendor=vendorsRes.docs[0] as unknown as Record<string,unknown>|undefined
-    if(!vendor) return NextResponse.json({error:'Vendor not found'},{status:404})
-    const vendorId=String(vendor.id)
-    const vendorName=getStr(vendor.businessName,'Vendor')
-
-    const merchantsRes=await payload.find({collection:'merchants', where:{vendor:{equals:vendorId}}, limit:1000, depth:1, overrideAccess:true})
-    const merchantsDocs=merchantsRes.docs as unknown as Record<string,unknown>[]
+    const scope = await findVendorReportsScope(payload, userId)
+    if (!scope) return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+    const { vendorId, vendorName, merchantsDocs } = scope
     const merchantMap=new Map<string,Record<string,unknown>>()
     merchantsDocs.forEach((m:any)=>merchantMap.set(String(m.id),m as Record<string,unknown>))
     const merchantIds=new Set(merchantsDocs.map((m)=>String(m.id)))

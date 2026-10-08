@@ -1,13 +1,13 @@
 /**
  * @file apps/cms/src/app/api/vendor/coupons/route.ts
- * @description BFF aggregation endpoint for web-merchant /coupons (vendor-scoped).
- * Follows docs/BFF-pattern.md: backend owns userId -> vendors.user -> merchants.vendor
+ * @description BFF aggregation endpoint for vendor and member seller coupon pages.
+ * Follows docs/BFF-pattern.md: backend validates vendorId ownership -> merchants.vendor
  * resolution, joins, filtering, pagination and sanitization with overrideAccess:true.
  * Frontend (web-merchant proxy + page) is a thin consumer.
  *
- * GET  /api/vendor/coupons?userId=&page=&limit=&search=&status=&discount_type=&sort=
+ * GET  /api/vendor/coupons?vendorId=&page=&limit=&search=&status=&discount_type=&sort=
  *      -> { docs, pagination, stats, meta }
- * POST /api/vendor/coupons -> { doc } (vendor forced to own brand, merchants subset-checked)
+ * POST /api/vendor/coupons -> { doc } (vendor forced to selected owned profile, merchants subset-checked)
  *
  * Merchant differences vs admin BFF: vendor is always the caller's own brand
  * (platform-wide coupons are not listed/created here), funding is forced to
@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { resolveSellerVendorScope } from '@/utils/sellerVendorScope'
 import { normalizeCouponCode, validateCouponFields } from '@/collections/Coupons'
 
 function str(v: unknown, fb = ''): string {
@@ -122,38 +122,13 @@ const CREATE_FIELDS = [
   'first_order_only', 'allowed_payment_methods', 'time_windows',
 ] as const
 
-async function resolveVendorContext(payload: any, userId: string) {
-  const vendorRes = await payload.find({
-    collection: 'vendors',
-    where: { user: { equals: userId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-  if (!vendor) return { vendor: null, merchantIds: [] as number[] }
-  const vendorId = Number(vendor.id)
-  const merchantsRes = await payload.find({
-    collection: 'merchants',
-    where: { vendor: { equals: vendorId } },
-    limit: 1000,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const merchantIds = (merchantsRes.docs as Record<string, any>[]).map((m) => Number(m.id)).filter((v) => Number.isFinite(v))
-  return { vendor, vendorId, merchantIds }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
-
-    const { vendor, vendorId, merchantIds } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, searchParams.get('vendorId'))
+    if (scope.error) return scope.error
+    const { vendor, vendorId, merchantIds } = scope
     if (!vendor || vendorId == null) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
@@ -250,9 +225,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
-    if (!authUser) return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
-
     let body: Record<string, any>
     try {
       body = await request.json()
@@ -260,8 +232,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const userId = body.userId ? String(body.userId) : String(authUser.id)
-    const { vendor, vendorId, merchantIds } = await resolveVendorContext(payload, userId)
+    const scope = await resolveSellerVendorScope(payload, request, typeof body.vendorId === 'string' ? body.vendorId : null)
+    if (scope.error) return scope.error
+    const { vendor, vendorId, merchantIds } = scope
     if (!vendor || vendorId == null) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }

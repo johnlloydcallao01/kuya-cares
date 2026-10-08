@@ -133,13 +133,13 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
 
   const modalContent = (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+      <div className="bg-white dark:bg-[#171717] rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
         <div className="p-6 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Get Help with Order</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Get Help with Order</h2>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -147,8 +147,8 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
             </button>
           </div>
           
-          <p className="text-sm text-gray-500 mb-6">
-            Please describe your issue with order <span className="font-medium text-gray-900">#{orderId}</span>. 
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Please describe your issue with order <span className="font-medium text-gray-900 dark:text-gray-100">#{orderId}</span>.
             Our support team will contact you shortly via email.
           </p>
         </div>
@@ -156,13 +156,13 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
         <div className="p-6 pt-0 overflow-y-auto flex-1">
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="concern" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Your Concern
               </label>
               <textarea
                 id="concern"
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none transition-shadow"
+                className="w-full px-3 py-2 bg-white dark:bg-[#202020] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-gray-300 dark:border-[#383838] rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none transition-shadow"
                 placeholder="e.g., Missing items, wrong order, delivery delay..."
                 value={concern}
                 onChange={(e) => setConcern(e.target.value)}
@@ -172,12 +172,12 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Screenshots (Optional)
               </label>
               
               <div className="space-y-3">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-amber-500 transition-colors cursor-pointer relative">
+                <div className="border-2 border-dashed border-gray-300 dark:border-[#444444] rounded-lg p-4 text-center hover:border-amber-500 transition-colors cursor-pointer relative">
                   <input
                     type="file"
                     accept="image/*"
@@ -185,19 +185,19 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     multiple
                   />
-                  <div className="text-gray-500">
+                  <div className="text-gray-500 dark:text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <p className="text-sm">Click to upload images</p>
-                    <p className="text-xs text-gray-400 mt-1">Max 5MB each</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Max 5MB each</p>
                   </div>
                 </div>
 
                 {screenshotPreviews.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {screenshotPreviews.map((preview, index) => (
-                      <div key={index} className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50 aspect-video">
+                      <div key={index} className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-[#383838] bg-gray-50 dark:bg-[#202020] aspect-video">
                         <img src={preview} alt={`Screenshot ${index + 1}`} className="w-full h-full object-contain" />
                         <button
                           type="button"
@@ -215,11 +215,11 @@ export default function OrderHelpModal({ isOpen, onClose, orderId }: OrderHelpMo
               </div>
             </div>
 
-            <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
+            <div className="flex gap-3 justify-end pt-2 border-t border-gray-100 dark:border-[#383838]">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-[#292929] hover:bg-gray-200 dark:hover:bg-[#383838] rounded-lg transition-colors"
                 disabled={isSending}
               >
                 Cancel

@@ -212,18 +212,42 @@ export function useAuthEvents() {
 // ========================================
 
 /**
- * Get user initials for avatar display
+ * Get user initials from name or email
  */
-function getInitials(user: User): string {
-  if (user.firstName && user.lastName) {
-    return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+export function getInitials(user: User | null): string {
+  if (!user) return '';
+
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  if (fullName) {
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   }
-  
-  if (user.username) {
-    return user.username.substring(0, 2).toUpperCase();
+
+  if (user.email) {
+    return user.email.charAt(0).toUpperCase();
   }
-  
-  return user.email.substring(0, 2).toUpperCase();
+
+  return '';
+}
+
+/**
+ * Get full name or fallback to email
+ */
+export function getFullName(user: User | null): string {
+  if (!user) return '';
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  return fullName || user.email || '';
+}
+
+/**
+ * Get user initials (alias for getInitials)
+ */
+export function getUserInitials(user: User | null): string {
+  return getInitials(user);
 }
 
 // ========================================

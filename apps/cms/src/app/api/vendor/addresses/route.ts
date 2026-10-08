@@ -20,7 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,7 +77,7 @@ function vendorUserIdFromVendorDoc(vendor: Record<string, any> | null | undefine
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
     }
@@ -115,16 +115,17 @@ export async function GET(request: NextRequest) {
       const vendorRes = await payload.find({
         collection: 'vendors',
         where: { user: { equals: authUser.id } },
-        limit: 1,
+        limit: 1000,
         depth: 0,
         overrideAccess: true,
       })
-      const ownVendor = vendorRes.docs[0] as Record<string, any> | undefined
+      const ownVendors = vendorRes.docs as Record<string, any>[]
       const merchantVendorId =
         typeof merchant.vendor === 'object' && merchant.vendor !== null
           ? (merchant.vendor as Record<string, unknown>).id
           : merchant.vendor
-      if (!ownVendor || String(merchantVendorId) !== String(ownVendor.id)) {
+      const ownVendor = ownVendors.find((vendor) => String(merchantVendorId) === String(vendor.id))
+      if (!ownVendor) {
         return NextResponse.json({ error: 'Forbidden: outlet does not belong to vendor' }, { status: 403 })
       }
 
@@ -174,7 +175,14 @@ export async function GET(request: NextRequest) {
           overrideAccess: true,
         })) as unknown as Record<string, any>
         // Vendor must belong to the logged-in user (no cross-vendor listing)
-        if (String(vendorUserIdFromVendorDoc(vendor)) !== String(authUser.id)) {
+        const ownVendorRes = await payload.find({
+          collection: 'vendors',
+          where: { user: { equals: authUser.id } },
+          limit: 1000,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (!ownVendorRes.docs.some((ownVendor) => String(ownVendor.id) === String(vendor.id))) {
           return NextResponse.json({ error: 'Forbidden: vendor does not belong to user' }, { status: 403 })
         }
         vendorId = Number(vendor.id)
@@ -188,7 +196,7 @@ export async function GET(request: NextRequest) {
       const vendorRes = await payload.find({
         collection: 'vendors',
         where: { user: { equals: authUser.id } },
-        limit: 1,
+        limit: 1000,
         depth: 1,
         overrideAccess: true,
       })

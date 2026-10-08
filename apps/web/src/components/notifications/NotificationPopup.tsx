@@ -31,22 +31,22 @@ export function NotificationPopup({ isOpen, onClose }: NotificationPopupProps) {
   };
 
   return (
-    <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-fadeIn">
+    <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-[#111111] rounded-xl shadow-2xl border border-gray-200 dark:border-[#292929] z-50 overflow-hidden animate-fadeIn">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-white">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-[#292929] bg-white dark:bg-[#111111]">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">Notifications</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Notifications</h3>
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
             >
               Mark all as read
             </button>
           )}
         </div>
         {unreadCount > 0 && (
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
           </p>
         )}
@@ -66,10 +66,10 @@ export function NotificationPopup({ isOpen, onClose }: NotificationPopupProps) {
 
       {/* Footer */}
       {recentNotifications.length > 0 && (
-        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-[#292929] bg-gray-50 dark:bg-[#171717]">
           <button
             onClick={handleViewAll}
-            className="w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors py-1"
+            className="w-full text-center text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors py-1"
           >
             View all notifications
           </button>

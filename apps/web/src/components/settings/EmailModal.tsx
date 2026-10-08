@@ -34,7 +34,7 @@ export default function EmailModal({ isOpen, currentEmail, verified, submitting,
   const valid = EMAIL_RE.test(email.trim()) && email.trim().toLowerCase() !== currentEmail.toLowerCase();
 
   const content = (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="settings-theme fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-extrabold text-gray-900">Change email</h2>

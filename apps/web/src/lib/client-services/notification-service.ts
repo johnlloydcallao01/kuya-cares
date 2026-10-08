@@ -157,16 +157,16 @@ export function formatNotificationTime(iso: string | null | undefined): string {
 export function getDomainStyle(domain: string): { bg: string; color: string; icon: string } {
   switch ((domain || '').toLowerCase()) {
     case 'order':
-      return { bg: 'bg-indigo-100', color: 'text-indigo-600', icon: 'fa-receipt' };
+      return { bg: 'bg-indigo-100 dark:bg-indigo-950/60', color: 'text-indigo-600 dark:text-indigo-300', icon: 'fa-receipt' };
     case 'account':
-      return { bg: 'bg-orange-100', color: 'text-orange-600', icon: 'fa-user' };
+      return { bg: 'bg-orange-100 dark:bg-orange-950/60', color: 'text-orange-600 dark:text-orange-300', icon: 'fa-user' };
     case 'system':
-      return { bg: 'bg-violet-100', color: 'text-violet-600', icon: 'fa-gear' };
+      return { bg: 'bg-violet-100 dark:bg-violet-950/60', color: 'text-violet-600 dark:text-violet-300', icon: 'fa-gear' };
     case 'marketing':
-      return { bg: 'bg-amber-100', color: 'text-amber-600', icon: 'fa-tag' };
+      return { bg: 'bg-amber-100 dark:bg-amber-950/60', color: 'text-amber-600 dark:text-amber-300', icon: 'fa-tag' };
     case 'custom':
-      return { bg: 'bg-emerald-100', color: 'text-emerald-600', icon: 'fa-comment' };
+      return { bg: 'bg-emerald-100 dark:bg-emerald-950/60', color: 'text-emerald-600 dark:text-emerald-300', icon: 'fa-comment' };
     default:
-      return { bg: 'bg-violet-100', color: 'text-violet-600', icon: 'fa-bell' };
+      return { bg: 'bg-violet-100 dark:bg-violet-950/60', color: 'text-violet-600 dark:text-violet-300', icon: 'fa-bell' };
   }
 }

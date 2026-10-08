@@ -554,19 +554,19 @@ export default function OrderDetailPage({ params }: PageProps) {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-[#202020] rounded-full flex items-center justify-center">
             <i className="fas fa-receipt text-xl text-gray-400" />
           </div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Order unavailable</h2>
-          <p className="text-sm text-gray-500 mb-5">
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">Order unavailable</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
             {loadError ?? 'Order not found.'}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => router.push('/orders')}
-              className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+              className="flex-1 py-2.5 bg-gray-100 dark:bg-[#292929] rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-[#383838]"
             >
               My orders
             </button>
@@ -595,7 +595,7 @@ export default function OrderDetailPage({ params }: PageProps) {
   const currentIndex = steps.findIndex((step) => step.id === order.status);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
       <OrderHeader
         onBack={() => router.push('/orders')}
         merchantLogo={order.merchantLogo}
@@ -604,7 +604,7 @@ export default function OrderDetailPage({ params }: PageProps) {
         placedAt={order.placedAt}
         orderNumber={order.orderNumber}
       />
-      <div className="bg-white border-t border-gray-100">
+      <div className="bg-white dark:bg-[#111111] border-t border-gray-100 dark:border-[#292929]">
         <div className="w-full px-4 pb-4 pt-3">
           <div
             ref={timelineContainerRef}
@@ -637,7 +637,7 @@ export default function OrderDetailPage({ params }: PageProps) {
                 const isLast = index === steps.length - 1;
                 const circleBase =
                   'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold';
-                let circleClasses = 'bg-gray-200 text-gray-500';
+                let circleClasses = 'bg-gray-200 dark:bg-[#333333] text-gray-500 dark:text-gray-300';
                 if (isCompleted) {
                   circleClasses = 'bg-green-500 text-white';
                 } else if (isCurrent) {
@@ -645,8 +645,8 @@ export default function OrderDetailPage({ params }: PageProps) {
                 }
 
                 const labelClasses = isCurrent
-                  ? 'text-xs font-semibold text-gray-900 mt-1'
-                  : 'text-xs text-gray-500 mt-1';
+                  ? 'text-xs font-semibold text-gray-900 dark:text-white mt-1'
+                  : 'text-xs text-gray-500 dark:text-gray-400 mt-1';
 
                 return (
                   <div key={step.id} className="flex items-center flex-shrink-0">
@@ -659,7 +659,7 @@ export default function OrderDetailPage({ params }: PageProps) {
                     {!isLast && (
                       <div
                         className={`h-0.5 w-10 sm:w-16 mx-1 ${
-                          isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                          isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-[#333333]'
                         }`}
                       />
                     )}
@@ -671,14 +671,14 @@ export default function OrderDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="mt-2 bg-white border-t border-b border-gray-100">
+      <div className="mt-2 bg-white dark:bg-[#111111] border-t border-b border-gray-100 dark:border-[#292929]">
         <div className="p-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Order Summary</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Order Summary</h2>
           
           <div className="space-y-4 mb-4">
             {order.items.map((item) => (
               <div key={item.id} className="flex gap-3">
-                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
+                <div className="w-12 h-12 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-[#252525]">
                   <Image
                     src={item.image}
                     alt={item.name}
@@ -690,48 +690,48 @@ export default function OrderDetailPage({ params }: PageProps) {
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                      <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           <span className="font-bold mr-1">{item.quantity}x</span>
                           {item.name}
                         </p>
                         {item.options.length > 0 && (
-                            <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
+                            <ul className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
                                 {item.options.map((opt, i) => (
                                     <li key={i}>+ {opt.name} (₱{opt.price})</li>
                                 ))}
                             </ul>
                         )}
                      </div>
-                     <p className="text-sm font-medium text-gray-900">₱{item.totalPrice.toFixed(2)}</p>
+                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">₱{item.totalPrice.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 pt-3 space-y-2">
-            <div className="flex justify-between text-sm text-gray-600">
+          <div className="border-t border-dashed border-gray-200 dark:border-[#383838] pt-3 space-y-2">
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
               <span>Subtotal</span>
               <span>₱{order.subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm text-gray-600">
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
               <span>Delivery Fee</span>
               <span>₱{order.deliveryFee.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm text-gray-600">
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
               <span>Service Fee</span>
               <span>₱{order.platformFee.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100 mt-2">
+            <div className="flex justify-between text-base font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-100 dark:border-[#383838] mt-2">
               <span>Total</span>
               <span>₱{order.total.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-gray-100">
+          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-[#383838]">
              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Payment Method</span>
-                <span className="text-sm font-medium text-gray-900 capitalize">
+                <span className="text-sm text-gray-600 dark:text-gray-300">Payment Method</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
                     {order.paymentMethod?.replace(/_/g, ' ') || 'Cash'}
                 </span>
              </div>
@@ -739,9 +739,9 @@ export default function OrderDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="mt-2 bg-white border-t border-b border-gray-100 mb-20">
+      <div className="mt-2 bg-white dark:bg-[#111111] border-t border-b border-gray-100 dark:border-[#292929] mb-20">
         <div className="p-4">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Actions</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Actions</h2>
           <div className="flex flex-col gap-3">
             <button
               onClick={handleTrackOrder}
@@ -752,7 +752,7 @@ export default function OrderDetailPage({ params }: PageProps) {
             </button>
             <button
               onClick={handleGetHelp}
-              className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-gray-100 dark:bg-[#292929] hover:bg-gray-200 dark:hover:bg-[#383838] text-gray-700 dark:text-gray-200 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <i className="fas fa-question-circle"></i>
               Get help about this order
@@ -774,7 +774,7 @@ export default function OrderDetailPage({ params }: PageProps) {
             {order.status === 'delivered' && (
               <button
                 onClick={handleRateOrder}
-                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gray-100 dark:bg-[#292929] hover:bg-gray-200 dark:hover:bg-[#383838] text-gray-700 dark:text-gray-200 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <i className="fas fa-star"></i>
                 Rate this order

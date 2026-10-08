@@ -5,13 +5,13 @@
  * Divergence from admin (cms/.../admin/catalog/modifier-groups): ModifierGroups attach
  * to product_id (collection ModifierGroups.ts:23-28) with no vendor FK. Merchants only
  * see groups of their own products (createdByVendor / createdByMerchant under their
- * merchants), per-id ownership guard on productId filter. Write endpoints absent.
+ * outlets), per-id ownership guard on productId filter. Write endpoints absent.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,13 +65,17 @@ const SELECTION_TYPES = new Set(['single', 'multiple'])
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -81,23 +85,23 @@ export async function GET(request: NextRequest) {
     const isRequiredParam = searchParams.get('is_required')
     const isRequiredFilter = isRequiredParam === 'true' ? true : isRequiredParam === 'false' ? false : null
 
-    // 1. Resolve vendor + owned products.
+    // 1. Resolve all vendor profiles and products owned by the authenticated account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -108,7 +112,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },
@@ -132,7 +136,7 @@ export async function GET(request: NextRequest) {
       const pid = Number(productIdParam)
       if (!Number.isFinite(pid)) return NextResponse.json({ error: 'productId must be numeric' }, { status: 400 })
       if (!ownedProductIds.has(pid)) {
-        return NextResponse.json({ error: 'Forbidden: product does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: product does not belong to this account' }, { status: 403 })
       }
     }
 

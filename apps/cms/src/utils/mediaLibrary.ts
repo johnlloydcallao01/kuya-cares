@@ -133,6 +133,32 @@ export async function authenticateVendor(
   }
 }
 
+export async function authenticateVendorOrMember(
+  payload: Payload,
+  request: NextRequest
+): Promise<Record<string, any> | null> {
+  const token = extractToken(request)
+  if (!token) return null
+
+  try {
+    const secretKey = new TextEncoder().encode(payload.secret)
+    const result = await jwtVerify(token, secretKey)
+    const decoded = result.payload as { id?: unknown; collection?: unknown }
+    if (decoded.collection !== 'users' || decoded.id == null) return null
+
+    const user = await payload.findByID({
+      collection: 'users',
+      id: decoded.id as number,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (!user || !['vendor', 'member'].includes(String(user.role)) || user.isActive === false) return null
+    return user as Record<string, any>
+  } catch {
+    return null
+  }
+}
+
 /**
  * Authenticate a customer user from the incoming request.
  * Returns the customer user document or null when unauthenticated / not an

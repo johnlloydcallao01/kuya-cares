@@ -593,7 +593,7 @@ function SettingsContent() {
   // the sign-in wall.
   if (error?.includes('NO_CUSTOMER') && !summary) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="settings-theme min-h-screen bg-gray-50 pb-20">
         <div className="w-full px-2.5 py-5 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center max-w-md mx-auto">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center">
@@ -623,7 +623,7 @@ function SettingsContent() {
   if (error && !summary) {
     const noSession = error.includes('SETTINGS_NO_SESSION');
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="settings-theme min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
             <i className={`fas ${noSession ? 'fa-user-lock' : 'fa-exclamation-triangle'} text-red-500 text-xl`} />
@@ -659,7 +659,7 @@ function SettingsContent() {
   const prefs = summary.preferences;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="settings-theme min-h-screen bg-gray-50 pb-20">
       <div className="w-full px-2.5 py-5 space-y-6">
         {/* Cover + header card (web-admin /profile pattern) */}
         <div className="space-y-0">
@@ -1256,7 +1256,7 @@ function SettingsContent() {
       />
 
       {dangerTarget && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setDangerTarget(null)}>
+        <div className="settings-theme fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setDangerTarget(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-extrabold text-gray-900 mb-1">
               {dangerTarget === 'deactivate' ? 'Deactivate account?' : 'Request account deletion?'}

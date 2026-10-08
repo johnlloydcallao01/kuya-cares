@@ -5,15 +5,15 @@
  * Divergence from admin (cms/.../admin/catalog/merchant-variation-modifier-option-overrides): this override
  * collection keys on merchant_product_id + variation_id (MerchantVariationModifierOptionOverrides.ts:31-63)
  * and branches by target_option_source into base_modifier_option_id (modifier-options) or
- * variation_modifier_option_id (variation-modifier-options). Merchant scope derives via
+ * variation_modifier_option_id (variation-modifier-options). Account scope derives via
  * merchant-product -> merchants -> vendor chain (merchant-products.merchant_id is the FK). Every id
- * filter is ownership-guarded. Writes absent for merchants.
+ * filter is ownership-guarded. Writes absent for member accounts.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 
 export const dynamic = 'force-dynamic'
 
@@ -124,13 +124,17 @@ const TARGET_SOURCES = new Set(['product_base', 'variation_added'])
 export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized: vendor authentication required' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized: vendor or member authentication required' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || String(authUser.id)
+    const requestedUserId = searchParams.get('userId')
+    if (requestedUserId && requestedUserId !== String(authUser.id)) {
+      return NextResponse.json({ error: 'Forbidden: user does not match authenticated account' }, { status: 403 })
+    }
+    const userId = String(authUser.id)
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20))
     const search = (searchParams.get('search') || '').trim()
@@ -146,23 +150,23 @@ export async function GET(request: NextRequest) {
     const isActiveParam = searchParams.get('is_active')
     const isActiveFilter = isActiveParam === 'true' ? true : isActiveParam === 'false' ? false : null
 
-    // 1. Resolve vendor + owned merchants.
+    // 1. Resolve all vendor profiles and merchants owned by the authenticated account.
     const vendorRes = await payload.find({
       collection: 'vendors',
       where: { user: { equals: userId } },
-      limit: 1,
+      limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
-    const vendor = vendorRes.docs[0] as Record<string, any> | undefined
-    if (!vendor) {
+    const vendors = vendorRes.docs as unknown as Record<string, any>[]
+    if (vendors.length === 0) {
       return NextResponse.json({ error: 'Vendor profile not found' }, { status: 404 })
     }
-    const vendorId = Number(vendor.id)
+    const vendorIds = vendors.map((vendor) => Number(vendor.id)).filter(Number.isFinite)
 
     const merchantRes = await payload.find({
       collection: 'merchants',
-      where: { vendor: { equals: vendorId } },
+      where: { vendor: { in: vendorIds } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
@@ -201,7 +205,7 @@ export async function GET(request: NextRequest) {
       collection: 'products',
       where: {
         or: [
-          { createdByVendor: { equals: vendorId } },
+          { createdByVendor: { in: vendorIds } },
           ...(merchantIds.length ? [{ createdByMerchant: { in: merchantIds } }] : []),
         ],
       },
@@ -255,11 +259,26 @@ export async function GET(request: NextRequest) {
       .map((o) => ({ id: Number(o.id), name: str(o.name, ''), group_id: extractId(o.modifier_group_id) }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    // 4. Owned variation-modifier-options (variation-added option candidates).
-    const variationOptionRes = ownedVariationIds.size
+    // Variation modifier options belong to groups, not directly to variations.
+    const variationGroupRes = ownedVariationIds.size
+      ? await payload.find({
+          collection: 'variation-modifier-groups',
+          where: { variation_id: { in: Array.from(ownedVariationIds) } },
+          limit: 5000,
+          depth: 0,
+          overrideAccess: true,
+        })
+      : { docs: [] as unknown[] }
+    const ownedVariationGroupDocs = variationGroupRes.docs as unknown as Record<string, any>[]
+    const ownedVariationGroupIds = new Set(ownedVariationGroupDocs.map((group) => Number(group.id)).filter(Number.isFinite))
+    const variationIdByGroupId = new Map(
+      ownedVariationGroupDocs.map((group) => [Number(group.id), extractId(group.variation_id)]),
+    )
+
+    const variationOptionRes = ownedVariationGroupIds.size
       ? await payload.find({
           collection: 'variation-modifier-options',
-          where: { variation_id: { in: Array.from(ownedVariationIds) } },
+          where: { variation_modifier_group_id: { in: Array.from(ownedVariationGroupIds) } },
           limit: 5000,
           depth: 0,
           overrideAccess: true,
@@ -269,7 +288,11 @@ export async function GET(request: NextRequest) {
     const ownedVariationOptionIds = new Set(ownedVariationOptionDocs.map((o) => Number(o.id)).filter((v) => Number.isFinite(v)))
 
     const variation_options = ownedVariationOptionDocs
-      .map((o) => ({ id: Number(o.id), name: str(o.name, ''), variation_id: extractId(o.variation_id) }))
+      .map((o) => ({
+        id: Number(o.id),
+        name: str(o.name, ''),
+        variation_id: variationIdByGroupId.get(extractId(o.variation_modifier_group_id) ?? -1) ?? null,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
     // 5. Per-id ownership guards on every id filter param.
@@ -277,28 +300,28 @@ export async function GET(request: NextRequest) {
       const mpid = Number(merchantProductParam)
       if (!Number.isFinite(mpid)) return NextResponse.json({ error: 'merchantProductId must be numeric' }, { status: 400 })
       if (!ownedMerchantProductIds.has(mpid)) {
-        return NextResponse.json({ error: 'Forbidden: merchant product does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: merchant product does not belong to this account' }, { status: 403 })
       }
     }
     if (variationParam) {
       const vid = Number(variationParam)
       if (!Number.isFinite(vid)) return NextResponse.json({ error: 'variationId must be numeric' }, { status: 400 })
       if (!ownedVariationIds.has(vid)) {
-        return NextResponse.json({ error: 'Forbidden: variation does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: variation does not belong to this account' }, { status: 403 })
       }
     }
     if (baseOptionParam) {
       const oid = Number(baseOptionParam)
       if (!Number.isFinite(oid)) return NextResponse.json({ error: 'baseModifierOptionId must be numeric' }, { status: 400 })
       if (!ownedBaseOptionIds.has(oid)) {
-        return NextResponse.json({ error: 'Forbidden: modifier option does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: modifier option does not belong to this account' }, { status: 403 })
       }
     }
     if (variationOptionParam) {
       const oid = Number(variationOptionParam)
       if (!Number.isFinite(oid)) return NextResponse.json({ error: 'variationModifierOptionId must be numeric' }, { status: 400 })
       if (!ownedVariationOptionIds.has(oid)) {
-        return NextResponse.json({ error: 'Forbidden: variation modifier option does not belong to vendor' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: variation modifier option does not belong to this account' }, { status: 403 })
       }
     }
 

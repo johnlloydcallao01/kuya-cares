@@ -7,6 +7,7 @@ import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { AuthErrorBoundary } from '@/components/auth';
 import { LoadingScreenWrapper } from '@/components/loading/LoadingScreenWrapper';
 import { ToasterProvider } from '@/components/toast/ToasterProvider';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -16,15 +17,17 @@ interface ProvidersProps {
 
 export function Providers({ children, initialUser, initialToken }: ProvidersProps) {
   return (
-    <AuthErrorBoundary>
-      <AuthProvider initialUser={initialUser} initialToken={initialToken}>
-        <CartProvider>
-          <NotificationsProvider>
-            <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
-          </NotificationsProvider>
-        </CartProvider>
-      </AuthProvider>
-      <ToasterProvider />
-    </AuthErrorBoundary>
+    <ThemeProvider>
+      <AuthErrorBoundary>
+        <AuthProvider initialUser={initialUser} initialToken={initialToken}>
+          <CartProvider>
+            <NotificationsProvider>
+              <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
+            </NotificationsProvider>
+          </CartProvider>
+        </AuthProvider>
+        <ToasterProvider />
+      </AuthErrorBoundary>
+    </ThemeProvider>
   );
 }

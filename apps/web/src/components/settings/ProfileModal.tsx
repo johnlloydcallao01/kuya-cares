@@ -124,7 +124,7 @@ export default function ProfileModal({
   const labelCls = 'block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5';
 
   const content = (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="settings-theme fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}

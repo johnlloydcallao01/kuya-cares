@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { authenticateVendor } from '@/utils/mediaLibrary'
+import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import { getStoreHoursStatus, validateStoreHoursFields } from '@/utils/storeHours'
 
 export const dynamic = 'force-dynamic'
@@ -176,12 +176,12 @@ async function verifyVendorOutletOwnership(payload: any, userId: number | string
   const vendorRes = await payload.find({
     collection: 'vendors',
     where: { user: { equals: userId } },
-    limit: 1,
+    limit: 1000,
     depth: 0,
     overrideAccess: true,
   })
-  const vendor = vendorRes.docs[0]
-  if (!vendor) return { vendor: null, merchant: null, error: 'Vendor profile not found', status: 404 }
+  const vendors = vendorRes.docs as Record<string, any>[]
+  if (vendors.length === 0) return { vendor: null, merchant: null, error: 'Vendor profile not found', status: 404 }
 
   const merchant = await payload.findByID({
     collection: 'merchants',
@@ -189,11 +189,12 @@ async function verifyVendorOutletOwnership(payload: any, userId: number | string
     depth: 2,
     overrideAccess: true,
   })
-  if (!merchant) return { vendor, merchant: null, error: 'Outlet not found', status: 404 }
+  if (!merchant) return { vendor: vendors[0], merchant: null, error: 'Outlet not found', status: 404 }
 
   const merchantVendorId = typeof merchant.vendor === 'object' ? merchant.vendor.id : merchant.vendor
-  if (String(merchantVendorId) !== String(vendor.id)) {
-    return { vendor, merchant: null, error: 'Forbidden: outlet does not belong to vendor', status: 403 }
+  const vendor = vendors.find((item) => String(item.id) === String(merchantVendorId)) ?? null
+  if (!vendor) {
+    return { vendor: vendors[0], merchant: null, error: 'Forbidden: outlet does not belong to vendor', status: 403 }
   }
 
   return { vendor, merchant, error: null, status: 200 }
@@ -203,7 +204,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { merchant, error, status } = await verifyVendorOutletOwnership(payload, authUser.id, id)
@@ -223,7 +224,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // normalize id to number when possible (merchants uses numeric ids)
@@ -748,7 +749,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const numericId = Number(id)
     const merchantIdForLookup: string | number = Number.isFinite(numericId) ? numericId : id
     const payload = await getPayload({ config: configPromise })
-    const authUser = await authenticateVendor(payload, request)
+    const authUser = await authenticateVendorOrMember(payload, request)
     if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { merchant, error, status } = await verifyVendorOutletOwnership(payload, authUser.id, merchantIdForLookup)

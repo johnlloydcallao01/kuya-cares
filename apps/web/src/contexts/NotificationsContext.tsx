@@ -275,3 +275,33 @@ export function useNotifications(): NotificationsContextValue {
   if (!ctx) throw new Error('useNotifications must be used within NotificationsProvider');
   return ctx;
 }
+
+export function getNotificationIcon(typeKey: string) {
+  if (typeKey.startsWith('order.')) return 'fa-shopping-bag'
+  if (typeKey.startsWith('payment.')) return 'fa-credit-card'
+  if (typeKey.startsWith('delivery.')) return 'fa-truck'
+  if (typeKey.startsWith('security.')) return 'fa-shield'
+  return 'fa-bell'
+}
+
+export function getNotificationPath(notification: NotificationItem) {
+  if (notification.typeKey.startsWith('order.')) {
+    const orderId = notification.metadata?.orderId ?? notification.orderId
+    if (typeof orderId !== 'number' && typeof orderId !== 'string') return null
+    return `/orders/${encodeURIComponent(String(orderId))}`
+  }
+  return null
+}
+
+export function getTimeAgo(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60000)
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`
+  return date.toLocaleDateString()
+}
