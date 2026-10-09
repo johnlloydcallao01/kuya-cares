@@ -935,7 +935,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-20">
         <ProductStickyHeader
           fallbackHref={`/merchant/${merchantSlugId}`}
           isWishlisted={isWishlisted}
@@ -975,10 +975,10 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
         <ProductStickyHeader fallbackHref={`/merchant/${merchantSlugId}`} />
         <div className="w-full px-2.5 py-6 pt-20">
-          <div className="bg-white rounded-lg shadow-sm p-5 text-center">
+          <div className="bg-white dark:bg-[#111111] rounded-lg shadow-sm p-5 text-center">
              <p className="text-red-600">{error || 'Failed to load product'}</p>
              <button 
                 onClick={() => window.location.reload()}
@@ -1024,7 +1024,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-20">
       <ProductStickyHeader
         fallbackHref={`/merchant/${merchantSlugId}`}
         isWishlisted={isWishlisted}
@@ -1034,7 +1034,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
         {primaryImage ? (
           <Image src={primaryImage} alt={name} fill className="object-cover" priority />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-100">No image</div>
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-[#a1a1aa] bg-gray-100 dark:bg-[#262626]">No image</div>
         )}
       </div>
 
@@ -1046,7 +1046,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                 <button
                   type="button"
                   className="w-full flex items-center justify-between rounded-full px-4 py-2 text-white shadow-md"
-                  style={{ backgroundColor: '#f61b73' }}
+                  style={{ backgroundColor: '#239459' }}
                   onClick={() => {
                     if (merchantIdForCart && !Number.isNaN(merchantIdForCart)) {
                       router.push(`/carts/${merchantIdForCart}` as any);
@@ -1137,7 +1137,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                 Below the PayMongo minimum of PHP 1.00.
               </p>
             )}
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{name}</h1>
             {isUnavailable && (
               <p className="mt-2 text-sm font-medium text-red-600">
                 Currently unavailable from this merchant.
@@ -1145,29 +1145,29 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
             )}
             <div className="mt-3 flex items-baseline gap-3">
               {formatPrice(basePrice) ? (
-                <span className="text-2xl font-bold text-gray-900">{formatPrice(basePrice)}</span>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatPrice(basePrice)}</span>
               ) : (
-                <span className="text-lg font-medium text-gray-500">Price varies</span>
+                <span className="text-lg font-medium text-gray-500 dark:text-[#a1a1aa]">Price varies</span>
               )}
               {formatPrice(compareAtPrice) && (compareAtPrice as number) > (basePrice ?? 0) && (
-                <span className="text-base text-gray-500 line-through">{formatPrice(compareAtPrice)}</span>
+                <span className="text-base text-gray-500 dark:text-[#a1a1aa] line-through">{formatPrice(compareAtPrice)}</span>
               )}
             </div>
             {selectedVariationSummary ? (
-              <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#eba236] bg-[#FFF9F0] border border-[#eba236]/40 rounded-full px-3 py-1">
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#eba236] dark:text-amber-300 bg-[#FFF9F0] dark:bg-[#221b10] border border-[#eba236]/40 rounded-full px-3 py-1">
                 {selectedVariationSummary}
               </p>
             ) : null}
             {shortDescription && (
-              <p className="mt-4 text-gray-600 leading-relaxed whitespace-pre-line">{shortDescription}</p>
+              <p className="mt-4 text-gray-600 dark:text-[#a1a1aa] leading-relaxed whitespace-pre-line">{shortDescription}</p>
             )}
           </div>
 
           {isVariableProduct && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                 Choose variation{' '}
-                <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 align-middle">
+                <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-full px-2 py-0.5 align-middle">
                   Required
                 </span>
               </h2>
@@ -1192,7 +1192,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                         }}
                         className={`text-left p-4 rounded-xl border transition-colors ${
                           isSelected
-                            ? 'border-[#eba236] bg-[#FFF9F0] shadow-sm'
+                            ? 'border-[#eba236] bg-[#FFF9F0] dark:bg-[#221b10] shadow-sm'
                             : outOfStock
                               ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
                               : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
@@ -1227,7 +1227,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                               <span className={`font-semibold line-clamp-1 ${outOfStock ? 'text-gray-400' : 'text-gray-900'}`}>{variation.name}</span>
                               <span
                                 className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
-                                  outOfStock ? 'text-gray-500 bg-gray-100' : 'text-green-700 bg-green-50'
+                                  outOfStock ? 'text-gray-500 bg-gray-100 dark:bg-[#262626]' : 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40'
                                 }`}
                               >
                                 {outOfStock ? 'Out of stock' : 'Available'}
@@ -1397,7 +1397,7 @@ export default function ProductDetailClient({ merchantSlugId, productId }: Produ
                                   {child.productType}
                                 </span>
                                 {staged && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300">
                                     <i className="fas fa-check-circle" /> Staged
                                   </span>
                                 )}

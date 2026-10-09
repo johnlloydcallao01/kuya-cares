@@ -596,8 +596,8 @@ export default function CheckoutPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
               <i className="fas fa-arrow-left text-gray-300 text-sm" />
@@ -612,7 +612,7 @@ export default function CheckoutPage() {
           </div>
         </div>
         <div className="px-3 py-4 space-y-4">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-10 w-full" />
@@ -624,8 +624,8 @@ export default function CheckoutPage() {
 
   if (!Number.isFinite(merchantId) || merchantItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4 flex items-center gap-3">
             <button
               type="button"
@@ -648,8 +648,8 @@ export default function CheckoutPage() {
     deliveryDistanceMeters != null ? deliveryDistanceMeters / 1000 : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+      <div className="bg-white dark:bg-[#111111] shadow-sm">
         <div className="px-2.5 py-4 flex items-center gap-3">
           <button
             type="button"
@@ -659,7 +659,7 @@ export default function CheckoutPage() {
             <i className="fas fa-arrow-left text-gray-700 text-sm" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1c1c1c] flex items-center justify-center overflow-hidden">
               {merchantLogoUrl ? (
                 <ImageWrapper
                   src={merchantLogoUrl}
@@ -685,7 +685,7 @@ export default function CheckoutPage() {
       <div className="px-3 py-4 space-y-4">
         <CheckoutAddressSection className="h-full" />
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3 h-full">
+        <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3 h-full">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-900">Order summary</h2>
             <span className="text-xs text-gray-500">
@@ -769,16 +769,16 @@ export default function CheckoutPage() {
         </div>
 
         {isBelowPayMongoMinimum && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="text-sm font-bold text-amber-900">Checkout total is below PHP 1.00</p>
-            <p className="text-xs text-amber-800 mt-1">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-2xl p-4">
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Checkout total is below PHP 1.00</p>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
               PayMongo rejects payments below PHP 1.00. This usually means one of the items in the cart has an incomplete or underpriced configuration.
             </p>
           </div>
         )}
 
         {(isCheckingPaymentState || hasPendingRecovery) && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
+          <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-2">
             <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <i className="fas fa-shield-alt" style={{ color: '#239459' }} />
               {hasPendingRecovery ? 'Payment confirmation in progress' : 'Checking payment status'}
@@ -800,13 +800,13 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3">
           <h2 className="text-sm font-semibold text-gray-900">Payment method</h2>
           <div className="grid grid-cols-1 gap-2">
             {payMethods == null ? (
               // Skeleton rows while options resolve from the API.
               [0, 1, 2].map((i) => (
-                <div key={i} className="w-full rounded-lg border border-gray-200 bg-white animate-pulse">
+                <div key={i} className="w-full rounded-lg border border-gray-200 dark:border-[#3f3f46] bg-white dark:bg-[#1c1c1c] animate-pulse">
                   <div className="flex items-center gap-3 px-3 py-2">
                     <div className="h-6 w-24 bg-gray-200 rounded" />
                     <div className="h-4 w-20 bg-gray-100 rounded" />
@@ -829,7 +829,7 @@ export default function CheckoutPage() {
                     onClick={() => setPaymentMethod(method.id as PaymentMethod)}
                     aria-label={method.label}
                     title={method.hint ?? method.label}
-                    className="w-full rounded-lg border bg-white hover:bg-gray-50 transition-colors text-left"
+                    className="w-full rounded-lg border bg-white dark:bg-[#1c1c1c] hover:bg-gray-50 dark:hover:bg-[#262626] transition-colors text-left"
                     style={{
                       borderColor: selected ? '#239459' : '#e5e7eb',
                       boxShadow: selected ? '0 0 0 2px rgba(235,162,54,0.15)' : undefined,
@@ -857,7 +857,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3">
           <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
             <span>Total</span>
             <span>{formatCurrency(orderTotal)}</span>
@@ -873,7 +873,7 @@ export default function CheckoutPage() {
               (deliveryAvailable && deliveryFee <= 0)
             }
             className="w-full text-white rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#eba236' }}
+            style={{ backgroundColor: '#239459' }}
           >
             {isPaying
               ? 'Processing payment...'
@@ -884,7 +884,7 @@ export default function CheckoutPage() {
                   : `Pay ${formatCurrency(orderTotal)}`}
           </button>
           {qrImage && (
-            <div className="mt-3 p-3 border rounded-lg bg-gray-50">
+            <div className="mt-3 p-3 border border-gray-200 dark:border-[#3f3f46] rounded-lg bg-gray-50 dark:bg-[#1c1c1c]">
               <p className="text-sm font-bold text-gray-900 mb-1 text-center">Scan QR Code to Pay</p>
               <p className="text-xs text-gray-500 mb-2 text-center">
                 Scan this QR code using your preferred banking or e-wallet app (Maya, GCash, BDO, BPI, etc.) to complete your payment.
@@ -895,7 +895,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={dismissQr}
-                className="mt-3 w-full py-2 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-200"
+                className="mt-3 w-full py-2 bg-gray-100 dark:bg-[#262626] rounded-xl text-sm font-bold text-gray-700 dark:text-[#e4e4e7] hover:bg-gray-200 dark:hover:bg-[#333333]"
               >
                 Cancel Payment
               </button>

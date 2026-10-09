@@ -1,6 +1,6 @@
   'use client';
 
-  import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+  import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { LocationBasedMerchantService } from '@encreasl/client-services';
 import { useAuthContext } from './AuthContext';
 
@@ -82,6 +82,7 @@ type CartContextValue = {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pendingMerchantIds, setPendingMerchantIds] = useState<Set<number>>(new Set());
+    const cartLoadSequence = useRef(0);
     // Auth-reactive identity (mobile parity): mobile reloads on customerId
     // change; the old web cart loaded once on mount, so a mount-while-
     // logged-out wipe was never retried after login — "always empty".
@@ -93,14 +94,18 @@ type CartContextValue = {
     })();
 
     const loadCart = useCallback(async () => {
+      const requestSequence = ++cartLoadSequence.current;
       try {
         setIsLoading(true);
         setError(null);
 
         const customerId = await LocationBasedMerchantService.getCurrentCustomerId();
+        if (requestSequence !== cartLoadSequence.current) return;
         if (!customerId) {
+          if (authUserId != null) {
+            throw new Error('Unable to resolve your customer account. Please refresh and try again.');
+          }
           setItems([]);
-          setIsLoading(false);
           return;
         }
 
@@ -109,10 +114,7 @@ type CartContextValue = {
         const url = `${API_BASE}/cart-items?where[customer][equals]=${customerId}&where[status][equals]=active&depth=3&limit=200`;
         const res = await fetch(url, { headers: cmsHeaders(), cache: 'no-store' });
         if (!res.ok) {
-          // Keep last-good snapshot on transient failure (mobile parity) —
-          // wiping the UI on a blip strands checkout mid-flow.
-          setIsLoading(false);
-          return;
+          throw new Error(`Failed to load cart (${res.status})`);
         }
         const data = await res.json();
        const docs: any[] = Array.isArray(data?.docs) ? data.docs : [];
@@ -158,13 +160,19 @@ type CartContextValue = {
            merchantLogoUrl,
          };
        });
-        setItems(mapped);
-        setIsLoading(false);
+        if (requestSequence === cartLoadSequence.current) {
+          setItems(mapped);
+        }
       } catch (e: any) {
-        setError(e?.message || 'Failed to load cart');
-        setIsLoading(false);
+        if (requestSequence === cartLoadSequence.current) {
+          setError(e?.message || 'Failed to load cart');
+        }
+      } finally {
+        if (requestSequence === cartLoadSequence.current) {
+          setIsLoading(false);
+        }
       }
-    }, []);
+    }, [authUserId]);
 
    const addToCart = useCallback(
      async (payload: AddToCartPayload) => {
@@ -409,6 +417,30 @@ type CartContextValue = {
      // Reload when the signed-in user changes (login/logout/switch):
      // a mount-while-logged-out wipe must not stick after login.
    }, [loadCart, authUserId]);
+
+   useEffect(() => {
+     const refreshWhenVisible = () => {
+       if (document.visibilityState === 'visible') {
+         void loadCart();
+       }
+     };
+     window.addEventListener('focus', refreshWhenVisible);
+     document.addEventListener('visibilitychange', refreshWhenVisible);
+     return () => {
+       window.removeEventListener('focus', refreshWhenVisible);
+       document.removeEventListener('visibilitychange', refreshWhenVisible);
+     };
+   }, [loadCart]);
+
+   useEffect(() => {
+     const handleCustomerProvisioned = () => {
+       void loadCart();
+     };
+     window.addEventListener('auth:customer_provisioned', handleCustomerProvisioned);
+     return () => {
+       window.removeEventListener('auth:customer_provisioned', handleCustomerProvisioned);
+     };
+   }, [loadCart]);
 
    const value: CartContextValue = {
      items,

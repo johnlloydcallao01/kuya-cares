@@ -118,14 +118,16 @@ export default function MobileStickyHeader() {
         className={
           "w-full px-[10px] h-[45px] min-h-[45px] max-h-[45px] flex items-center justify-between transition-colors duration-200"
         }
-        style={{ backgroundColor: `rgba(255,255,255,${bgAlpha})` }}
+        style={{
+          backgroundColor: `color-mix(in srgb, var(--background) ${bgAlpha * 100}%, transparent)`,
+        }}
       >
         <button
           aria-label="Back"
-          className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+          className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
           onClick={handleBack}
         >
-          <i className="fas fa-arrow-left text-[14px] text-[#333]"></i>
+          <i className="fas fa-arrow-left text-[14px] text-[#333] dark:text-[#e4e4e7]"></i>
         </button>
         {hideActions && (
           <div className="flex-1 px-2">
@@ -146,33 +148,33 @@ export default function MobileStickyHeader() {
           <div className="flex items-center gap-2">
             <button
               aria-label="More"
-              className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
             >
-              <i className="fas fa-ellipsis-v text-[14px] text-[#333]"></i>
+              <i className="fas fa-ellipsis-v text-[14px] text-[#333] dark:text-[#e4e4e7]"></i>
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <button
               aria-label="Information"
-              className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
             >
-              <i className="fas fa-info text-[14px] text-[#333]"></i>
+              <i className="fas fa-info text-[14px] text-[#333] dark:text-[#e4e4e7]"></i>
             </button>
             <button
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               aria-pressed={isWishlisted}
               onClick={toggleWishlist}
-              className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
             >
-              <i className={`${isWishlisted ? "fas" : "fa-regular"} fa-heart text-[14px]`} style={{ color: isWishlisted ? "#f3a823" : "#333" }}></i>
+              <i className={`${isWishlisted ? "fas" : "fa-regular"} fa-heart text-[14px]`} style={{ color: isWishlisted ? "#239459" : "var(--foreground)" }}></i>
             </button>
             <button
               aria-label="Share"
               onClick={handleShare}
-              className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
             >
-              <i className="fa-regular fa-share-from-square text-[14px] text-[#333]"></i>
+              <i className="fa-regular fa-share-from-square text-[14px] text-[#333] dark:text-[#e4e4e7]"></i>
             </button>
           </div>
         )}

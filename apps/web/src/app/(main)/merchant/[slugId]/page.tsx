@@ -120,7 +120,7 @@ export default async function MerchantPage({ params }: PageProps) {
   const statusTextColor = operationalStatus === 'open' ? 'text-emerald-600 font-medium' : operationalStatus === 'busy' ? 'text-yellow-600 font-medium' : 'text-red-600 font-medium';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
       {/* Page-exclusive sticky transparent header (mobile/tablet) with scroll opacity */}
       <MobileStickyHeader />
 
@@ -152,12 +152,12 @@ export default async function MerchantPage({ params }: PageProps) {
           <div className="space-y-6">
             {/* Merchant name + active address below the logo */}
             <div className="space-y-1">
-              <h1 className="text-xl font-semibold text-gray-900 line-clamp-2">{displayName}</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white line-clamp-2">{displayName}</h1>
               {getVendorName(merchant) && (
-                <p className="text-sm text-gray-600 line-clamp-1">{getVendorName(merchant)}</p>
+                <p className="text-sm text-gray-600 dark:text-[#a1a1aa] line-clamp-1">{getVendorName(merchant)}</p>
               )}
               {getOwnerName(merchant) && (
-                <p className="text-xs text-gray-500 line-clamp-1">
+                <p className="text-xs text-gray-500 dark:text-[#a1a1aa] line-clamp-1">
                   <i className="fas fa-user mr-1" />
                   by {getOwnerName(merchant)}
                 </p>
@@ -165,24 +165,24 @@ export default async function MerchantPage({ params }: PageProps) {
             </div>
             {/* Description */}
             {merchant.description && (
-              <section className="bg-white rounded-lg shadow-sm p-5">
-                <h2 className="text-lg font-semibold text-gray-900">About</h2>
-                <p className="text-gray-700 mt-2 whitespace-pre-line">{merchant.description}</p>
+              <section className="bg-white dark:bg-[#111111] rounded-lg shadow-sm p-5">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">About</h2>
+                <p className="text-gray-700 dark:text-[#d4d4d8] mt-2 whitespace-pre-line">{merchant.description}</p>
               </section>
             )}
 
             {/* Operating Hours */}
             {merchant.operatingHours && (
-              <section className="bg-white rounded-lg shadow-sm p-5">
+              <section className="bg-white dark:bg-[#111111] rounded-lg shadow-sm p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-gray-900">Operating Hours</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Operating Hours</h2>
                   <span className={`inline-flex items-center gap-1.5 ${statusTextColor}`}>
                     <span className={`inline-block h-2 w-2 rounded-full ${statusColor}`} aria-hidden="true" />
                     {statusText}
                   </span>
                 </div>
-                {!isOpenNow && merchant.nextOpeningAt && <p className="mt-1 text-sm text-gray-500">Next opening: {new Date(merchant.nextOpeningAt).toLocaleString()}</p>}
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-700">
+                {!isOpenNow && merchant.nextOpeningAt && <p className="mt-1 text-sm text-gray-500 dark:text-[#a1a1aa]">Next opening: {new Date(merchant.nextOpeningAt).toLocaleString()}</p>}
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-700 dark:text-[#d4d4d8]">
                   {Object.entries(merchant.operatingHours).map(([day, value]) => {
                     const periods = value as unknown as { open: string; close: string }[] | null | undefined;
                     const display = Array.isArray(periods)
@@ -194,7 +194,7 @@ export default async function MerchantPage({ params }: PageProps) {
                         : '—';
                     return (
                       <div key={day} className="flex justify-between">
-                        <span className="capitalize text-gray-600">{day}</span>
+                        <span className="capitalize text-gray-600 dark:text-[#a1a1aa]">{day}</span>
                         <span className="font-medium">{display}</span>
                       </div>
                     );
@@ -205,17 +205,17 @@ export default async function MerchantPage({ params }: PageProps) {
 
             {/* Media Gallery */}
             {merchant.menuImages && merchant.menuImages.length > 0 && (
-              <section className="bg-white rounded-lg shadow-sm p-5">
-                <h2 className="text-lg font-semibold text-gray-900">Menu & Photos</h2>
+              <section className="bg-white dark:bg-[#111111] rounded-lg shadow-sm p-5">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu & Photos</h2>
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {merchant.menuImages.map((m, idx) => {
                     const url = getImageUrl(m);
                     return (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-[#262626]">
                         {url ? (
                           <Image src={url} alt={m.alt || `Photo ${idx + 1}`} fill className="object-cover" />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-400">No image</div>
+                          <div className="absolute inset-0 flex items-center justify-center text-gray-400 dark:text-[#a1a1aa]">No image</div>
                         )}
                       </div>
                     );

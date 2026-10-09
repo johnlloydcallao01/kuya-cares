@@ -71,7 +71,7 @@ export default function ProductModifiers({ modifierGroups, selected, onChange }:
                 <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
                 <div className="flex gap-2 mt-1">
                   {group.is_required ? (
-                    <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-full">
                       Required
                     </span>
                   ) : (
@@ -101,7 +101,7 @@ export default function ProductModifiers({ modifierGroups, selected, onChange }:
                       !option.is_available
                         ? 'bg-gray-50 border-gray-100 cursor-not-allowed'
                         : isChecked
-                          ? 'border-[#eba236] bg-[#FFF9F0] cursor-pointer'
+                          ? 'border-[#eba236] bg-[#FFF9F0] dark:bg-[#221b10] cursor-pointer'
                           : 'border-gray-200 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30'
                     }`}
                   >

@@ -194,7 +194,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
   };
 
   return (
-    <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3 ${className}`}>
+    <div className={`bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3 ${className}`}>
       <h2 className="text-sm font-semibold text-gray-900">
         {currentStep === 'preview' ? 'Confirm Delivery Address' : 'Delivery Address'}
       </h2>
@@ -204,7 +204,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
           <AddressSearchInput
             placeholder="Search for an address"
             onAddressSelect={handleAddressSelect}
-            inputClassName="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
+            inputClassName="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-[#1c1c1c] text-gray-900 dark:text-white border-0 rounded-xl text-base placeholder-gray-500 dark:placeholder:text-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#239459] focus:bg-white dark:focus:bg-[#262626] transition-all"
             fullPage={false}
           />
 
@@ -229,8 +229,8 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                       key={address.id}
                       className={`p-3 rounded-lg border transition-all ${
                         activeAddressId === address.id 
-                          ? 'bg-purple-50 border-purple-200 ring-1 ring-purple-200' 
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                          ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 ring-1 ring-purple-200 dark:ring-purple-800'
+                            : 'bg-gray-50 dark:bg-[#1c1c1c] border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-[#52525b]'
                       }`}
                     >
                       <div className="flex flex-col space-y-2">
@@ -240,17 +240,17 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                           </p>
                           <div className="flex flex-wrap gap-2 mt-1">
                             {address.address_type && (
-                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-800 rounded">
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 rounded">
                                 {address.address_type}
                               </span>
                             )}
                             {address.is_default && (
-                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-green-100 text-green-800 rounded">
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-green-100 dark:bg-green-950/50 text-green-800 dark:text-green-200 rounded">
                                 Default
                               </span>
                             )}
                             {activeAddressId === address.id && (
-                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-800 rounded">
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-200 rounded">
                                 Active
                               </span>
                             )}
@@ -264,8 +264,8 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                             onClick={() => handleSetActiveAddress(address.id)}
                             disabled={settingActiveId === address.id || activeAddressId === address.id}
                             className={`px-2 py-1 text-[10px] font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${activeAddressId === address.id
-                                ? 'text-purple-600 bg-white border border-purple-100'
-                                : 'text-blue-600 bg-white border border-blue-100 hover:bg-blue-50'
+                                ? 'text-purple-600 dark:text-purple-300 bg-white dark:bg-[#262626] border border-purple-100 dark:border-purple-900'
+                                : 'text-blue-600 dark:text-blue-300 bg-white dark:bg-[#262626] border border-blue-100 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-[#333333]'
                               }`}
                           >
                             {settingActiveId === address.id ? 'Setting...' : activeAddressId === address.id ? 'Active' : 'Use'}
@@ -273,7 +273,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                           <button
                             onClick={() => handleDeleteAddress(address.id)}
                             disabled={deletingAddressId === address.id}
-                            className="px-2 py-1 text-[10px] font-medium text-red-600 bg-white border border-red-100 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-2 py-1 text-[10px] font-medium text-red-600 dark:text-red-300 bg-white dark:bg-[#262626] border border-red-100 dark:border-red-900 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingAddressId === address.id ? '...' : 'Delete'}
                           </button>
@@ -288,7 +288,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
         </>
       ) : (
         <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-xl">
+          <div className="bg-gray-50 dark:bg-[#1c1c1c] p-4 rounded-xl">
             <h4 className="font-medium text-gray-900 mb-1">
               {selectedAddress?.name || selectedAddress?.formatted_address}
             </h4>
@@ -300,14 +300,14 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
           <div className="flex gap-3">
             <button
               onClick={handleBackToSearch}
-              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#e4e4e7] rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-[#333333] transition-colors"
             >
               Back
             </button>
             <button
               onClick={handleSaveAddress}
               disabled={isSaving}
-              className="flex-1 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium hover:bg-[#1c7a4a] transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSaving ? (
                 <>

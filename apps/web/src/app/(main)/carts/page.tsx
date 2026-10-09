@@ -13,6 +13,10 @@ export default function CartPage() {
   const [activeMerchantId, setActiveMerchantId] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-PH', {
       style: 'currency',
@@ -91,8 +95,8 @@ export default function CartPage() {
 
   if (isLoading && items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4">
             <div className="flex items-center justify-between">
               <div className="h-6 w-32 bg-transparent" />
@@ -108,7 +112,7 @@ export default function CartPage() {
             {Array.from({ length: 2 }).map((_, index) => (
               <div
                 key={index}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626]"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -154,9 +158,9 @@ export default function CartPage() {
 
   if (!isLoading && items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
         {/* Header */}
-        <div className="bg-white shadow-sm">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-semibold text-gray-900">Your Carts</h1>
@@ -166,11 +170,11 @@ export default function CartPage() {
 
         {/* Empty Cart State */}
         <div className="flex flex-col items-center justify-center px-2.5 py-16">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+          <div className="w-24 h-24 bg-gray-100 dark:bg-[#1c1c1c] rounded-full flex items-center justify-center mb-6">
             <i className="fas fa-shopping-cart text-3xl text-gray-400"></i>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
-          <p className="text-gray-600 text-center mb-8 max-w-sm">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Your cart is empty</h2>
+          <p className="text-gray-600 dark:text-[#d4d4d8] text-center mb-8 max-w-sm">
             {error
               ? `We couldn't load your cart (${error}). Check your connection and try again.`
               : "Looks like you haven't added any items to your cart yet. Start browsing to find delicious food!"}
@@ -200,9 +204,9 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ backgroundColor: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-semibold text-gray-900">Your Carts</h1>
@@ -221,7 +225,7 @@ export default function CartPage() {
           {merchantGroups.map((group) => (
             <div
               key={group.merchantId}
-              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden min-w-0"
+              className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] overflow-hidden min-w-0"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -244,7 +248,7 @@ export default function CartPage() {
                     </h2>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                       <span>10-25 mins</span>
-                      <span className="flex items-center gap-1 text-pink-500 font-medium">
+                      <span className="flex items-center gap-1 text-[#239459] font-medium">
                         <i className="fas fa-motorcycle text-[11px]"></i>
                         <span>Free</span>
                       </span>
@@ -334,7 +338,7 @@ export default function CartPage() {
               onClick={() => setActiveMerchantId(null)}
               aria-label="Close cart options"
             />
-            <div className="w-full bg-white rounded-t-2xl pt-3 pb-4 px-4 space-y-1">
+            <div className="w-full bg-white dark:bg-[#111111] rounded-t-2xl pt-3 pb-4 px-4 space-y-1">
               <div className="flex justify-center mb-2">
                 <div className="w-10 h-1 rounded-full bg-gray-300" />
               </div>
@@ -362,7 +366,7 @@ export default function CartPage() {
                 type="button"
                 onClick={() => setActiveMerchantId(null)}
                 className="w-full mt-2 rounded-full py-2.5 text-sm font-semibold text-white"
-                style={{ backgroundColor: '#e81c63' }}
+                style={{ backgroundColor: '#239459' }}
               >
                 Close
               </button>

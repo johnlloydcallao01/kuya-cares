@@ -151,13 +151,13 @@ export function MobileFooter() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden h-[55px]">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#111111] border-t border-gray-200 dark:border-[#262626] z-50 md:hidden h-[55px]">
       {isProductPage && showProductCartBar && productQuantity > 0 ? (
         <div className="flex items-center justify-center h-full px-4">
           <button
             type="button"
             className="w-full flex items-center justify-between rounded-full px-4 py-2 text-white text-sm font-semibold shadow-md"
-            style={{ backgroundColor: '#f61b73' }}
+            style={{ backgroundColor: '#239459' }}
             onClick={() => {
               if (currentMerchantId) {
                 router.push(`/carts/${currentMerchantId}` as any);
@@ -348,8 +348,7 @@ export function MobileFooter() {
               {item.isHelp ? (
                 <div className="flex flex-col items-center justify-center -mt-2">
                   <div
-                    className="relative w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                    style={{ backgroundColor: '#fff', border: '1px solid #e5e7eb' }}
+                    className="relative w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#3f3f46] flex items-center justify-center shadow-lg"
                   >
                     {item.icon}
                     {totalQuantity > 0 && (

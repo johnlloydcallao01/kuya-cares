@@ -40,14 +40,14 @@ body {
   body {
     padding-bottom: 0; /* Remove body padding */
     padding-top: 0; /* Remove padding - header is fixed positioned */
-    background-color: #ffffff; /* Use white background for consistency */
+    background-color: var(--background);
   }
 
   /* Ensure main content fills viewport and accounts for mobile footer and header */
   main {
     min-height: calc(100vh - 56px); /* Full viewport height minus header */
     margin-top: 56px; /* Push content below fixed header (h-14 = 56px) */
-    background-color: #ffffff; /* Use white background for consistency */
+    background-color: var(--background);
     box-sizing: border-box;
   }
 
@@ -79,7 +79,7 @@ body {
   /* Ensure the main layout container also fills height */
   .min-h-screen {
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--background);
   }
 
 /* Mobile-only page content adjustments */
@@ -87,7 +87,7 @@ body {
   /* Ensure page content extends to fill available space and has consistent background */
   main > div {
     min-height: calc(100vh - 56px - 55px - env(safe-area-inset-bottom, 0px)); /* Account for header + footer */
-    background-color: #ffffff;
+    background-color: var(--background);
   }
 
   /* Nearby page: adjust content height when persistent header is hidden */
@@ -100,7 +100,7 @@ body {
 @media (min-width: 768px) and (max-width: 1023px) {
   main > div {
     min-height: calc(100vh - 56px); /* Account for header only, no footer on tablet */
-    background-color: #ffffff;
+    background-color: var(--background);
   }
 
   /* Nearby page: no persistent header on tablet, use full height */

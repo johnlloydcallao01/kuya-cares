@@ -73,8 +73,8 @@ export default function MerchantCartPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full flex items-center justify-center">
               <i className="fas fa-arrow-left text-gray-300 text-sm" />
@@ -93,7 +93,7 @@ export default function MerchantCartPage() {
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
-              className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100"
+              className="bg-white dark:bg-[#111111] rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-[#262626]"
             >
               <div className="flex gap-3">
                 <Skeleton className="w-20 h-20 rounded-lg" />
@@ -113,7 +113,7 @@ export default function MerchantCartPage() {
             </div>
           ))}
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mt-2 space-y-3">
+          <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] mt-2 space-y-3">
             <div className="flex items-center justify-between text-sm font-semibold">
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-4 w-24" />
@@ -127,8 +127,8 @@ export default function MerchantCartPage() {
 
   if (!isLoading && (!Number.isFinite(merchantId) || merchantItems.length === 0)) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="bg-white dark:bg-[#111111] shadow-sm">
           <div className="px-2.5 py-4 flex items-center gap-3">
             <button
               type="button"
@@ -149,8 +149,8 @@ export default function MerchantCartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+      <div className="bg-white dark:bg-[#111111] shadow-sm">
         <div className="px-2.5 py-4 flex items-center gap-3">
           <button
             type="button"
@@ -160,7 +160,7 @@ export default function MerchantCartPage() {
             <i className="fas fa-arrow-left text-gray-700 text-sm" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#1c1c1c] flex items-center justify-center overflow-hidden flex-shrink-0">
               {merchantLogoUrl ? (
                 <ImageWrapper
                   src={merchantLogoUrl}
@@ -187,7 +187,7 @@ export default function MerchantCartPage() {
         {merchantItems.map((item) => (
           <div
             key={item.id}
-            className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100"
+            className="bg-white dark:bg-[#111111] rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-[#262626]"
           >
             <div className="flex gap-3">
               <div className="flex-shrink-0">
@@ -200,7 +200,7 @@ export default function MerchantCartPage() {
                     className="rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                  <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-[#1c1c1c] flex items-center justify-center text-gray-400 text-xs">
                     No image
                   </div>
                 )}
@@ -276,12 +276,8 @@ export default function MerchantCartPage() {
                       onClick={() =>
                         handleQuantityChange(item.id, item.quantity + 1)
                       }
-                      className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50"
-                      style={{
-                        border: '1px solid #239459',
-                        color: '#239459',
-                        backgroundColor: 'white',
-                      }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#262626]"
+                      style={{ border: '1px solid #239459', color: '#239459' }}
                     >
                       <i className="fas fa-plus text-xs" />
                     </button>

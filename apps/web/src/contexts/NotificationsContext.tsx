@@ -14,6 +14,7 @@ import { useUser } from '@/hooks/useAuth';
 import {
   fetchNotifications,
   fetchUnreadCount,
+  fetchUnseenCount,
   markAllNotificationsAsSeen,
   markNotificationAsRead,
   markNotificationAsUnread,
@@ -77,24 +78,36 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const channelRef = useRef<any>(null);
+  const loadSequenceRef = useRef(0);
 
   const loadAll = useCallback(async () => {
+    const requestSequence = ++loadSequenceRef.current;
     if (!userId) {
       setNotifications([]);
       setUnreadCount(0);
       setUnseenCount(0);
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
-      const data = await fetchNotifications(userId, 50);
+      const [data, nextUnreadCount, nextUnseenCount] = await Promise.all([
+        fetchNotifications(userId, 50),
+        fetchUnreadCount(userId),
+        fetchUnseenCount(userId),
+      ]);
+      if (requestSequence !== loadSequenceRef.current) return;
       setNotifications(data.docs);
-      setUnreadCount(data.unreadCount);
-      setUnseenCount(data.unseenCount);
+      setUnreadCount(nextUnreadCount);
+      setUnseenCount(nextUnseenCount);
     } catch (err) {
-      console.error('Failed to load notifications:', err);
+      if (requestSequence === loadSequenceRef.current) {
+        console.error('Failed to load notifications:', err);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestSequence === loadSequenceRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [userId]);
 
@@ -153,12 +166,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           const item = buildRealtimeItem(payload?.payload?.notification);
           if (item) {
             setNotifications((prev) => [item, ...prev.filter((n) => n.id !== item.id)]);
-            if (!item.seen) {
-              setUnseenCount((prev) => prev + 1);
-            }
-            if (item.status !== 'read') {
-              setUnreadCount((prev) => prev + 1);
-            }
+            void loadAll();
           }
         })
         .on('broadcast', { event: 'notification_read' }, ({ payload }: any) => {
@@ -193,7 +201,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       channelRef.current = null;
       setIsRealtimeConnected(false);
     };
-  }, [userId]);
+  }, [userId, loadAll]);
 
   const markAsRead = useCallback(
     (id: string) => {

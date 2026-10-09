@@ -87,7 +87,17 @@ export async function fetchUnreadCount(userId: string | number): Promise<number>
     `${API_BASE}/user-notifications?where[user][equals]=${userId}&where[status][equals]=unread&depth=0&limit=1`,
     { headers: buildHeaders(), cache: 'no-store', credentials: 'omit' },
   );
-  if (!res.ok) return 0;
+  if (!res.ok) throw new Error(`Failed to load unread notification count (${res.status})`);
+  const data = await res.json();
+  return Number(data?.totalDocs) || 0;
+}
+
+export async function fetchUnseenCount(userId: string | number): Promise<number> {
+  const res = await fetch(
+    `${API_BASE}/user-notifications?where[user][equals]=${userId}&where[seenAt][exists]=false&depth=0&limit=1`,
+    { headers: buildHeaders(), cache: 'no-store', credentials: 'omit' },
+  );
+  if (!res.ok) throw new Error(`Failed to load unseen notification count (${res.status})`);
   const data = await res.json();
   return Number(data?.totalDocs) || 0;
 }

@@ -18,11 +18,10 @@ export default function ProductBackButton({ fallbackHref }: { fallbackHref?: str
   return (
     <button
       aria-label="Back"
-      className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center"
+      className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1c] shadow-sm flex items-center justify-center"
       onClick={handleBack}
     >
-      <i className="fas fa-arrow-left text-[14px]" style={{ color: '#333' }}></i>
+      <i className="fas fa-arrow-left text-[14px] text-[#333] dark:text-[#e4e4e7]"></i>
     </button>
   );
 }
-
