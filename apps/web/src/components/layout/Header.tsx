@@ -591,8 +591,7 @@ export function Header({
               {isAuthenticated && !pathname?.startsWith('/seller') && (
                 <button
                   onClick={() => router.push('/seller' as any)}
-                  className="flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold text-white"
-                  style={{ backgroundColor: '#239459' }}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 h-9 rounded-full text-xs font-semibold text-[#239459] border border-[#239459]/30 hover:bg-[#239459]/10 transition-colors"
                   aria-label="Go to seller dashboard"
                 >
                   <i className="fa fa-store"></i>
@@ -648,7 +647,6 @@ export function Header({
                 className="w-10 h-10 rounded-lg object-contain"
                 priority
               />
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">Kuya Cares</span>
             </div>
             {/* Location Selector - Added after logo */}
             <LocationSelector
@@ -850,8 +848,7 @@ export function Header({
             {isAuthenticated && !pathname?.startsWith('/seller') && (
               <button
                 onClick={() => router.push('/seller' as any)}
-                className="flex items-center gap-2 px-4 h-10 rounded-full text-sm font-semibold text-white transition-colors"
-                style={{ backgroundColor: '#239459' }}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 h-9 rounded-full text-xs font-semibold text-[#239459] border border-[#239459]/30 hover:bg-[#239459]/10 transition-colors"
                 aria-label="Go to seller dashboard"
               >
                 <i className="fa fa-store text-sm"></i>

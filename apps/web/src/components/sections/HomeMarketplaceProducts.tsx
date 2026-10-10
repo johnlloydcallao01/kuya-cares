@@ -2,16 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Image from '@/components/ui/ImageWrapper';
-import { useCart } from '@/contexts/CartContext';
-import { toast } from 'react-hot-toast';
+import { ProductCard } from '@/components/sections/MarketplaceProductCard';
 import {
   getMarketplaceProducts,
   getMarketplaceProductCategories,
   getCurrentCustomerId,
-  formatPHP,
   UNCATEGORIZED_PRODUCT_CATEGORY_ID,
   isUncategorizedId,
   type MarketplaceProduct,
@@ -29,6 +25,10 @@ interface HomeMarketplaceProductsProps {
 
 const PAGE_STEP_MOBILE = 8;
 const PAGE_STEP_DESKTOP = 12;
+
+// Discovery ceiling for the home grid (tap2go parity): at most 40
+// location-eligible products shown here; the rest live on /merchant-products.
+const RECOMMENDED_CAP = 40;
 
 function getStep(): number {
   if (typeof window !== 'undefined' && window.innerWidth >= 1120) return PAGE_STEP_DESKTOP;
@@ -112,136 +112,6 @@ function ProductCardSkeleton() {
   );
 }
 
-function ProductCard({ product, hideDistance = false }: { product: MarketplaceProduct; hideDistance?: boolean }) {
-  const { addToCart } = useCart();
-  const router = useRouter();
-  const [adding, setAdding] = useState(false);
-  const LinkComponent = Link as unknown as React.ElementType;
-
-  const priceLabel = formatPHP(product.price);
-  const compareLabel =
-    product.compareAtPrice != null && product.compareAtPrice > (product.price ?? 0)
-      ? formatPHP(product.compareAtPrice)
-      : null;
-
-  const handleQuickAdd = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Variable/grouped items must be configured on the detail page
-      // (mobile parity) — POSTing without a variation 400/500s. Route to
-      // the PDP instead of silently swallowing the tap.
-      if (product.productType !== 'simple') {
-        router.push(product.href as any);
-        return;
-      }
-      const merchantId = Number(product.merchantId);
-      const productId = Number(product.id);
-      const merchantProductId = Number(product.merchantProductId);
-      if (!merchantId || !productId || !merchantProductId || Number.isNaN(merchantId) || Number.isNaN(productId) || Number.isNaN(merchantProductId)) {
-        return;
-      }
-      try {
-        setAdding(true);
-        await addToCart({
-          merchantId,
-          productId,
-          merchantProductId,
-          quantity: 1,
-          priceAtAdd: product.price ?? 0,
-          compareAtPrice: product.compareAtPrice ?? null,
-        });
-      } catch {
-        toast.error('Failed to add to cart. Please sign in and try again.');
-      } finally {
-        setAdding(false);
-      }
-    },
-    [addToCart, product, router],
-  );
-
-  return (
-    <LinkComponent href={product.href} className="bg-white rounded-lg shadow-sm overflow-hidden block hover:shadow-md transition-shadow group">
-      <div className="relative aspect-square bg-gray-100">
-        {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, (max-width: 1536px) 20vw, 240px"
-            className="object-cover group-hover:scale-[1.02] transition-transform duration-200"
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 gap-1">
-            <i className="fas fa-image text-2xl" />
-            <span className="text-[11px]">No image</span>
-          </div>
-        )}
-        {product.discountPercent != null && product.discountPercent > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-[11px] font-bold px-1.5 py-0.5 rounded">
-            -{product.discountPercent}%
-          </div>
-        )}
-        {product.productType === 'simple' ? (
-          <button
-            type="button"
-            aria-label={`Add ${product.name} to cart`}
-            onClick={handleQuickAdd}
-            disabled={adding}
-            className="absolute bottom-2 right-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-60"
-          >
-            {adding ? (
-              <i className="fas fa-spinner fa-spin text-[12px]" style={{ color: '#333' }} />
-            ) : (
-              <i className="fas fa-plus text-[12px]" style={{ color: '#333' }} />
-            )}
-          </button>
-        ) : null}
-      </div>
-      <div className="p-3">
-        <h3 className="text-[13px] leading-[1.35] font-normal text-gray-900 line-clamp-2 min-h-[35px]">{product.name}</h3>
-        <div className="mt-1.5 flex items-baseline gap-1.5 flex-wrap">
-          {product.productType === 'simple' ? (
-            priceLabel ? (
-              <span className="text-[15px] font-bold text-[#ee4d2d]">{priceLabel}</span>
-            ) : (
-              <span className="text-[13px] text-gray-500">Price varies</span>
-            )
-          ) : product.productType === 'variable' ? (
-            <span className="text-[13px] font-medium text-[#239459]">Show Variations</span>
-          ) : product.productType === 'grouped' ? (
-            <span className="text-[13px] font-medium text-[#239459]">Show Grouped Items</span>
-          ) : (
-            priceLabel ? (
-              <span className="text-[15px] font-bold text-[#ee4d2d]">{priceLabel}</span>
-            ) : (
-              <span className="text-[13px] text-gray-500">Price varies</span>
-            )
-          )}
-          {priceLabel && compareLabel && <span className="text-[11px] text-gray-400 line-through">{compareLabel}</span>}
-        </div>
-        <div className="mt-1.5 flex items-center justify-between gap-2 min-w-0">
-          <p className="text-[11px] text-gray-500 truncate">
-            <i className="fas fa-store mr-1 text-gray-400" />
-            {product.merchantName}
-            {!hideDistance && typeof product.distanceKm === 'number' && (
-              <span className="ml-1 text-gray-400">
-                • {product.distanceKm <= 0 ? '0km' : product.distanceKm < 1 ? `${Math.round(product.distanceKm * 1000)}m` : `${product.distanceKm.toFixed(1)}km`}
-              </span>
-            )}
-          </p>
-          {typeof product.rating === 'number' && (
-            <span className="flex items-center gap-0.5 text-[11px] text-gray-500 shrink-0">
-              <span className="text-amber-400">★</span>
-              {product.rating.toFixed(1)}
-            </span>
-          )}
-        </div>
-      </div>
-    </LinkComponent>
-  );
-}
-
 /**
  * Marketplace products showcase for the home page — Shopee/Lazada/Amazon style.
  * Additive only: does not touch the existing Merchants / Merchant Categories sections.
@@ -257,7 +127,8 @@ function ProductCard({ product, hideDistance = false }: { product: MarketplacePr
  * products exist. Pill switching filters client-side from a single pool,
  * so "All" always contains every product including uncategorized ones.
  */
-export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp }: HomeMarketplaceProductsProps) {
+export function HomeMarketplaceProducts({ limit = 40, customerId: customerIdProp }: HomeMarketplaceProductsProps) {
+  const router = useRouter();
   const [categories, setCategories] = useState<MarketplaceProductCategory[]>([]);
   const [allProducts, setAllProducts] = useState<MarketplaceProduct[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
@@ -268,8 +139,10 @@ export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp
   const [filtersOpen, setFiltersOpen] = useState(false);
   const flashRailRef = useRef<HTMLDivElement>(null);
 
-  // Pool sized so per-category client-side filtering stays meaningful.
-  const poolLimit = Math.max(limit, 150);
+  // Tap2go parity: 40-item discovery ceiling among location-eligible
+  // products. Service interleaves round-robin by merchant then slices 40
+  // AFTER the location gate — cap here only sizes the request.
+  const poolLimit = Math.min(Math.max(limit, 1), 40);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -302,6 +175,9 @@ export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp
         merchantCategoryId: null,
         customerId: cid,
         ignoreLocation: scopeAll,
+        // Full eligible window (up to 500): the home grid displays the
+        // first RECOMMENDED_CAP (40); the remainder lives on /merchant-products.
+        cap: 500,
       });
       setAllProducts(items);
       // Drop a stale active pill when the new pool no longer contains it.
@@ -392,7 +268,7 @@ export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp
           ]
         : []),
     ],
-    [categories, poolCategoryIds],
+    [categories, poolCategoryIds, poolHasOrphans],
   );
 
   // Category-level narrowing (pills + Uncategorized), before advanced filters.
@@ -472,8 +348,22 @@ export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp
     [allProducts],
   );
 
-  const visibleProducts = useMemo(() => filteredProducts.slice(0, visibleCount), [filteredProducts, visibleCount]);
-  const hasMore = visibleCount < filteredProducts.length;
+  const visibleProducts = useMemo(() => filteredProducts.slice(0, Math.min(visibleCount, RECOMMENDED_CAP)), [filteredProducts, visibleCount]);
+  const cappedTotal = Math.min(filteredProducts.length, RECOMMENDED_CAP);
+  const hasMore = visibleCount < cappedTotal;
+  // Total eligible exceeds the home ceiling → offer the full listing page.
+  const hasBeyondCap = filteredProducts.length > RECOMMENDED_CAP;
+  const atCap = !hasMore && hasBeyondCap;
+  const showAllHref =
+    activeCategoryId != null
+      ? `/merchant-products?category=${encodeURIComponent(activeCategoryId)}`
+      : '/merchant-products';
+
+  // Prefetch the full listing route once the cap is reached (§docs/performance.md
+  // §4b.3: first paint of /merchant-products carries real rows).
+  useEffect(() => {
+    if (atCap) router.prefetch(showAllHref as any);
+  }, [atCap, showAllHref, router]);
 
   const scrollFlash = useCallback((dir: 1 | -1) => {
     const el = flashRailRef.current;
@@ -730,16 +620,37 @@ export function HomeMarketplaceProducts({ limit = 48, customerId: customerIdProp
                   <ProductCard key={String(p.merchantProductId)} product={p} hideDistance={showAll} />
                 ))}
               </div>
-              <div className="flex justify-center mt-5">
+              <div className="flex flex-col items-center gap-2 mt-5">
                 {hasMore ? (
                   <button
                     type="button"
-                    onClick={() => setVisibleCount((c) => c + getStep())}
+                    onClick={() => setVisibleCount((c) => Math.min(c + getStep(), RECOMMENDED_CAP))}
                     className="px-8 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Show More
                   </button>
-                ) : filteredProducts.length > PAGE_STEP_MOBILE ? (
+                ) : atCap ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => router.push(showAllHref as any)}
+                      className="px-8 py-2.5 rounded-lg text-white text-sm font-medium transition-colors"
+                      style={{ backgroundColor: '#239459' }}
+                    >
+                      Show All ({filteredProducts.length} products)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVisibleCount(getStep());
+                        document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="px-8 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      Show Less
+                    </button>
+                  </>
+                ) : cappedTotal > PAGE_STEP_MOBILE ? (
                   <button
                     type="button"
                     onClick={() => {

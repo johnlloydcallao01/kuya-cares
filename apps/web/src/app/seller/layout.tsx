@@ -52,7 +52,7 @@ export default function SellerLayout({
               mobileOpen={mobileSidebarOpen}
               onCloseMobile={closeMobileSidebar}
             />
-            <main className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-60' : 'lg:ml-20'} bg-gray-50 dark:bg-[#0a0a0a]`}>
+            <main data-seller-layout="true" className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-60' : 'lg:ml-20'} bg-gray-50 dark:bg-[#0a0a0a]`}>
               {children}
             </main>
           </div>

@@ -213,7 +213,7 @@ function HomeContent() {
       {/* Marketplace Products Section (independent — never narrowed by the merchant-category filter) */}
       <div id="products-section">
         <HomeMarketplaceProducts
-          limit={48}
+          limit={40}
           customerId={customerId}
         />
       </div>

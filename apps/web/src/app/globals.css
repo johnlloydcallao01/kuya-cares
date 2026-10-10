@@ -64,6 +64,13 @@ body {
     min-height: 100vh !important;
   }
 
+  /* Seller layout (mirrors apps/web-merchant AdminDashboard):
+     seller header is sticky in-flow, so no fixed-header offset needed */
+  main[data-seller-layout="true"] {
+    margin-top: 0 !important;
+    min-height: auto !important;
+  }
+
   /* Remove any default margins on first child to eliminate gaps */
   main > div > *:first-child {
     margin-top: 0 !important;
@@ -74,6 +81,11 @@ body {
 @media (max-width: 767px) {
   main {
     padding-bottom: calc(55px + env(safe-area-inset-bottom, 0px)); /* Footer height + safe area */
+  }
+
+  /* Seller layout has no MobileFooter (mirrors apps/web-merchant) */
+  main[data-seller-layout="true"] {
+    padding-bottom: 0 !important;
   }
 
   /* Ensure the main layout container also fills height */
@@ -94,6 +106,11 @@ body {
   main[data-hide-header-on-mobile="true"] > div {
     min-height: calc(100vh - 55px - env(safe-area-inset-bottom, 0px)) !important; /* Only footer on mobile */
   }
+
+  /* Seller layout (mirrors apps/web-merchant): no fixed-header/footer offset */
+  main[data-seller-layout="true"] > div {
+    min-height: auto !important;
+  }
 }
 
 /* Tablet-only page content adjustments */
@@ -106,6 +123,11 @@ body {
   /* Nearby page: no persistent header on tablet, use full height */
   main[data-hide-header-on-mobile="true"] > div {
     min-height: 100vh !important;
+  }
+
+  /* Seller layout (mirrors apps/web-merchant): no fixed-header offset */
+  main[data-seller-layout="true"] > div {
+    min-height: auto !important;
   }
 }
 

@@ -95,7 +95,6 @@ export function Header({
                 className="w-10 h-10 rounded-lg object-contain"
                 priority
               />
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">Kuya Cares</span>
             </div>
           </div>
 

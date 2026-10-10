@@ -227,10 +227,10 @@ function WalletsContent() {
   // Static derivations memoized (§4b: rebuilt per render otherwise).
   const statCards = useMemo(
     () => [
-      { label: 'Topped up', value: formatPHP(stats.toppedUp), icon: 'fa-arrow-down', bg: 'bg-green-50', fg: 'text-green-700' },
-      { label: 'Spent', value: formatPHP(stats.spent), icon: 'fa-receipt', bg: 'bg-blue-50', fg: 'text-blue-700' },
-      { label: 'Cashback', value: formatPHP(stats.cashback), icon: 'fa-coins', bg: 'bg-amber-50', fg: 'text-amber-700' },
-      { label: 'Refunded', value: formatPHP(stats.refunded), icon: 'fa-undo', bg: 'bg-emerald-50', fg: 'text-emerald-700' },
+      { label: 'Topped up', value: formatPHP(stats.toppedUp), icon: 'fa-arrow-down', bg: 'bg-green-50 dark:bg-green-950/40', fg: 'text-green-700 dark:text-green-300' },
+      { label: 'Spent', value: formatPHP(stats.spent), icon: 'fa-receipt', bg: 'bg-blue-50 dark:bg-blue-950/40', fg: 'text-blue-700 dark:text-blue-300' },
+      { label: 'Cashback', value: formatPHP(stats.cashback), icon: 'fa-coins', bg: 'bg-amber-50 dark:bg-amber-950/40', fg: 'text-amber-700 dark:text-amber-300' },
+      { label: 'Refunded', value: formatPHP(stats.refunded), icon: 'fa-undo', bg: 'bg-emerald-50 dark:bg-emerald-950/40', fg: 'text-emerald-700 dark:text-emerald-300' },
     ],
     [stats],
   );
@@ -241,13 +241,13 @@ function WalletsContent() {
   if (error && !wallet && !error.includes('WALLET_NO_CUSTOMER')) {
     const noSession = error.includes('WALLET_NO_SESSION');
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center">
             <i className={`fas ${noSession ? 'fa-user-lock' : 'fa-exclamation-triangle'} text-red-500 text-xl`} />
           </div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">Couldn&apos;t load wallet</h2>
-          <p className="text-sm text-gray-500 mb-5">
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">Couldn&apos;t load wallet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
             {noSession ? 'Please sign in to view your wallet.' : error}
           </p>
           {noSession ? (
@@ -278,19 +278,19 @@ function WalletsContent() {
   const hasMore = page < totalPages;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white dark:bg-[#111111] shadow-sm">
         <div className="w-full px-3 sm:px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">My Wallet</h1>
-              <p className="text-gray-500 mt-0.5 text-sm">Top up, pay, earn cashback & track every peso</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">My Wallet</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">Top up, pay, earn cashback & track every peso</p>
             </div>
             <button
               onClick={() => loadPage(1, { reset: true })}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border border-gray-200 dark:border-[#383838] text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#202020] active:scale-[0.98] transition-all disabled:opacity-60"
             >
               <i className={`fas fa-sync-alt ${refreshing ? 'fa-spin' : ''}`} style={{ color: BRAND }} />
               {refreshing ? 'Refreshing' : 'Refresh'}
@@ -367,7 +367,7 @@ function WalletsContent() {
                 <i className={`fas ${s.icon} ${s.fg}`} />
                 <div className="min-w-0">
                   <p className={`text-sm font-extrabold truncate ${s.fg}`}>{s.value}</p>
-                  <p className="text-[11px] text-gray-500 font-medium">{s.label}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -375,7 +375,7 @@ function WalletsContent() {
         </div>
 
         {/* Type tabs */}
-        <div className="border-t border-gray-100">
+        <div className="border-t border-gray-100 dark:border-[#292929]">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide px-3 py-2.5">
             {TYPE_TABS.map((t) => {
               const active = typeFilter === t.id;
@@ -386,13 +386,13 @@ function WalletsContent() {
                   className={`flex-shrink-0 px-3.5 py-2 rounded-xl font-bold text-[13px] transition-all border ${
                     active
                       ? 'text-white shadow-md border-transparent'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      : 'bg-white dark:bg-[#171717] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-[#383838] hover:border-gray-300 dark:hover:border-[#505050] hover:bg-gray-50 dark:hover:bg-[#242424]'
                   }`}
                   style={active ? { backgroundColor: BRAND } : {}}
                 >
                   {t.label}
                   {t.id === 'all' && (
-                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                    <span className={`ml-1.5 text-[11px] font-extrabold ${active ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
                       {stats.totalDocs}
                     </span>
                   )}
@@ -405,7 +405,7 @@ function WalletsContent() {
 
       <div className="w-full px-3 sm:px-4 py-4">
         {/* Search */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3.5 mb-4">
+        <div className="bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-3.5 mb-4">
           <div className="relative">
             <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input
@@ -413,12 +413,12 @@ function WalletsContent() {
               placeholder="Search by type, order #, gateway, amount…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-transparent rounded-xl focus:ring-2 focus:bg-white focus:border-transparent transition-all text-sm outline-none"
+              className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-[#202020] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-transparent rounded-xl focus:ring-2 focus:bg-white dark:focus:bg-[#262626] focus:border-transparent transition-all text-sm outline-none"
             />
             {searchInput && (
               <button
                 onClick={() => setSearchInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                 aria-label="Clear search"
               >
                 <i className="fas fa-times-circle" />
@@ -430,25 +430,25 @@ function WalletsContent() {
         {/* History */}
         {visible.length > 0 ? (
           <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] overflow-hidden">
               {visible.map((tx, i) => {
                 const meta = getEntryMeta(tx.type);
                 return (
                   <div
                     key={tx.id}
-                    className={`flex items-center gap-3 p-4 ${i > 0 ? 'border-t border-gray-100' : ''} hover:bg-gray-50/60 transition-colors`}
+                    className={`flex items-center gap-3 p-4 ${i > 0 ? 'border-t border-gray-100 dark:border-[#292929]' : ''} hover:bg-gray-50 dark:hover:bg-[#242424] transition-colors`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                      <i className={`${meta.icon} text-gray-500 text-sm`} />
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#1c1c1c] border border-gray-100 dark:border-[#292929] flex items-center justify-center flex-shrink-0">
+                      <i className={`${meta.icon} text-gray-500 dark:text-gray-400 text-sm`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-bold text-gray-900">{meta.label}</p>
+                        <p className="text-[13px] font-bold text-gray-900 dark:text-white">{meta.label}</p>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${meta.pill}`}>
                           {tx.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                         {tx.createdAt}
                         {tx.orderId ? ` • Order #${String(tx.orderId).padStart(5, '0')}` : ''}
                         {tx.gateway ? ` • ${tx.gateway}` : ''}
@@ -456,7 +456,7 @@ function WalletsContent() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`text-sm font-extrabold ${meta.amountClass}`}>{formatSignedPHP(tx.amount)}</p>
-                      <p className="text-[10px] text-gray-400">Bal {formatPHP(tx.balanceAfter)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">Bal {formatPHP(tx.balanceAfter)}</p>
                     </div>
                   </div>
                 );
@@ -467,7 +467,7 @@ function WalletsContent() {
                 <button
                   onClick={() => loadPage(page + 1)}
                   disabled={loadingMore}
-                  className="px-8 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 shadow-sm disabled:opacity-60"
+                  className="px-8 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#383838] text-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-[#242424] shadow-sm disabled:opacity-60"
                 >
                   {loadingMore ? <i className="fas fa-spinner fa-spin mr-2" /> : <i className="fas fa-chevron-down mr-2" />}
                   Show more
@@ -477,14 +477,14 @@ function WalletsContent() {
           </>
         ) : (
           <div className="text-center py-10">
-            <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 rounded-full flex items-center justify-center">
-                <i className="fas fa-wallet text-2xl text-gray-300" />
+            <div className="max-w-md mx-auto bg-white dark:bg-[#151515] rounded-2xl border border-gray-100 dark:border-[#292929] shadow-sm p-8">
+              <div className="w-20 h-20 mx-auto mb-5 bg-gray-50 dark:bg-[#202020] rounded-full flex items-center justify-center">
+                <i className="fas fa-wallet text-2xl text-gray-300 dark:text-gray-500" />
               </div>
-              <h3 className="text-lg font-extrabold text-gray-900 mb-2">
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-2">
                 {isFiltered ? 'No matching transactions' : 'No transactions yet'}
               </h3>
-              <p className="text-gray-500 mb-6 text-sm">
+              <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
                 {isFiltered
                   ? 'Try a different keyword or type.'
                   : 'Top up your wallet to pay faster and earn cashback.'}
@@ -515,20 +515,20 @@ function WalletsContent() {
         )}
 
         {/* How it works — Foodpanda/Shopee style explainer */}
-        <div className="mt-5 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <h3 className="text-sm font-extrabold text-gray-900 mb-3">How KuyaCares Wallet works</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px] text-gray-600">
+        <div className="mt-5 bg-white dark:bg-[#151515] rounded-2xl shadow-sm border border-gray-100 dark:border-[#292929] p-4">
+          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">How KuyaCares Wallet works</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px] text-gray-600 dark:text-gray-300">
             <div className="flex gap-2.5">
               <i className="fas fa-plus-circle mt-0.5" style={{ color: BRAND }} />
-              <p><span className="font-bold text-gray-800">Top up</span> via card, GCash, GrabPay, Maya or QR Ph. Balance credits after payment confirmation.</p>
+              <p><span className="font-bold text-gray-800 dark:text-gray-100">Top up</span> via card, GCash, GrabPay, Maya or QR Ph. Balance credits after payment confirmation.</p>
             </div>
             <div className="flex gap-2.5">
               <i className="fas fa-bolt mt-0.5" style={{ color: BRAND }} />
-              <p><span className="font-bold text-gray-800">Pay instantly</span> at checkout with your balance — no redirects, plus cashback on eligible orders.</p>
+              <p><span className="font-bold text-gray-800 dark:text-gray-100">Pay instantly</span> at checkout with your balance — no redirects, plus cashback on eligible orders.</p>
             </div>
             <div className="flex gap-2.5">
               <i className="fas fa-undo mt-0.5" style={{ color: BRAND }} />
-              <p><span className="font-bold text-gray-800">Refunds & withdrawals</span> land back in your wallet; withdraw to GCash, Maya or bank anytime.</p>
+              <p><span className="font-bold text-gray-800 dark:text-gray-100">Refunds & withdrawals</span> land back in your wallet; withdraw to GCash, Maya or bank anytime.</p>
             </div>
           </div>
         </div>

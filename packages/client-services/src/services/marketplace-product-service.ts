@@ -90,6 +90,34 @@ export function isUncategorizedId(value: number | string | null | undefined): bo
   return value != null && String(value).toLowerCase() === UNCATEGORIZED_PRODUCT_CATEGORY_ID;
 }
 
+function interleaveByMerchant<T>(items: T[], merchantIdOf: (item: T) => string): T[] {
+  const groups = new Map<string, T[]>();
+  const order: string[] = [];
+  for (const item of items) {
+    const key = merchantIdOf(item);
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+    }
+    groups.get(key)!.push(item);
+  }
+  const out: T[] = [];
+  let round = 0;
+  let placed = true;
+  while (placed) {
+    placed = false;
+    for (const key of order) {
+      const group = groups.get(key)!;
+      if (round < group.length) {
+        out.push(group[round]);
+        placed = true;
+      }
+    }
+    round++;
+  }
+  return out;
+}
+
 export function toSlug(name: string | null | undefined): string {
   const base = String(name || '')
     .trim()
@@ -100,14 +128,23 @@ export function toSlug(name: string | null | undefined): string {
   return base || 'item';
 }
 
-export function formatPHP(value: number | null | undefined): string | null {
-  if (value == null || Number.isNaN(Number(value))) return null;
-  try {
-    return new Intl.NumberFormat('en-PH', {
+let phpFormatter: Intl.NumberFormat | null = null;
+
+function getPhpFormatter(): Intl.NumberFormat {
+  if (!phpFormatter) {
+    phpFormatter = new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
       minimumFractionDigits: 2,
-    }).format(Number(value));
+    });
+  }
+  return phpFormatter;
+}
+
+export function formatPHP(value: number | null | undefined): string | null {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  try {
+    return getPhpFormatter().format(Number(value));
   } catch {
     return `₱${Number(value).toFixed(2)}`;
   }
@@ -185,9 +222,13 @@ export class MarketplaceProductService {
     customerId?: string | null;
     /** Show-All scope: bypass the location gate entirely (global pool). */
     ignoreLocation?: boolean;
+    /** Discovery ceiling applied AFTER the location gate + validity filters.
+     *  Tap2go parity default is 40. Pass null for the full window (up to 500)
+     *  — used by the /merchant-products listing page. */
+    cap?: number | null;
   } = {}): Promise<MarketplaceProduct[]> {
-    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false } = options;
-    const cacheKey = `marketplace-products-${limit}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}`;
+    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false, cap = 40 } = options;
+    const cacheKey = `marketplace-products-${limit}-cap${cap ?? 'all'}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
     // Singleflight: homepage products + flash-deals + header search share one pool build.
@@ -227,7 +268,9 @@ export class MarketplaceProductService {
       }
       // Over-fetch then filter client-side so category filtering is exact
       // even though Payload can't join-filter across relationships.
-      const fetchLimit = Math.min(500, Math.max(limit * 4, 100));
+      // Tap2go parity: fixed 500 fetch window scoped to location-eligible
+      // merchants, then interleave + 40 discovery ceiling (cap AFTER filter).
+      const fetchLimit = 500;
       const params = new URLSearchParams({
         limit: String(fetchLimit),
         depth: '2',
@@ -373,7 +416,14 @@ export class MarketplaceProductService {
 
       }
 
-      const finalOut = out.slice(0, limit);
+      // Mix owners round-robin by merchant (kills first-merchant bias).
+      // Deterministic: merchant first-seen order decides rotation,
+      // in-merchant order kept. Capped at the discovery ceiling (default 40,
+      // same as tap2go mobile-customer Recommended For You). Cap is applied
+      // AFTER the location gate + validity filters, never before. Pass
+      // cap:null for the full window (up to 500) — /merchant-products page.
+      const interleaved = interleaveByMerchant(out, (p) => String(p.merchantId));
+      const finalOut = cap == null ? interleaved : interleaved.slice(0, Math.max(0, cap));
       dataCache.set(cacheKey, finalOut, CACHE_TTL.MERCHANTS);
       return finalOut;
     } catch (err) {
@@ -385,7 +435,7 @@ export class MarketplaceProductService {
 
   /** Top discounted products for a Shopee-style "Flash Deals" rail. */
   static async getFlashDeals(limit = 10, customerId?: string | null, ignoreLocation = false): Promise<MarketplaceProduct[]> {
-    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200, customerId: customerId ?? null, ignoreLocation });
+    const all = await MarketplaceProductService.getMarketplaceProducts({ limit: 200, cap: 200, customerId: customerId ?? null, ignoreLocation });
     return all
       .filter((p) => (p.discountPercent ?? 0) > 0 && p.price != null)
       .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
