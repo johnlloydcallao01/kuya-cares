@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { checkRateLimit, clientIp, verifyPaymongoMembershipSignature, isDuplicateEvent, audit, loadOptionalBillingService } from '@/utils/membershipApi'
+import { handleMemberMembershipPaymentEvent } from '@/services/MemberMembershipService'
 
 async function findMembershipInvoice(payload: any, paymentRef: string): Promise<any | null> {
   const ref = String(paymentRef ?? '')
@@ -88,13 +89,6 @@ export async function POST(request: NextRequest) {
     if (limited) return limited
 
     const rawBody = await request.text()
-    let body: any
-    try {
-      body = JSON.parse(rawBody)
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-    }
-
     // Live and test secrets are independent: accept a live-signed event under a
     // live secret (li slot) or a test-signed event under a sandbox secret (te
     // slot). Fail-closed when neither verifies.
@@ -107,6 +101,13 @@ export async function POST(request: NextRequest) {
       (testSecret && verifyPaymongoMembershipSignature(rawBody, signature, testSecret, 'te'))
     if (!verified) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
 
     const payload = await getPayload({ config: configPromise })
@@ -124,10 +125,12 @@ export async function POST(request: NextRequest) {
     const resource = attrs?.data
     const resourceAttrs = resource?.attributes ?? {}
     const paymentRef: string = String(
-      resourceAttrs?.metadata?.pm_reference_number ??
+      resourceAttrs?.payment_intent_id ??
+        resourceAttrs?.payment_intent?.id ??
+        resourceAttrs?.metadata?.pm_reference_number ??
+        resourceAttrs?.metadata?.reference ??
         resourceAttrs?.external_reference_number ??
         resourceAttrs?.reference_number ??
-        resourceAttrs?.payment_intent_id ??
         resource?.id ??
         '',
     )
@@ -140,7 +143,32 @@ export async function POST(request: NextRequest) {
 
     // Prefer BillingService when present. link.payment.paid is the Links success
     // event (there is no link.payment.failed — failures arrive as payment.failed).
-    const isPaidEvent = type === 'payment.paid' || type === 'link.payment.paid'
+    const isPaidEvent =
+      type === 'payment.paid' ||
+      type === 'payment_intent.succeeded' ||
+      type === 'link.payment.paid'
+    if (isPaidEvent || type === 'payment.failed') {
+      const handled = await handleMemberMembershipPaymentEvent(payload, {
+        paymentReference: paymentRef,
+        eventId,
+        paid: isPaidEvent,
+        ...(isPaidEvent
+          ? {
+              amountCentavos: Number(resourceAttrs?.amount),
+              currency: String(resourceAttrs?.currency || ''),
+            }
+          : {}),
+      })
+      if (handled) {
+        await audit(payload, {
+          action: isPaidEvent ? 'webhook_paid' : 'webhook_failed',
+          eventId,
+          reason: `member membership payment ${isPaidEvent ? 'paid' : 'failed'} ref=${paymentRef}`,
+          metadata: { paymentReference: paymentRef },
+        })
+        return NextResponse.json({ status: 'received' }, { status: 200 })
+      }
+    }
     try {
       const svc = await loadOptionalBillingService()
       if (isPaidEvent && typeof svc?.handlePaid === 'function') {

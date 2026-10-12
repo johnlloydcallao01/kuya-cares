@@ -54,6 +54,10 @@ export function sanitizeUser(value: unknown): User | null {
     username: optionalString(source.username),
     role: role as User['role'],
     isActive: typeof source.isActive === 'boolean' ? source.isActive : null,
+    memberMembershipStatus:
+      source.memberMembershipStatus === 'active' || source.memberMembershipStatus === 'pending_payment'
+        ? source.memberMembershipStatus
+        : null,
     nationality: optionalString(source.nationality),
     birthDate: optionalString(source.birthDate),
     placeOfBirth: optionalString(source.placeOfBirth),

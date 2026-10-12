@@ -1,6 +1,7 @@
 import type { Access, AccessArgs, CollectionConfig } from 'payload'
 import { APIError } from 'payload'
 import { adminOnly } from '../access'
+import { hasActiveMemberMembership } from '../access/roles'
 
 /**
  * Private members-only marketplace invites (invite / private-circle primitive).
@@ -41,9 +42,10 @@ export const MemberInvites: CollectionConfig = {
       'Private-circle invite codes. Admin supervises; members buy+sell with one account.',
   },
   access: {
-    read: (({ req: { user } }: AccessArgs) => {
+    read: (async ({ req: { user, payload } }: AccessArgs) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
+      if (user.role === 'member' && !(await hasActiveMemberMembership(payload, user.id))) return false
       return {
         or: [
           { invitedBy: { equals: user.id } },
@@ -51,16 +53,19 @@ export const MemberInvites: CollectionConfig = {
         ] as Record<string, unknown>[],
       }
     }) as Access,
-    create: ({ req: { user } }) => {
+    create: async ({ req: { user, payload } }) => {
       if (!user) return false
       // Admins/service manage the circle; members may invite friends.
-      return isStaffRole(user.role) || user.role === 'member'
+      return isStaffRole(user.role) ||
+        (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id)))
     },
-    update: ({ req: { user } }) => {
+    update: async ({ req: { user, payload } }) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
       // Members may only touch invites they issued (status guard in hooks).
-      if (user.role === 'member') return { invitedBy: { equals: user.id } }
+      if (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id))) {
+        return { invitedBy: { equals: user.id } }
+      }
       return false
     },
     delete: adminOnly,

@@ -81,6 +81,7 @@ import * as migration_20261001_063000_membership_disabled_setting from './202610
 import * as migration_20261001_115008 from './20261001_115008';
 import * as migration_20261007_011029 from './20261007_011029';
 import * as migration_20261007_120000_add_member_role_to_users from './20261007_120000_add_member_role_to_users';
+import * as migration_20261011_100000_member_lifetime_membership from './20261011_100000_member_lifetime_membership';
 
 export const migrations = [
   {
@@ -497,5 +498,10 @@ export const migrations = [
     up: migration_20261007_120000_add_member_role_to_users.up,
     down: migration_20261007_120000_add_member_role_to_users.down,
     name: '20261007_120000_add_member_role_to_users'
+  },
+  {
+    up: migration_20261011_100000_member_lifetime_membership.up,
+    down: migration_20261011_100000_member_lifetime_membership.down,
+    name: '20261011_100000_member_lifetime_membership'
   },
 ];

@@ -100,6 +100,7 @@ import { MembershipAuditLog } from './collections/MembershipAuditLog'
 import { MemberInvites } from './collections/MemberInvites'
 import { MemberListings } from './collections/MemberListings'
 import { MemberOrders } from './collections/MemberOrders'
+import { MemberMembershipPayments } from './collections/MemberMembershipPayments'
 
 // Product Management Collections
 import { ProdAttributes } from './collections/ProdAttributes'
@@ -230,6 +231,7 @@ export default buildConfig({
     MemberInvites,
     MemberListings,
     MemberOrders,
+    MemberMembershipPayments,
   ],
   globals: [
     SystemSettings,

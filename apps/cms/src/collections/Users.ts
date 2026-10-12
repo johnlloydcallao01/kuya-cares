@@ -448,6 +448,33 @@ export const Users: CollectionConfig = {
         description: 'Inactive users cannot log in',
       },
     },
+    {
+      name: 'memberMembershipStatus',
+      type: 'select',
+      defaultValue: 'pending_payment',
+      options: [
+        { label: 'Pending payment', value: 'pending_payment' },
+        { label: 'Active', value: 'active' },
+      ],
+      access: {
+        update: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+      },
+      admin: {
+        description:
+          'Set to Active after payment is confirmed. Admins can also activate members who paid in cash.',
+      },
+    },
+    {
+      name: 'memberMembershipPaidAt',
+      type: 'date',
+      access: {
+        update: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+      },
+      admin: {
+        readOnly: true,
+        description: 'When the member lifetime fee was confirmed as paid',
+      },
+    },
 
     {
       name: 'lastLogin',

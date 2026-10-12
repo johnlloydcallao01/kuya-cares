@@ -142,6 +142,7 @@ export interface Config {
     'member-invites': MemberInvite;
     'member-listings': MemberListing;
     'member-orders': MemberOrder;
+    'member-membership-payments': MemberMembershipPayment;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -223,6 +224,7 @@ export interface Config {
     'member-invites': MemberInvitesSelect<false> | MemberInvitesSelect<true>;
     'member-listings': MemberListingsSelect<false> | MemberListingsSelect<true>;
     'member-orders': MemberOrdersSelect<false> | MemberOrdersSelect<true>;
+    'member-membership-payments': MemberMembershipPaymentsSelect<false> | MemberMembershipPaymentsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -319,6 +321,14 @@ export interface User {
    * Inactive users cannot log in
    */
   isActive?: boolean | null;
+  /**
+   * Set to Active after payment is confirmed. Admins can also activate members who paid in cash.
+   */
+  memberMembershipStatus?: ('pending_payment' | 'active') | null;
+  /**
+   * When the member lifetime fee was confirmed as paid
+   */
+  memberMembershipPaidAt?: string | null;
   /**
    * Last login timestamp
    */
@@ -4357,6 +4367,33 @@ export interface MemberOrder {
   createdAt: string;
 }
 /**
+ * One-time lifetime membership fee payments for unified marketplace members
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-membership-payments".
+ */
+export interface MemberMembershipPayment {
+  id: number;
+  user?: (number | null) | User;
+  /**
+   * Fixed one-time membership fee in PHP
+   */
+  amount: number;
+  currency: string;
+  status: string;
+  paymentProvider: string;
+  paymentReference: string;
+  providerReference?: string | null;
+  providerClientKey?: string | null;
+  paymentLinkId?: string | null;
+  checkoutUrl?: string | null;
+  memberMembershipIdempotencyKey: string;
+  paidAt?: string | null;
+  failureReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
@@ -4662,6 +4699,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'member-orders';
         value: number | MemberOrder;
+      } | null)
+    | ({
+        relationTo: 'member-membership-payments';
+        value: number | MemberMembershipPayment;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4724,6 +4765,8 @@ export interface UsersSelect<T extends boolean = true> {
   completeAddress?: T;
   role?: T;
   isActive?: T;
+  memberMembershipStatus?: T;
+  memberMembershipPaidAt?: T;
   lastLogin?: T;
   profilePicture?: T;
   resetPasswordTokens?:
@@ -6380,6 +6423,27 @@ export interface MemberOrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "member-membership-payments_select".
+ */
+export interface MemberMembershipPaymentsSelect<T extends boolean = true> {
+  user?: T;
+  amount?: T;
+  currency?: T;
+  status?: T;
+  paymentProvider?: T;
+  paymentReference?: T;
+  providerReference?: T;
+  providerClientKey?: T;
+  paymentLinkId?: T;
+  checkoutUrl?: T;
+  memberMembershipIdempotencyKey?: T;
+  paidAt?: T;
+  failureReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -6458,6 +6522,10 @@ export interface SystemSetting {
      * When on, the Next alias POST /api/webhooks/paymongo-membership returns 410 so all traffic uses the canonical Payload endpoint /api/paymongo-membership/webhook.
      */
     paymongoMembershipDisabled?: boolean | null;
+    /**
+     * Fixed lifetime fee for a unified marketplace member. Set a positive amount before enabling member registration; zero disables paid sign-up.
+     */
+    memberMembershipFeePhp?: number | null;
   };
   /**
    * Select which delivery provider to use for order bookings.
@@ -6513,6 +6581,7 @@ export interface SystemSettingsSelect<T extends boolean = true> {
         commissionDefaultPct?: T;
         payProviderDefault?: T;
         paymongoMembershipDisabled?: T;
+        memberMembershipFeePhp?: T;
       };
   deliveryProvider?: T;
   lalamove?:

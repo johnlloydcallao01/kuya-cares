@@ -18,6 +18,7 @@ export interface User {
   phone?: string | null;
   role: 'admin' | 'customer' | 'member' | 'instructor';
   isActive?: boolean | null;
+  memberMembershipStatus?: 'pending_payment' | 'active' | null;
   createdAt: string;
   updatedAt: string;
   loginAttempts?: number | null;

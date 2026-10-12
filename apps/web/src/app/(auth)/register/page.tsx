@@ -18,6 +18,7 @@ export default function RegisterPage(): React.ReactNode {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [membershipRegistrationCreated, setMembershipRegistrationCreated] = useState(false);
   // Members-only app: every registration creates a unified member account
   // (private-circle account — buys + sells — with a companion food-ordering
   // profile provisioned automatically). No customer option on apps/web.
@@ -170,6 +171,7 @@ export default function RegisterPage(): React.ReactNode {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setMembershipRegistrationCreated(false);
     setIsLoading(true);
 
     try {
@@ -230,6 +232,14 @@ export default function RegisterPage(): React.ReactNode {
         const result = await response.json();
         console.log('âœ… REGISTRATION SUCCESS:', result.message || 'Registration successful');
 
+        if (result?.data?.user?.role === 'member') {
+          setMembershipRegistrationCreated(true);
+          setErrors({
+            success: 'Your account has been created. Sign in to complete the one-time membership payment and activate your account.',
+          });
+          return;
+        }
+
         // Reset form after successful registration
         setFormData(getInitialFormData());
         setInviteCode('');
@@ -250,7 +260,14 @@ export default function RegisterPage(): React.ReactNode {
         // Show more specific error messages based on error type
         let errorMessage = 'Registration failed. Please try again.';
 
-        if (error?.type === 'duplicate') {
+        if (
+          error?.accountCreated === true &&
+          error?.membershipStatus === 'pending_payment'
+        ) {
+          setMembershipRegistrationCreated(true);
+          errorMessage =
+            'Your account was created, but checkout could not start. Sign in and retry your one-time membership payment.';
+        } else if (error?.type === 'duplicate') {
           errorMessage = error.message || `This ${error.field || 'information'} is already registered. Please use different information.`;
         } else if (error?.type === 'validation') {
           errorMessage = error.message || 'Please check your form data and try again.';
@@ -444,6 +461,15 @@ export default function RegisterPage(): React.ReactNode {
                     <i className="fa fa-exclamation-circle text-red-500 mr-2"></i>
                     <p className="text-red-700 text-sm">{errors.general}</p>
                   </div>
+                  {membershipRegistrationCreated && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/signin?redirect=${encodeURIComponent('/membership/payment')}`)}
+                      className="mt-3 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-900"
+                    >
+                      Sign in to complete membership payment
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -454,6 +480,15 @@ export default function RegisterPage(): React.ReactNode {
                     <i className="fa fa-check-circle text-green-500 mr-2"></i>
                     <p className="text-green-700 text-sm">{errors.success}</p>
                   </div>
+                  {membershipRegistrationCreated && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/signin?redirect=${encodeURIComponent('/membership/payment')}`)}
+                      className="mt-3 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-900"
+                    >
+                      Sign in and pay membership fee
+                    </button>
+                  )}
                 </div>
               )}
 

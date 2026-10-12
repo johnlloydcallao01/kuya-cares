@@ -135,6 +135,17 @@ export const SystemSettings: GlobalConfig = {
               'When on, the Next alias POST /api/webhooks/paymongo-membership returns 410 so all traffic uses the canonical Payload endpoint /api/paymongo-membership/webhook.',
           },
         },
+        {
+          name: 'memberMembershipFeePhp',
+          label: 'One-Time Member Fee (PHP)',
+          type: 'number',
+          defaultValue: 0,
+          min: 0,
+          admin: {
+            description:
+              'Fixed lifetime fee for a unified marketplace member. Set a positive amount before enabling member registration; zero disables paid sign-up.',
+          },
+        },
       ],
     },
     {

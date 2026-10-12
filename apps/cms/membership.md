@@ -4,6 +4,16 @@
 > Goal: vendors **register + pay for a membership plan to sell** (enterprise-grade multivendor subscription + commission), following existing `apps/cms` PayloadCMS 3.49 + Next App Router + Postgres + PayMongo patterns.
 > Non-goals: web-merchant / web-admin pages, checkout UI, marketing pricing page, Stripe UI, mobile changes.
 
+## Unified marketplace member lifetime fee
+
+The separate private-circle marketplace uses one `member` user account for both buying and selling. New `role: member` accounts are recorded as `pending_payment`; after sign-in they use the Kuya Cares membership payment page, which renders the payment-method selection and initiates a PayMongo Payment Intent through the public key, matching the mobile customer checkout flow. PayMongo handles only the selected wallet/bank authorization step when required; Kuya Cares never sends members to a hosted PayMongo checkout page. Accounts become `active` only after a signed PayMongo paid webhook or a server-side Payment Intent status confirmation. The payment grants lifetime membership; it is not a recurring subscription and is not a vendor plan. The migration backfills existing members as active and defaults new users to pending, preserving existing member access without making new accounts free.
+
+The member marketplace collections (`member-listings`, `member-orders`, and `member-invites`) authorize member access against the persisted membership status. The web app's global membership gate checks this status after login and on session restoration, redirects unpaid members to their payment page, and blocks other app routes until activation; the authenticated `POST /api/member-membership/checkout` endpoint creates or reuses a pending Payment Intent. Configure the fee to a positive amount (at least ₱1.00), `PAYMONGO_SECRET_KEY_LIVE` with `PAYMONGO_PUBLIC_KEY_LIVE` (or `PAYMONGO_SANDBOX_API_KEY` with `PAYMONGO_PUBLIC_KEY_SANDBOX`), and the matching webhook secret before accepting member registrations.
+
+In the PayMongo dashboard, configure the webhook URL as `https://<your-cms-host>/api/paymongo-membership/webhook` and subscribe to `payment.paid`, `payment_intent.succeeded`, and `payment.failed`. Set the webhook signing secret in the CMS environment (`PAYMONGO_WEBHOOK_SECRET` for live, `PAYMONGO_SANDBOX_WEBHOOK_SECRET` for test). The handler verifies the raw-body signature and recorded amount/currency before activating the member. Payment activation also reconciles the Payment Intent directly with PayMongo when the member returns to the payment page; browser redirects alone never count as proof of payment. A confirmed payment creates an unread account notification and broadcasts it to the member's notification bell.
+
+Schema changes are in `src/migrations/20261011_100000_member_lifetime_membership.ts`. Review and apply this additive migration to a development database first; do not apply it to production without an approved deployment window and database backup.
+
 ---
 
 ## 0. Current state (verified)
@@ -387,9 +397,14 @@ Plan prices live on the **`membership-plans` collection** (`price` field). Only 
 ```
 # .env / .env.example — secrets only
 BILLING_CRON_SECRET=<random>
-PAYMONGO_MEMBERSHIP_WEBHOOK_SECRET=<separate from order webhook if needed>
+PAYMONGO_WEBHOOK_SECRET=<live webhook signing secret>
+PAYMONGO_SANDBOX_WEBHOOK_SECRET=<test webhook signing secret>
 STRIPE_WEBHOOK_SECRET=<optional, stub until set>
 ```
+
+`PAYMONGO_MEMBERSHIP_WEBHOOK_SECRET` is an optional membership-specific override; when omitted, member payments use the matching `PAYMONGO_WEBHOOK_SECRET` or `PAYMONGO_SANDBOX_WEBHOOK_SECRET`.
+
+The custom member payment form requires a PayMongo **public key** in the browser. Keep secret keys server-side; never copy a PayMongo secret key into `apps/web` environment variables.
 
 | Old env var | Where it lives now |
 |---|---|

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { APIError } from 'payload'
-import { memberOrStaff } from '../access/roles'
+import { hasActiveMemberMembership, memberOrStaff } from '../access/roles'
 
 /**
  * Private members-only marketplace listings.
@@ -41,20 +41,25 @@ export const MemberListings: CollectionConfig = {
   access: {
     // Private catalog: only authenticated circle members (admin|service|member).
     read: memberOrStaff,
-    create: ({ req: { user } }) => {
+    create: async ({ req: { user, payload } }) => {
       if (!user) return false
-      return canSell(user.role)
+      return canSell(user.role) &&
+        (user.role !== 'member' || (await hasActiveMemberMembership(payload, user.id)))
     },
-    update: ({ req: { user } }) => {
+    update: async ({ req: { user, payload } }) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
-      if (user.role === 'member') return { seller: { equals: user.id } }
+      if (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id))) {
+        return { seller: { equals: user.id } }
+      }
       return false
     },
-    delete: ({ req: { user } }) => {
+    delete: async ({ req: { user, payload } }) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
-      if (user.role === 'member') return { seller: { equals: user.id } }
+      if (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id))) {
+        return { seller: { equals: user.id } }
+      }
       return false
     },
   },
@@ -206,13 +211,16 @@ export const MemberListings: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      ({ data, originalDoc, operation, req }) => {
+    async ({ data, originalDoc, operation, req }) => {
         const d = (data ?? {}) as Record<string, unknown>
         const role = req.user?.role as string | undefined
 
         if (operation === 'create') {
           if (!req.user || !canSell(role)) {
             throw new APIError('Only members, service accounts, or admins can sell', 403, null, true)
+          }
+          if (role === 'member' && !(await hasActiveMemberMembership(req.payload, req.user.id))) {
+            throw new APIError('An active paid membership is required to sell', 402, null, true)
           }
           // Sellers cannot list on behalf of someone else.
           if (!d.seller && req.user.id) {

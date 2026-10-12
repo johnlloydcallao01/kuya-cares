@@ -610,6 +610,6 @@ export function verifyPaymongoMembershipSignature(
     const b = Buffer.from(sig)
     return a.length === b.length && crypto.timingSafeEqual(a, b)
   } catch {
-    return computed === sig
+    return false
   }
 }

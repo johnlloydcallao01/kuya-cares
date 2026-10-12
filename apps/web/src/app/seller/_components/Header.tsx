@@ -125,7 +125,7 @@ export function Header({
               <span>Shop</span>
             </Link>
             <NotificationBell />
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative hidden sm:block" ref={dropdownRef}>
               <button
                 onClick={toggleProfileDropdown}
                 className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] transition-colors"

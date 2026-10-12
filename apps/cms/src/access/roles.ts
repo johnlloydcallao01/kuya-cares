@@ -1,4 +1,4 @@
-import type { Access } from 'payload'
+import type { Access, Payload } from 'payload'
 
 /**
  * Unified private-marketplace roles.
@@ -9,8 +9,8 @@ import type { Access } from 'payload'
  * - `customer` | `vendor` | `driver` | `service` are kept for backwards
  *   compatibility with the existing B2B2C flows and must not be removed.
  *
- * This module is unit-test-friendly: pure functions only, no payload runtime
- * import (types only). Every access factory handles `!user => false`.
+ * Membership-aware access factories check current persisted membership state,
+ * rather than trusting potentially stale auth-token fields.
  */
 
 export type Role = 'admin' | 'member' | 'customer' | 'vendor' | 'driver' | 'service'
@@ -131,8 +131,28 @@ export const adminOrOwner = (fieldName: string): Access => {
  * Admins and service accounts supervise; members buy+sell. Every other role
  * (customer, vendor, driver) and anonymous callers are blocked.
  */
-export const memberOrStaff: Access = ({ req: { user } }) => {
+export const memberOrStaff: Access = async ({ req: { user, payload } }) => {
   if (!user) return false
   const role = (user as RoleUser).role
-  return role === 'admin' || role === 'service' || role === 'member'
+  if (role === 'admin' || role === 'service') return true
+  if (role !== 'member') return false
+  return hasActiveMemberMembership(payload, user.id)
+}
+
+export async function hasActiveMemberMembership(
+  payload: Payload,
+  userId: string | number,
+): Promise<boolean> {
+  try {
+    const member = await payload.findByID({
+      collection: 'users',
+      id: userId as never,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return member?.memberMembershipStatus === 'active'
+  } catch (error) {
+    console.error('[member access] Could not verify paid membership:', error)
+    return false
+  }
 }

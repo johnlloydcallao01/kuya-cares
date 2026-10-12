@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { AuthErrorBoundary } from '@/components/auth';
+import { MemberMembershipGate } from '@/components/auth/MemberMembershipGate';
 import { LoadingScreenWrapper } from '@/components/loading/LoadingScreenWrapper';
 import { ToasterProvider } from '@/components/toast/ToasterProvider';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -22,7 +23,9 @@ export function Providers({ children, initialUser, initialToken }: ProvidersProp
         <AuthProvider initialUser={initialUser} initialToken={initialToken}>
           <CartProvider>
             <NotificationsProvider>
-              <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
+              <MemberMembershipGate>
+                <LoadingScreenWrapper>{children}</LoadingScreenWrapper>
+              </MemberMembershipGate>
             </NotificationsProvider>
           </CartProvider>
         </AuthProvider>

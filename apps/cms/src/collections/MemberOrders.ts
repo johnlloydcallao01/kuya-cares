@@ -1,6 +1,7 @@
 import type { Access, AccessArgs, CollectionConfig } from 'payload'
 import { APIError } from 'payload'
 import { adminOnly } from '../access'
+import { hasActiveMemberMembership } from '../access/roles'
 
 /**
  * Private members-only marketplace orders (peer-to-peer, same-account buy+sell).
@@ -55,10 +56,10 @@ export const MemberOrders: CollectionConfig = {
       'Private-circle orders. Buyer+seller share one member account type; admin supervises.',
   },
   access: {
-    read: (({ req: { user } }: AccessArgs) => {
+    read: (async ({ req: { user, payload } }: AccessArgs) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
-      if (user.role === 'member') {
+      if (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id))) {
         return {
           or: [
             { buyer: { equals: user.id } },
@@ -68,15 +69,16 @@ export const MemberOrders: CollectionConfig = {
       }
       return false
     }) as Access,
-    create: ({ req: { user } }) => {
+    create: async ({ req: { user, payload } }) => {
       if (!user) return false
-      return canTrade(user.role)
+      return canTrade(user.role) &&
+        (user.role !== 'member' || (await hasActiveMemberMembership(payload, user.id)))
     },
-    update: (({ req: { user } }: AccessArgs) => {
+    update: (async ({ req: { user, payload } }: AccessArgs) => {
       if (!user) return false
       if (isStaffRole(user.role)) return true
       // Both parties may progress their shared order (hook enforces field guards).
-      if (user.role === 'member') {
+      if (user.role === 'member' && (await hasActiveMemberMembership(payload, user.id))) {
         return {
           or: [
             { buyer: { equals: user.id } },
@@ -193,6 +195,9 @@ export const MemberOrders: CollectionConfig = {
         if (operation === 'create') {
           if (!req.user || !canTrade(role)) {
             throw new APIError('Only members, service accounts, or admins can order', 403, null, true)
+          }
+          if (role === 'member' && !(await hasActiveMemberMembership(req.payload, req.user.id))) {
+            throw new APIError('An active paid membership is required to order', 402, null, true)
           }
 
           const listingId = resolveId(d.listing)

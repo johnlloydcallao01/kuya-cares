@@ -129,6 +129,7 @@ function normalizePaymongoMembershipEvent(raw: any): MembershipNormalizedEvent {
   // failures surface as payment.failed or absence.)
   const paymentRef = String(
     nestedAttrs?.metadata?.pm_reference_number ??
+      nestedAttrs?.metadata?.reference ??
       nestedAttrs?.external_reference_number ??
       nestedAttrs?.reference_number ??
       nestedAttrs?.payment_intent_id ??

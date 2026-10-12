@@ -10,6 +10,7 @@
 import type { PayloadRequest } from 'payload'
 import crypto from 'crypto'
 import { webhookLimiter } from '../utils/membershipRateLimit'
+import { handleMemberMembershipPaymentEvent } from '../services/MemberMembershipService'
 
 function verifySignature(
   rawBody: string,
@@ -30,7 +31,7 @@ function verifySignature(
     const b = Buffer.from(sig)
     return a.length === b.length && crypto.timingSafeEqual(a, b)
   } catch {
-    return computed === sig
+    return false
   }
 }
 
@@ -107,12 +108,6 @@ export const paymongoMembershipWebhook = async (req: PayloadRequest) => {
     }
     const signature = req.headers.get('paymongo-signature')
     const rawBody = await (req as unknown as Request).text()
-    let body: any
-    try {
-      body = JSON.parse(rawBody)
-    } catch {
-      return Response.json({ error: 'Invalid JSON' }, { status: 400 })
-    }
 
     // Live and test secrets are independent: accept a live-signed event under a
     // live secret (li slot) or a test-signed event under a sandbox secret (te
@@ -128,6 +123,13 @@ export const paymongoMembershipWebhook = async (req: PayloadRequest) => {
       return Response.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
     const attrs = body?.data?.attributes
     const type = String(attrs?.type || '')
     const resource = attrs?.data
@@ -136,10 +138,12 @@ export const paymongoMembershipWebhook = async (req: PayloadRequest) => {
     // then intent id, then raw ids. There is no link.payment.failed event —
     // failures surface as payment.failed or absence.
     const paymentRef: string = String(
-      resourceAttrs?.metadata?.pm_reference_number ??
+      resourceAttrs?.payment_intent_id ??
+        resourceAttrs?.payment_intent?.id ??
+        resourceAttrs?.metadata?.pm_reference_number ??
+        resourceAttrs?.metadata?.reference ??
         resourceAttrs?.external_reference_number ??
         resourceAttrs?.reference_number ??
-        resourceAttrs?.payment_intent_id ??
         resource?.id ??
         '',
     )
@@ -151,7 +155,32 @@ export const paymongoMembershipWebhook = async (req: PayloadRequest) => {
     }
 
     // Prefer BillingService when present (parallel Phase 1)
-    const isPaidEvent = type === 'payment.paid' || type === 'link.payment.paid'
+    const isPaidEvent =
+      type === 'payment.paid' ||
+      type === 'payment_intent.succeeded' ||
+      type === 'link.payment.paid'
+    if (isPaidEvent || type === 'payment.failed') {
+      const handled = await handleMemberMembershipPaymentEvent(req.payload, {
+        paymentReference: paymentRef,
+        eventId,
+        paid: isPaidEvent,
+        ...(isPaidEvent
+          ? {
+              amountCentavos: Number(resourceAttrs?.amount),
+              currency: String(resourceAttrs?.currency || ''),
+            }
+          : {}),
+      })
+      if (handled) {
+        await auditLog(req.payload, {
+          action: isPaidEvent ? 'webhook_paid' : 'webhook_failed',
+          eventId,
+          reason: `member membership payment ${isPaidEvent ? 'paid' : 'failed'} ref=${paymentRef}`,
+          metadata: { paymentReference: paymentRef },
+        })
+        return Response.json({ status: 'received' }, { status: 200 })
+      }
+    }
     try {
       const svc = await loadBillingService()
       if (isPaidEvent && typeof svc?.handlePaid === 'function') {

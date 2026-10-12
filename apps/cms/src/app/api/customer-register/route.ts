@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
       email: body.email,
       password: body.password,
       role: requestedRole,
+      ...(requestedRole === 'member' && { memberMembershipStatus: 'pending_payment' as const }),
       ...(body.middleName && { middleName: body.middleName }),
     }
 
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message:
         requestedRole === 'member'
-          ? 'Member registration successful! Welcome to the Kuya Cares circle — your food ordering account is ready too.'
+          ? 'Account created. Sign in to complete the one-time membership payment and activate your Kuya Cares member account.'
           : 'Customer registration successful! Welcome to Kuya Cares.',
       data: {
         user: {
@@ -262,13 +263,14 @@ export async function POST(request: NextRequest) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role
+          role: user.role,
+          ...(requestedRole === 'member' && { membershipStatus: 'pending_payment' }),
         },
         customer: {
           id: customer.id
         },
         emergencyContact: undefined
-      }
+      },
     }
 
     console.log('📤 Sending success response:', successResponse)
