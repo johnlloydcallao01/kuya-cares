@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
     })
     const docs = result.docs.filter((entry) => {
       const metadata = entry.metadata
-      return !!metadata && typeof metadata === 'object' && (metadata as Record<string, unknown>).kind === 'commission-rule'
+      if (!metadata || typeof metadata !== 'object') return false
+      const kind = (metadata as Record<string, unknown>).kind
+      return kind === 'commission-rule' || kind === 'commission-override'
     })
     return NextResponse.json({ docs, totalDocs: docs.length })
   } catch (error) {

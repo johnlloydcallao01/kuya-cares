@@ -48,12 +48,16 @@ function activeAt(rule: Doc, at: Date): boolean {
 }
 
 function compareRules(a: Doc, b: Doc): number {
-  const priority = finiteMoney(b.priority) - finiteMoney(a.priority)
+  const aPriority = Number(a.priority)
+  const bPriority = Number(b.priority)
+  const priority = (Number.isFinite(bPriority) ? bPriority : 0) - (Number.isFinite(aPriority) ? aPriority : 0)
   if (priority) return priority
   const scopeRank: Record<string, number> = { vendor: 4, category: 3, plan: 2, global: 1 }
   const scope = (scopeRank[String(b.scope)] ?? 0) - (scopeRank[String(a.scope)] ?? 0)
   if (scope) return scope
-  return new Date(b.effective_from ?? 0).getTime() - new Date(a.effective_from ?? 0).getTime()
+  const effectiveFrom = new Date(b.effective_from ?? 0).getTime() - new Date(a.effective_from ?? 0).getTime()
+  if (effectiveFrom) return effectiveFrom
+  return String(a.id ?? '').localeCompare(String(b.id ?? ''), 'en', { numeric: true })
 }
 
 function resolutionFromRule(rule: Doc): CommissionResolution | null {
@@ -211,6 +215,23 @@ export interface CommissionAmounts {
   vendorNet: number
 }
 
+export function getCommissionDiscountAmounts(discounts: Array<Record<string, unknown>>): {
+  vendorDiscount: number
+  productDiscount: number
+} {
+  const vendorDiscount = roundMoney(
+    discounts.reduce((sum, discount) => sum + Math.max(0, finiteMoney(discount.vendor_share)), 0),
+  )
+  const productDiscount = roundMoney(
+    discounts.reduce((sum, discount) => {
+      const foodDiscount = Math.max(0, finiteMoney(discount.food_discount))
+      const totalDiscount = Math.max(0, finiteMoney(discount.total_discount ?? discount.amount_off))
+      return sum + (totalDiscount > 0 ? Math.min(foodDiscount, totalDiscount) : foodDiscount)
+    }, 0),
+  )
+  return { vendorDiscount, productDiscount }
+}
+
 const commissionLedgerAmountFields = [
   'commission_base_amount',
   'commission_vendor_discount',
@@ -243,21 +264,24 @@ export function calculateRefundReversalDelta(
   return result
 }
 
-/** Commission is assessed on merchandise less the vendor-funded discount share. */
+/** Commission is assessed on merchandise less all product discounts. */
 export function calculateCommissionAmounts(
   subtotal: number,
   vendorDiscount: number,
   resolution: CommissionResolution,
+  commissionBaseDiscount: number,
 ): CommissionAmounts {
-  const baseAmount = roundMoney(Math.max(0, finiteMoney(subtotal) - Math.max(0, finiteMoney(vendorDiscount))))
+  const subtotalAmount = Math.max(0, finiteMoney(subtotal))
+  const vendorDiscountAmount = Math.max(0, finiteMoney(vendorDiscount))
+  const baseAmount = roundMoney(Math.max(0, subtotalAmount - Math.max(0, finiteMoney(commissionBaseDiscount))))
   const commissionAmount = roundMoney(baseAmount * resolution.pct / 100)
   const transactionFee = Math.min(baseAmount, Math.max(0, finiteMoney(resolution.transactionFee)))
   return {
     baseAmount,
-    vendorDiscount: Math.max(0, finiteMoney(vendorDiscount)),
+    vendorDiscount: vendorDiscountAmount,
     commissionAmount,
     transactionFee,
-    vendorNet: roundMoney(Math.max(0, baseAmount - commissionAmount - transactionFee)),
+    vendorNet: roundMoney(Math.max(0, subtotalAmount - vendorDiscountAmount - commissionAmount - transactionFee)),
   }
 }
 
@@ -384,11 +408,11 @@ export async function accruePaidOrderCommission(
     overrideAccess: true,
     req,
   })
-  const vendorDiscount = roundMoney(
-    (discounts.docs as unknown as Doc[]).reduce((sum, discount) => sum + Math.max(0, finiteMoney(discount.vendor_share)), 0),
+  const { vendorDiscount, productDiscount } = getCommissionDiscountAmounts(
+    discounts.docs as unknown as Array<Record<string, unknown>>,
   )
   const resolution = await resolveCommission(payload, vendorId, merchantId, paidAt, req)
-  const amounts = calculateCommissionAmounts(finiteMoney(order.subtotal), vendorDiscount, resolution)
+  const amounts = calculateCommissionAmounts(finiteMoney(order.subtotal), vendorDiscount, resolution, productDiscount)
   const currency = typeof order.currency === 'string' ? order.currency : 'PHP'
 
   const entry = await payload.create({

@@ -70,15 +70,24 @@ export function VendorCommissionOverride({ vendorId }: { vendorId: string | numb
   }
 
   const clear = async () => {
+    if (!reason.trim()) {
+      setError('A reason is required for the audit log.')
+      return
+    }
     if (!window.confirm('Clear this vendor-specific override and inherit the matching commission rule?')) return
     setSaving(true)
     setError('')
     setMessage('')
     try {
-      const response = await fetch(`/api/vendors/${vendorId}/commission-override`, { method: 'DELETE' })
+      const response = await fetch(`/api/vendors/${vendorId}/commission-override`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason.trim() }),
+      })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to clear vendor override')
       setMessage('Vendor override cleared. This vendor will use the applicable commission rules.')
+      setReason('')
       await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Failed to clear vendor override')
@@ -100,7 +109,7 @@ export function VendorCommissionOverride({ vendorId }: { vendorId: string | numb
           <p className="mb-3 text-sm text-gray-600 dark:text-[#a1a1aa]">{override ? `Current override: ${Number(override.commission_percent ?? 0).toFixed(2)}% + ₱${Number(override.transaction_fee ?? 0).toFixed(2)} per order` : 'No explicit vendor override. The best matching commission rule is used.'}</p>
           <form onSubmit={save} className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <label className="text-xs font-medium text-gray-600 dark:text-[#a1a1aa]">Commission (%)<input required type="number" min="0" max="100" step="0.01" value={percent} onChange={(event) => setPercent(event.target.value)} className={inputClass} /></label>
-            <label className="text-xs font-medium text-gray-600 dark:text-[#a1a1aa]">Fixed transaction fee (PHP)<input required type="number" min="0" step="0.01" value={fee} onChange={(event) => setFee(event.target.value)} className={inputClass} /></label>
+            <label className="text-xs font-medium text-gray-600 dark:text-[#a1a1aa]">Fixed fee per paid order (PHP)<input required type="number" min="0" step="0.01" value={fee} onChange={(event) => setFee(event.target.value)} className={inputClass} /></label>
             <label className="text-xs font-medium text-gray-600 dark:text-[#a1a1aa] md:col-span-2">Reason for audit log<input required maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Required to change the override" className={inputClass} /></label>
             <div className="flex flex-wrap gap-2 md:col-span-4">
               <button disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[#239459] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save override'}</button>

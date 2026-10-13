@@ -29,11 +29,26 @@ export async function GET(request: NextRequest) {
     const params = parsePayoutsParams(searchParams)
     const { days, label, now, periodStart } = params
 
-    const [vendorsRes, merchantsRes, ordersRes, transactionsRes] = await Promise.all([
+    const [vendorsRes, merchantsRes, ordersRes, transactionsRes, adjustmentsRes] = await Promise.all([
       payload.find({ collection: 'vendors', limit: 2000, depth: 0, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'merchants', limit: 2000, depth: 0, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'orders', limit: 5000, sort: '-createdAt', depth: 0, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'transactions', limit: 5000, depth: 0, overrideAccess: true, pagination: false } as any),
+      payload.find({
+        collection: 'vendor-commission-entries',
+        where: params.periodStart
+          ? { and: [
+              { entry_type: { equals: 'adjustment' } },
+              { effective_at: { greater_than_equal: params.periodStart.toISOString() } },
+              { effective_at: { less_than_equal: params.now.toISOString() } },
+            ] }
+          : { entry_type: { equals: 'adjustment' } },
+        limit: 0,
+        sort: '-effective_at',
+        depth: 0,
+        overrideAccess: true,
+        pagination: false,
+      } as any),
     ])
 
     const core = buildPayoutsCore(params, {
@@ -41,6 +56,7 @@ export async function GET(request: NextRequest) {
       merchantsDocs: (merchantsRes.docs as unknown as PayoutDoc[]) || [],
       ordersDocs: (ordersRes.docs as unknown as PayoutDoc[]) || [],
       transactionsDocs: (transactionsRes.docs as unknown as PayoutDoc[]) || [],
+      commissionAdjustmentsDocs: (adjustmentsRes.docs as unknown as PayoutDoc[]) || [],
     })
     const vendorAgg = buildVendorAgg(core)
     enrichMerchantCounts(core, vendorAgg)

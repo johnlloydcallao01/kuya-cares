@@ -1552,7 +1552,7 @@ export interface ProductCategory {
   createdAt: string;
 }
 /**
- * Vendor debit resolution (never mutates order total)
+ * Vendor commission rules. Higher priority wins; ties prefer the most specific scope.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "commission-rules".
@@ -1562,7 +1562,7 @@ export interface CommissionRule {
   name: string;
   scope: 'global' | 'plan' | 'category' | 'vendor';
   /**
-   * Higher wins (vendor 100 > category 50 > plan 10 > global 0)
+   * Higher wins. Equal priorities prefer vendor, category, plan, then global.
    */
   priority: number;
   /**
@@ -1578,6 +1578,9 @@ export interface CommissionRule {
    */
   vendor?: (number | null) | Vendor;
   commission_percent: number;
+  /**
+   * Fixed amount charged once per paid order; refund reversals are proportional.
+   */
   transaction_fee?: number | null;
   effective_from?: string | null;
   effective_to?: string | null;
@@ -2339,11 +2342,14 @@ export interface Order {
    */
   commission_percent?: number | null;
   /**
-   * Merchandise subtotal less vendor-funded discounts.
+   * Product subtotal less all product discounts, regardless of funding; excludes delivery and other non-product charges.
    */
   commission_base_amount?: number | null;
   commission_vendor_discount?: number | null;
   commission_amount?: number | null;
+  /**
+   * Fixed fee charged once per paid order.
+   */
   commission_transaction_fee?: number | null;
   commission_vendor_net?: number | null;
   commission_source?: ('vendor' | 'category' | 'plan' | 'global') | null;
@@ -4167,7 +4173,7 @@ export interface SubscriptionInvoice {
   createdAt: string;
 }
 /**
- * Immutable order commission and refund accounting ledger.
+ * Immutable commission accrual, refund reversal, and manually audited adjustment ledger.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "vendor-commission-entries".
@@ -4175,23 +4181,29 @@ export interface SubscriptionInvoice {
 export interface VendorCommissionEntry {
   id: number;
   vendor: number | Vendor;
-  order: number | Order;
-  transaction: number | Transaction;
-  entry_type: 'accrual' | 'reversal';
+  order?: (number | null) | Order;
+  transaction?: (number | null) | Transaction;
+  entry_type: 'accrual' | 'reversal' | 'adjustment';
   idempotency_key: string;
   provider_refund_id?: string | null;
   refund_amount?: number | null;
   currency: string;
   commission_percent: number;
   /**
-   * Signed seller merchandise base after vendor-funded discounts.
+   * Signed product base after all product discounts; excludes delivery and other non-product charges.
    */
   commission_base_amount: number;
+  /**
+   * Signed total vendor-funded discount amount, including delivery discount share.
+   */
   commission_vendor_discount: number;
   /**
    * Signed platform commission.
    */
   commission_amount: number;
+  /**
+   * Signed fixed fee charged once per paid order.
+   */
   commission_transaction_fee: number;
   /**
    * Signed amount payable to vendor.
@@ -4199,6 +4211,14 @@ export interface VendorCommissionEntry {
   commission_vendor_net: number;
   commission_source: 'vendor' | 'category' | 'plan' | 'global';
   commission_rule?: (number | null) | CommissionRule;
+  /**
+   * Required explanation for an immutable manual adjustment.
+   */
+  adjustment_reason?: string | null;
+  /**
+   * Administrator who posted the adjustment.
+   */
+  adjustment_actor?: (number | null) | User;
   effective_at: string;
   updatedAt: string;
   createdAt: string;
@@ -6429,6 +6449,8 @@ export interface VendorCommissionEntriesSelect<T extends boolean = true> {
   commission_vendor_net?: T;
   commission_source?: T;
   commission_rule?: T;
+  adjustment_reason?: T;
+  adjustment_actor?: T;
   effective_at?: T;
   updatedAt?: T;
   createdAt?: T;

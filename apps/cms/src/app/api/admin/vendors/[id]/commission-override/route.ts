@@ -37,11 +37,20 @@ export async function PUT(
     }
     if (!reason) return NextResponse.json({ error: 'reason is required' }, { status: 400 })
 
+    let existingVendor: Record<string, any>
     try {
-      await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true })
+      existingVendor = await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true }) as Record<string, any>
     } catch {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
+    const beforeOverride = existingVendor.commissionOverride ?? existingVendor.commission_override ?? null
+    const before = beforeOverride
+      ? {
+          commission_percent: beforeOverride.commission_percent ?? beforeOverride.commissionPercent ?? null,
+          transaction_fee: beforeOverride.transaction_fee ?? beforeOverride.transactionFee ?? 0,
+        }
+      : null
+    const after = { commission_percent: pct, transaction_fee: transactionFee }
 
     const updated = await payload.update({
       collection: 'vendors',
@@ -58,7 +67,16 @@ export async function PUT(
 
     await audit(payload, {
       vendor: id, action: 'override', reason,
-      actor: admin.id, metadata: { pct, kind: 'commission-override' },
+      actor: admin.id,
+      metadata: {
+        kind: 'commission-override',
+        operation: 'update',
+        vendorId: id,
+        commission_percent: pct,
+        transaction_fee: transactionFee,
+        before,
+        after,
+      },
     })
 
     return NextResponse.json(
@@ -80,12 +98,28 @@ export async function DELETE(
     const admin = await authenticateAdmin(payload, request)
     if (!admin) return NextResponse.json({ error: 'Unauthorized: admin authentication required' }, { status: 401 })
     const { id } = await params
-
+    let body: Record<string, unknown>
     try {
-      await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true })
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'A reason is required to clear the commission override' }, { status: 400 })
+    }
+    const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+    if (!reason) return NextResponse.json({ error: 'A reason is required to clear the commission override' }, { status: 400 })
+
+    let existingVendor: Record<string, any>
+    try {
+      existingVendor = await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true }) as Record<string, any>
     } catch {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
+    const beforeOverride = existingVendor.commissionOverride ?? existingVendor.commission_override ?? null
+    const before = beforeOverride
+      ? {
+          commission_percent: beforeOverride.commission_percent ?? beforeOverride.commissionPercent ?? null,
+          transaction_fee: beforeOverride.transaction_fee ?? beforeOverride.transactionFee ?? 0,
+        }
+      : null
 
     await payload.update({
       collection: 'vendors',
@@ -95,8 +129,9 @@ export async function DELETE(
     })
 
     await audit(payload, {
-      vendor: id, action: 'override', reason: 'commission override cleared (inherit plan)',
-      actor: admin.id, metadata: { cleared: true },
+      vendor: id, action: 'override', reason,
+      actor: admin.id,
+      metadata: { kind: 'commission-override', operation: 'clear', vendorId: id, before, after: null, cleared: true },
     })
 
     return NextResponse.json({ success: true }, { status: 200 })

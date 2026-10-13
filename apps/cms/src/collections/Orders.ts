@@ -353,11 +353,11 @@ export const Orders: CollectionConfig = {
       name: 'commission_base_amount',
       type: 'number',
       min: 0,
-      admin: { readOnly: true, description: 'Merchandise subtotal less vendor-funded discounts.' },
+      admin: { readOnly: true, description: 'Product subtotal less all product discounts, regardless of funding; excludes delivery and other non-product charges.' },
     },
     { name: 'commission_vendor_discount', type: 'number', min: 0, admin: { readOnly: true } },
     { name: 'commission_amount', type: 'number', min: 0, admin: { readOnly: true } },
-    { name: 'commission_transaction_fee', type: 'number', min: 0, admin: { readOnly: true } },
+    { name: 'commission_transaction_fee', type: 'number', min: 0, admin: { readOnly: true, description: 'Fixed fee charged once per paid order.' } },
     { name: 'commission_vendor_net', type: 'number', min: 0, admin: { readOnly: true } },
     {
       name: 'commission_source',

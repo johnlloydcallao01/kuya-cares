@@ -16,7 +16,7 @@ export const VendorCommissionEntries: CollectionConfig = {
       'effective_at',
     ],
     group: 'Finance',
-    description: 'Immutable order commission and refund accounting ledger.',
+    description: 'Immutable commission accrual, refund reversal, and manually audited adjustment ledger.',
   },
   access: {
     read: ({ req: { user } }) => isAdmin(user),
@@ -26,8 +26,8 @@ export const VendorCommissionEntries: CollectionConfig = {
   },
   fields: [
     { name: 'vendor', type: 'relationship', relationTo: 'vendors', required: true, index: true },
-    { name: 'order', type: 'relationship', relationTo: 'orders', required: true, index: true },
-    { name: 'transaction', type: 'relationship', relationTo: 'transactions', required: true },
+    { name: 'order', type: 'relationship', relationTo: 'orders', index: true },
+    { name: 'transaction', type: 'relationship', relationTo: 'transactions' },
     {
       name: 'entry_type',
       type: 'select',
@@ -35,6 +35,7 @@ export const VendorCommissionEntries: CollectionConfig = {
       options: [
         { label: 'Commission accrued', value: 'accrual' },
         { label: 'Refund reversal', value: 'reversal' },
+        { label: 'Manual adjustment', value: 'adjustment' },
       ],
     },
     { name: 'idempotency_key', type: 'text', required: true, unique: true },
@@ -46,11 +47,11 @@ export const VendorCommissionEntries: CollectionConfig = {
       name: 'commission_base_amount',
       type: 'number',
       required: true,
-      admin: { description: 'Signed seller merchandise base after vendor-funded discounts.' },
+      admin: { description: 'Signed product base after all product discounts; excludes delivery and other non-product charges.' },
     },
-    { name: 'commission_vendor_discount', type: 'number', required: true },
+    { name: 'commission_vendor_discount', type: 'number', required: true, admin: { description: 'Signed total vendor-funded discount amount, including delivery discount share.' } },
     { name: 'commission_amount', type: 'number', required: true, admin: { description: 'Signed platform commission.' } },
-    { name: 'commission_transaction_fee', type: 'number', required: true },
+    { name: 'commission_transaction_fee', type: 'number', required: true, admin: { description: 'Signed fixed fee charged once per paid order.' } },
     { name: 'commission_vendor_net', type: 'number', required: true, admin: { description: 'Signed amount payable to vendor.' } },
     {
       name: 'commission_source',
@@ -64,8 +65,36 @@ export const VendorCommissionEntries: CollectionConfig = {
       ],
     },
     { name: 'commission_rule', type: 'relationship', relationTo: 'commission-rules' },
+    { name: 'adjustment_reason', type: 'textarea', admin: { description: 'Required explanation for an immutable manual adjustment.' } },
+    { name: 'adjustment_actor', type: 'relationship', relationTo: 'users', admin: { description: 'Administrator who posted the adjustment.' } },
     { name: 'effective_at', type: 'date', required: true },
   ],
+  hooks: {
+    beforeValidate: [
+      ({ data, operation }) => {
+        if (operation !== 'create' || !data) return data
+        if (data.entry_type === 'adjustment') {
+          if (typeof data.adjustment_reason !== 'string' || !data.adjustment_reason.trim()) {
+            throw new Error('A reason is required for manual commission adjustments.')
+          }
+          if (!data.adjustment_actor) {
+            throw new Error('The administrator posting a commission adjustment must be recorded.')
+          }
+          const deltas = [
+            Number(data.commission_amount),
+            Number(data.commission_transaction_fee),
+            Number(data.commission_vendor_net),
+          ]
+          if (deltas.some((amount) => !Number.isFinite(amount)) || !deltas.some((amount) => amount !== 0)) {
+            throw new Error('A manual adjustment must contain at least one valid non-zero financial amount.')
+          }
+        } else if (!data.order || !data.transaction) {
+          throw new Error('Accrual and refund reversal entries must reference an order and transaction.')
+        }
+        return data
+      },
+    ],
+  },
   indexes: [
     { fields: ['vendor', 'effective_at'] },
     { fields: ['order', 'entry_type'] },

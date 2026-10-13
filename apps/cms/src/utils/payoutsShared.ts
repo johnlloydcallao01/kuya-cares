@@ -106,6 +106,7 @@ export interface PayoutsDocs {
   merchantsDocs: PayoutDoc[]
   ordersDocs: PayoutDoc[]
   transactionsDocs: PayoutDoc[]
+  commissionAdjustmentsDocs?: PayoutDoc[]
 }
 
 export interface PayoutsCore extends PayoutsParams {
@@ -116,6 +117,7 @@ export interface PayoutsCore extends PayoutsParams {
   filteredVendorIds: Set<string> | null
   paidTxPeriod: PayoutDoc[]
   refundedTxPeriod: PayoutDoc[]
+  commissionAdjustmentsPeriod: PayoutDoc[]
 }
 
 function isInPeriod(params: PayoutsParams, doc: PayoutDoc, field: string): boolean {
@@ -127,7 +129,7 @@ function isInPeriod(params: PayoutsParams, doc: PayoutDoc, field: string): boole
 }
 
 export function buildPayoutsCore(params: PayoutsParams, docs: PayoutsDocs): PayoutsCore {
-  const { vendorsDocs, merchantsDocs, ordersDocs, transactionsDocs } = docs
+  const { vendorsDocs, merchantsDocs, ordersDocs, transactionsDocs, commissionAdjustmentsDocs = [] } = docs
 
   const merchantMap = new Map<string, PayoutDoc>()
   merchantsDocs.forEach((m) => merchantMap.set(String(m.id), m))
@@ -174,6 +176,9 @@ export function buildPayoutsCore(params: PayoutsParams, docs: PayoutsDocs): Payo
   const refundedTxPeriod = transactionsDocs.filter(
     (t) => ['partially_refunded', 'refunded'].includes(String(t.status)) && isInPeriod(params, t, 'createdAt'),
   )
+  const commissionAdjustmentsPeriod = commissionAdjustmentsDocs.filter(
+    (entry) => entry.entry_type === 'adjustment' && isInPeriod(params, entry, 'effective_at'),
+  )
 
   return {
     ...params,
@@ -184,6 +189,7 @@ export function buildPayoutsCore(params: PayoutsParams, docs: PayoutsDocs): Payo
     filteredVendorIds,
     paidTxPeriod,
     refundedTxPeriod,
+    commissionAdjustmentsPeriod,
   }
 }
 
@@ -238,6 +244,7 @@ export interface VendorAggEntry {
   deliveryFees: number
   net: number
   refunded: number
+  manualAdjustments: number
 }
 
 export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
@@ -261,6 +268,7 @@ export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
       deliveryFees: 0,
       net: 0,
       refunded: 0,
+      manualAdjustments: 0,
     })
   }
   for (const t of core.paidTxPeriod) {
@@ -286,6 +294,16 @@ export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
     const agg = vendorAgg.get(ref.vendorId)
     if (!agg) continue
     agg.refunded += getNum(t.refunded_amount, getNum(t.amount))
+  }
+  for (const entry of core.commissionAdjustmentsPeriod) {
+    const vendorId = resolveId(entry.vendor)
+    if (!vendorId || (core.filteredVendorIds && !core.filteredVendorIds.has(vendorId))) continue
+    const agg = vendorAgg.get(vendorId)
+    if (!agg) continue
+    agg.commissionFees += getNum(entry.commission_amount)
+    agg.commissionTransactionFees += getNum(entry.commission_transaction_fee)
+    agg.manualAdjustments += getNum(entry.commission_vendor_net)
+    agg.net += getNum(entry.commission_vendor_net)
   }
   return vendorAgg
 }
@@ -327,11 +345,13 @@ export function toPayoutRows(vendorAgg: Map<string, VendorAggEntry>): PayoutRow[
 export function toPayoutSummary(rows: PayoutRow[]) {
   const totalGross = rows.reduce((s, r) => s + r.gross, 0)
   const totalNet = rows.reduce((s, r) => s + r.net, 0)
+  const totalManualAdjustments = rows.reduce((s, r) => s + r.manualAdjustments, 0)
   const totalOrders = rows.reduce((s, r) => s + r.orders, 0)
   const totalVendors = rows.length
   return {
     totalGross,
     totalNet,
+    totalManualAdjustments,
     totalPlatformFees: rows.reduce((s, r) => s + r.platformFees, 0),
     totalCommissionFees: rows.reduce((s, r) => s + r.commissionFees, 0),
     totalCommissionTransactionFees: rows.reduce((s, r) => s + r.commissionTransactionFees, 0),
@@ -362,6 +382,16 @@ export function buildDaily(core: PayoutsCore): { date: string; gross: number; ne
       e.orders += 1
       dailyMap.set(d, e)
     }
+  }
+  for (const entry of core.commissionAdjustmentsPeriod) {
+    const vendorId = resolveId(entry.vendor)
+    if (!vendorId || (core.filteredVendorIds && !core.filteredVendorIds.has(vendorId))) continue
+    const date = new Date(String(entry.effective_at ?? '')).toISOString().split('T')[0]
+    const amount = getNum(entry.commission_vendor_net)
+    if (!date || !amount) continue
+    const row = dailyMap.get(date) || { date, gross: 0, net: 0, orders: 0 }
+    row.net += amount
+    dailyMap.set(date, row)
   }
   return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
 }

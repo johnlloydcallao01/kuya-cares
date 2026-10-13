@@ -654,7 +654,7 @@ export const enum_commission_rules_scope = pgEnum('enum_commission_rules_scope',
 ])
 export const enum_vendor_commission_entries_entry_type = pgEnum(
   'enum_vendor_commission_entries_entry_type',
-  ['accrual', 'reversal'],
+  ['accrual', 'reversal', 'adjustment'],
 )
 export const enum_vendor_commission_entries_commission_source = pgEnum(
   'enum_vendor_commission_entries_commission_source',
@@ -4639,16 +4639,12 @@ export const vendor_commission_entries = pgTable(
       .references(() => vendors.id, {
         onDelete: 'set null',
       }),
-    order: integer('order_id')
-      .notNull()
-      .references(() => orders.id, {
-        onDelete: 'set null',
-      }),
-    transaction: integer('transaction_id')
-      .notNull()
-      .references(() => transactions.id, {
-        onDelete: 'set null',
-      }),
+    order: integer('order_id').references(() => orders.id, {
+      onDelete: 'set null',
+    }),
+    transaction: integer('transaction_id').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
     entry_type: enum_vendor_commission_entries_entry_type('entry_type').notNull(),
     idempotency_key: varchar('idempotency_key').notNull(),
     provider_refund_id: varchar('provider_refund_id'),
@@ -4663,6 +4659,10 @@ export const vendor_commission_entries = pgTable(
     commission_source:
       enum_vendor_commission_entries_commission_source('commission_source').notNull(),
     commission_rule: integer('commission_rule_id').references(() => commission_rules.id, {
+      onDelete: 'set null',
+    }),
+    adjustment_reason: varchar('adjustment_reason'),
+    adjustment_actor: integer('adjustment_actor_id').references(() => users.id, {
       onDelete: 'set null',
     }),
     effective_at: timestamp('effective_at', {
@@ -4696,6 +4696,9 @@ export const vendor_commission_entries = pgTable(
     vendor_commission_entries_commission_rule_idx: index(
       'vendor_commission_entries_commission_rule_idx',
     ).on(columns.commission_rule),
+    vendor_commission_entries_adjustment_actor_idx: index(
+      'vendor_commission_entries_adjustment_actor_idx',
+    ).on(columns.adjustment_actor),
     vendor_commission_entries_updated_at_idx: index('vendor_commission_entries_updated_at_idx').on(
       columns.updatedAt,
     ),
@@ -7104,6 +7107,11 @@ export const relations_vendor_commission_entries = relations(
       fields: [vendor_commission_entries.commission_rule],
       references: [commission_rules.id],
       relationName: 'commission_rule',
+    }),
+    adjustment_actor: one(users, {
+      fields: [vendor_commission_entries.adjustment_actor],
+      references: [users.id],
+      relationName: 'adjustment_actor',
     }),
   }),
 )

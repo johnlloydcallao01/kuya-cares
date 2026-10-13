@@ -4,13 +4,38 @@ import { randomUUID } from 'node:crypto'
 const isServiceOrAdmin = (user: { role?: string } | null | undefined) =>
   user?.role === 'service' || user?.role === 'admin'
 
+function relationshipId(value: unknown): string | number | null {
+  if (typeof value === 'string' || typeof value === 'number') return value
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id
+    if (typeof id === 'string' || typeof id === 'number') return id
+  }
+  return null
+}
+
+function auditSnapshot(doc: Record<string, unknown>) {
+  const scope = String(doc.scope ?? '')
+  const targetField = scope === 'vendor' || scope === 'category' || scope === 'plan' ? scope : null
+  return {
+    name: doc.name,
+    scope: doc.scope,
+    targetId: targetField ? relationshipId(doc[targetField]) : null,
+    priority: doc.priority,
+    commission_percent: doc.commission_percent,
+    transaction_fee: doc.transaction_fee,
+    effective_from: doc.effective_from,
+    effective_to: doc.effective_to,
+    is_active: doc.is_active,
+  }
+}
+
 export const CommissionRules: CollectionConfig = {
   slug: 'commission-rules',
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'scope', 'priority', 'commission_percent', 'is_active'],
     group: 'Finance',
-    description: 'Vendor debit resolution (never mutates order total)',
+    description: 'Vendor commission rules. Higher priority wins; ties prefer the most specific scope.',
   },
   access: {
     read: ({ req: { user } }) => {
@@ -39,7 +64,7 @@ export const CommissionRules: CollectionConfig = {
       type: 'number',
       required: true,
       defaultValue: 0,
-      admin: { description: 'Higher wins (vendor 100 > category 50 > plan 10 > global 0)' },
+      admin: { description: 'Higher wins. Equal priorities prefer vendor, category, plan, then global.' },
     },
     {
       name: 'plan',
@@ -60,7 +85,13 @@ export const CommissionRules: CollectionConfig = {
       admin: { description: "Only when scope === 'vendor'" },
     },
     { name: 'commission_percent', type: 'number', required: true, min: 0, max: 100 },
-    { name: 'transaction_fee', type: 'number', min: 0, defaultValue: 0 },
+    {
+      name: 'transaction_fee',
+      type: 'number',
+      min: 0,
+      defaultValue: 0,
+      admin: { description: 'Fixed amount charged once per paid order; refund reversals are proportional.' },
+    },
     { name: 'effective_from', type: 'date' },
     { name: 'effective_to', type: 'date' },
     { name: 'is_active', type: 'checkbox', defaultValue: true },
@@ -100,8 +131,8 @@ export const CommissionRules: CollectionConfig = {
         if (rule.effective_from && rule.effective_to) {
           const from = new Date(rule.effective_from).getTime()
           const to = new Date(rule.effective_to).getTime()
-          if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) {
-            throw new Error('Commission rule end date must be on or after its start date.')
+          if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) {
+            throw new Error('Commission rule end date must be after its start date.')
           }
         }
         return data
@@ -109,8 +140,10 @@ export const CommissionRules: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, previousDoc, operation, req }) => {
-        const targetField = doc.scope === 'vendor' ? 'vendor' : doc.scope === 'category' ? 'category' : doc.scope === 'plan' ? 'plan' : null
-        const target = targetField ? doc[targetField] : null
+        const before = operation === 'update' && previousDoc
+          ? auditSnapshot(previousDoc as Record<string, unknown>)
+          : null
+        const after = auditSnapshot(doc as Record<string, unknown>)
         await req.payload.create({
           collection: 'membership-audit-log',
           data: {
@@ -122,25 +155,10 @@ export const CommissionRules: CollectionConfig = {
               kind: 'commission-rule',
               operation,
               ruleId: doc.id,
-              name: doc.name,
-              scope: doc.scope,
-              targetId: typeof target === 'object' && target !== null && 'id' in target ? target.id : target,
-              priority: doc.priority,
-              commission_percent: doc.commission_percent,
-              transaction_fee: doc.transaction_fee,
-              effective_from: doc.effective_from,
-              effective_to: doc.effective_to,
-              is_active: doc.is_active,
-              previous: operation === 'update' ? {
-                name: previousDoc?.name,
-                scope: previousDoc?.scope,
-                priority: previousDoc?.priority,
-                commission_percent: previousDoc?.commission_percent,
-                transaction_fee: previousDoc?.transaction_fee,
-                effective_from: previousDoc?.effective_from,
-                effective_to: previousDoc?.effective_to,
-                is_active: previousDoc?.is_active,
-              } : null,
+              ...after,
+              before,
+              after,
+              previous: before,
             },
           },
           overrideAccess: true,
@@ -151,6 +169,7 @@ export const CommissionRules: CollectionConfig = {
     ],
     afterDelete: [
       async ({ doc, req }) => {
+        const before = auditSnapshot(doc as Record<string, unknown>)
         await req.payload.create({
           collection: 'membership-audit-log',
           data: {
@@ -162,14 +181,9 @@ export const CommissionRules: CollectionConfig = {
               kind: 'commission-rule',
               operation: 'delete',
               ruleId: doc.id,
-              name: doc.name,
-              scope: doc.scope,
-              priority: doc.priority,
-              commission_percent: doc.commission_percent,
-              transaction_fee: doc.transaction_fee,
-              effective_from: doc.effective_from,
-              effective_to: doc.effective_to,
-              is_active: doc.is_active,
+              ...before,
+              before,
+              after: null,
             },
           },
           overrideAccess: true,

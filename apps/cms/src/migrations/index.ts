@@ -86,6 +86,7 @@ import * as migration_20261013_100008 from './20261013_100008';
 import * as migration_20261013_111807 from './20261013_111807';
 import * as migration_20261013_112838 from './20261013_112838';
 import * as migration_20261013_113000_mark_historical_commissions from './20261013_113000_mark_historical_commissions';
+import * as migration_20261013_135802_commission_adjustments from './20261013_135802_commission_adjustments';
 
 export const migrations = [
   {
@@ -521,11 +522,16 @@ export const migrations = [
   {
     up: migration_20261013_112838.up,
     down: migration_20261013_112838.down,
-    name: '20261013_112838'
+    name: '20261013_112838',
   },
   {
     up: migration_20261013_113000_mark_historical_commissions.up,
     down: migration_20261013_113000_mark_historical_commissions.down,
     name: '20261013_113000_mark_historical_commissions',
+  },
+  {
+    up: migration_20261013_135802_commission_adjustments.up,
+    down: migration_20261013_135802_commission_adjustments.down,
+    name: '20261013_135802_commission_adjustments'
   },
 ];

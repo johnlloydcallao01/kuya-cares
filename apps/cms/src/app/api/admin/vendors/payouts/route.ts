@@ -85,18 +85,34 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const periodStart = days === 0 ? null : new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
 
-    const [vendorsRes, merchantsRes, ordersRes, transactionsRes, reviewsRes] = await Promise.all([
+    const [vendorsRes, merchantsRes, ordersRes, transactionsRes, reviewsRes, adjustmentsRes] = await Promise.all([
       payload.find({ collection: 'vendors', limit: 2000, depth: 1, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'merchants', limit: 2000, depth: 1, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'orders', limit: 5000, sort: '-createdAt', depth: 1, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'transactions', limit: 5000, depth: 1, overrideAccess: true, pagination: false } as any),
       payload.find({ collection: 'reviews', limit: 0, depth: 0, overrideAccess: true, pagination: false } as any).catch(() => ({ docs: [] } as any)),
+      payload.find({
+        collection: 'vendor-commission-entries',
+        where: periodStart
+          ? { and: [
+              { entry_type: { equals: 'adjustment' } },
+              { effective_at: { greater_than_equal: periodStart.toISOString() } },
+              { effective_at: { less_than_equal: now.toISOString() } },
+            ] }
+          : { entry_type: { equals: 'adjustment' } },
+        limit: 0,
+        sort: '-effective_at',
+        depth: 1,
+        overrideAccess: true,
+        pagination: false,
+      } as any),
     ])
 
     const vendorsDocs = (vendorsRes.docs as unknown as Record<string, any>[]) || []
     const merchantsDocs = (merchantsRes.docs as unknown as Record<string, any>[]) || []
     const ordersDocs = (ordersRes.docs as unknown as Record<string, any>[]) || []
     const transactionsDocs = (transactionsRes.docs as unknown as Record<string, any>[]) || []
+    const adjustmentDocs = (adjustmentsRes.docs as unknown as Record<string, any>[]) || []
 
     const merchantMap = new Map<string, Record<string, any>>()
     merchantsDocs.forEach((m: any) => merchantMap.set(String(m.id), m as Record<string, any>))
@@ -134,7 +150,7 @@ export async function GET(request: NextRequest) {
     const refundedTxPeriod = transactionsDocs.filter((t) => ['partially_refunded', 'refunded'].includes(String(t.status)) && isInPeriod(t as Record<string, any>, 'createdAt'))
 
     // Build vendor payout aggregation (verified revenue per vendor, like reports)
-    const vendorAgg = new Map<string, { businessName: string; legalName: string; businessType: string; verificationStatus: string; isActive: boolean; logo: { id: number; url: string | null } | null; totalMerchants: number; averageRating: number; orders: number; gross: number; platformFees: number; deliveryFees: number; commissionFees: number; commissionTransactionFees: number; net: number; refunded: number }>()
+    const vendorAgg = new Map<string, { businessName: string; legalName: string; businessType: string; verificationStatus: string; isActive: boolean; logo: { id: number; url: string | null } | null; totalMerchants: number; averageRating: number; orders: number; gross: number; platformFees: number; deliveryFees: number; commissionFees: number; commissionTransactionFees: number; manualAdjustments: number; net: number; refunded: number }>()
     // Pre-init with filtered vendors so zero-payout vendors still appear
     const vendorsForAgg = filteredVendorIds ? vendorsDocs.filter((v: any) => filteredVendorIds!.has(String(v.id))) : vendorsDocs
     for (const v of vendorsForAgg as any[]) {
@@ -148,7 +164,7 @@ export async function GET(request: NextRequest) {
         logo: sanitizeMediaRef(v.logo),
         totalMerchants: getNum(v.totalMerchants),
         averageRating: getNum(v.averageRating),
-        orders: 0, gross: 0, platformFees: 0, deliveryFees: 0, commissionFees: 0, commissionTransactionFees: 0, net: 0, refunded: 0,
+        orders: 0, gross: 0, platformFees: 0, deliveryFees: 0, commissionFees: 0, commissionTransactionFees: 0, manualAdjustments: 0, net: 0, refunded: 0,
       })
     }
 
@@ -210,6 +226,24 @@ export async function GET(request: NextRequest) {
       if (!agg) continue
       agg.refunded += getNum((t as any).refunded_amount, getNum(t.amount))
     }
+    for (const entry of adjustmentDocs) {
+      if (!isInPeriod(entry, 'effective_at')) continue
+      const vendorId = resolveId(entry.vendor)
+      if (!vendorId || (filteredVendorIds && !filteredVendorIds.has(vendorId))) continue
+      const agg = vendorAgg.get(vendorId)
+      if (!agg) continue
+      const vendorBalanceDelta = getNum(entry.commission_vendor_net)
+      agg.commissionFees += getNum(entry.commission_amount)
+      agg.commissionTransactionFees += getNum(entry.commission_transaction_fee)
+      agg.manualAdjustments += vendorBalanceDelta
+      agg.net += vendorBalanceDelta
+      const date = new Date(String(entry.effective_at ?? '')).toISOString().split('T')[0]
+      if (date) {
+        const row = dailyMap.get(date) || { date, gross: 0, net: 0, orders: 0 }
+        row.net += vendorBalanceDelta
+        dailyMap.set(date, row)
+      }
+    }
 
     // Enrich totalMerchants live count
     const merchantCountByVendor = new Map<string, number>()
@@ -240,6 +274,7 @@ export async function GET(request: NextRequest) {
       deliveryFees: v.deliveryFees,
       commissionFees: v.commissionFees,
       commissionTransactionFees: v.commissionTransactionFees,
+      manualAdjustments: v.manualAdjustments,
       net: v.net,
       refunded: v.refunded,
       avgOrder: v.orders ? v.gross / v.orders : 0,
@@ -256,6 +291,7 @@ export async function GET(request: NextRequest) {
     const totalDeliveryFees = rows.reduce((s, r) => s + r.deliveryFees, 0)
     const totalCommissionFees = rows.reduce((s, r) => s + r.commissionFees, 0)
     const totalCommissionTransactionFees = rows.reduce((s, r) => s + r.commissionTransactionFees, 0)
+    const totalManualAdjustments = rows.reduce((s, r) => s + r.manualAdjustments, 0)
     const totalRefunded = rows.reduce((s, r) => s + r.refunded, 0)
     const totalOrders = rows.reduce((s, r) => s + r.orders, 0)
     const totalVendors = rows.length
@@ -287,6 +323,7 @@ export async function GET(request: NextRequest) {
         totalDeliveryFees,
         totalCommissionFees,
         totalCommissionTransactionFees,
+        totalManualAdjustments,
         totalRefunded,
         totalOrders,
         totalVendors,

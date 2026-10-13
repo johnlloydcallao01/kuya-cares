@@ -2,18 +2,26 @@ import { describe, expect, it } from 'vitest'
 import {
   calculateCommissionAmounts,
   calculateRefundReversalDelta,
+  getCommissionDiscountAmounts,
   selectApplicableCommissionRule,
 } from '../../src/services/CommissionService'
+import {
+  buildDaily,
+  buildPayoutsCore,
+  buildVendorAgg,
+  parsePayoutsParams,
+  toPayoutRows,
+} from '../../src/utils/payoutsShared'
 
 describe('marketplace commission calculation', () => {
-  it('charges commission on merchandise after vendor-funded discounts, excluding checkout fees', () => {
+  it('charges commission on the discounted product base, excluding checkout fees', () => {
     expect(
       calculateCommissionAmounts(1000, 50, {
         pct: 10,
         transactionFee: 5,
         source: 'vendor',
         ruleId: 12,
-      }),
+      }, 50),
     ).toEqual({
       baseAmount: 950,
       vendorDiscount: 50,
@@ -30,7 +38,7 @@ describe('marketplace commission calculation', () => {
         transactionFee: 25,
         source: 'global',
         ruleId: null,
-      }),
+      }, 0),
     ).toEqual({
       baseAmount: 100,
       vendorDiscount: 0,
@@ -44,8 +52,31 @@ describe('marketplace commission calculation', () => {
         transactionFee: 0,
         source: 'global',
         ruleId: null,
-      }).commissionAmount,
+      }, 0).commissionAmount,
     ).toBe(0.99)
+  })
+
+  it('includes all product discounts but excludes delivery discounts from the commission base', () => {
+    const discounts = getCommissionDiscountAmounts([
+      { food_discount: 40, delivery_discount: 30, total_discount: 70, funded_by: 'split', vendor_share_pct: 50, vendor_share: 35 },
+      { food_discount: 10, delivery_discount: 5, total_discount: 15, funded_by: 'vendor', vendor_share: 15 },
+      { food_discount: 20, delivery_discount: 40, total_discount: 60, funded_by: 'platform', vendor_share: 0 },
+    ])
+    expect(discounts).toEqual({ vendorDiscount: 50, productDiscount: 70 })
+    expect(
+      calculateCommissionAmounts(1000, discounts.vendorDiscount, {
+        pct: 10,
+        transactionFee: 5,
+        source: 'global',
+        ruleId: null,
+      }, discounts.productDiscount),
+    ).toEqual({
+      baseAmount: 930,
+      vendorDiscount: 50,
+      commissionAmount: 93,
+      transactionFee: 5,
+      vendorNet: 852,
+    })
   })
 
   it('chooses the highest-priority active rule that matches the seller context', () => {
@@ -99,6 +130,22 @@ describe('marketplace commission calculation', () => {
     expect(selected?.id).toBe(2)
   })
 
+  it('resolves equal-priority rules by specificity, latest start date, and stable ID', () => {
+    const selected = selectApplicableCommissionRule(
+      [
+        { id: 8, scope: 'vendor', vendor: 9, priority: 20, commission_percent: 8, is_active: true, effective_from: '2026-10-12T00:00:00.000Z' },
+        { id: 3, scope: 'vendor', vendor: 9, priority: 20, commission_percent: 7, is_active: true, effective_from: '2026-10-13T00:00:00.000Z' },
+        { id: 4, scope: 'vendor', vendor: 9, priority: 20, commission_percent: 6, is_active: true, effective_from: '2026-10-13T00:00:00.000Z' },
+        { id: 1, scope: 'category', category: 4, priority: 20, commission_percent: 5, is_active: true, effective_from: '2026-10-14T00:00:00.000Z' },
+      ],
+      9,
+      '',
+      new Set(['4']),
+      new Date('2026-10-14T12:00:00.000Z'),
+    )
+    expect(selected?.id).toBe(3)
+  })
+
   it('prorates partial refunds cumulatively and caps reversals at the accrual', () => {
     const accrual = {
       commission_base_amount: 950,
@@ -133,5 +180,35 @@ describe('marketplace commission calculation', () => {
       commission_transaction_fee: -2,
       commission_vendor_net: -340,
     })
+
+  })
+
+  it('includes manual commission-ledger adjustments in vendor payout balances', () => {
+    const core = buildPayoutsCore(parsePayoutsParams(new URLSearchParams('range=all')), {
+      vendorsDocs: [{ id: 9, businessName: 'Test vendor' }],
+      merchantsDocs: [],
+      ordersDocs: [],
+      transactionsDocs: [],
+      commissionAdjustmentsDocs: [{
+        id: 101,
+        vendor: 9,
+        entry_type: 'adjustment',
+        commission_amount: 3,
+        commission_transaction_fee: -1,
+        commission_vendor_net: 10,
+        effective_at: '2026-10-13T10:00:00.000Z',
+      }],
+    })
+    const [row] = toPayoutRows(buildVendorAgg(core))
+    expect(row.manualAdjustments).toBe(10)
+    expect(row.commissionFees).toBe(3)
+    expect(row.commissionTransactionFees).toBe(-1)
+    expect(row.net).toBe(10)
+    expect(buildDaily(core)).toEqual([{
+      date: '2026-10-13',
+      gross: 0,
+      net: 10,
+      orders: 0,
+    }])
   })
 })

@@ -133,13 +133,13 @@ function PayoutsPageContent() {
 
   const handleExport = () => {
     if(!rows.length) return
-    const headers = ['Vendor','Legal Name','Type','Verification','Is Active','Outlets','Orders','Gross','Platform Fee','Delivery Fee','Commission','Commission Transaction Fee','Net Vendor Balance','Refunded','Avg Order']
+    const headers = ['Vendor','Legal Name','Type','Verification','Is Active','Outlets','Orders','Gross','Platform Fee','Delivery Fee','Commission','Commission Transaction Fee','Manual Vendor Balance Adjustments','Net Vendor Balance','Refunded','Avg Order']
     const csvRows = rows.map(r=>[
       `"${r.businessName.replace(/"/g,'""')}"`,
       `"${r.legalName.replace(/"/g,'""')}"`,
       r.businessType, r.verificationStatus, String(r.isActive), String(r.totalMerchants),
       String(r.orders), String(r.gross.toFixed(2)), String(r.platformFees.toFixed(2)), String(r.deliveryFees.toFixed(2)),
-      String(r.commissionFees.toFixed(2)), String(r.commissionTransactionFees.toFixed(2)),
+      String(r.commissionFees.toFixed(2)), String(r.commissionTransactionFees.toFixed(2)), String(r.manualAdjustments.toFixed(2)),
       String(r.net.toFixed(2)), String(r.refunded.toFixed(2)), String(r.avgOrder.toFixed(2))
     ])
     const csv=[headers.join(','), ...csvRows.map(r=>r.join(','))].join('\n')
@@ -178,7 +178,7 @@ function PayoutsPageContent() {
         </div>
       ) : data ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          <KpiCard title="Net vendor balance" value={fmtCompact(data.summary.totalNet)} sub={`${data.summary.totalVendors} vendors • ${data.summary.totalOrders} orders`} icon={<Coins className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
+          <KpiCard title="Net vendor balance" value={fmtCompact(data.summary.totalNet)} sub={`${data.summary.totalVendors} vendors • ${data.summary.totalOrders} orders • adjustments ${fmtCompact(data.summary.totalManualAdjustments)}`} icon={<Coins className="w-5 h-5 text-white" />} iconBg="bg-[#239459]" />
           <KpiCard title="Total Gross" value={fmtCompact(data.summary.totalGross)} sub={`Avg order ${fmtPHP(data.summary.avgOrder)}`} icon={<DollarSign className="w-5 h-5 text-white" />} iconBg="bg-emerald-500" />
           <KpiCard title="Platform + Delivery Fees" value={fmtCompact(data.summary.totalPlatformFees + data.summary.totalDeliveryFees)} sub={`Platform ${fmtCompact(data.summary.totalPlatformFees)} • Delivery ${fmtCompact(data.summary.totalDeliveryFees)}`} icon={<Receipt className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
           <KpiCard title="Commission + transaction fees" value={fmtCompact(data.summary.totalCommissionFees + data.summary.totalCommissionTransactionFees)} sub={`Commission ${fmtCompact(data.summary.totalCommissionFees)} • Transaction ${fmtCompact(data.summary.totalCommissionTransactionFees)}`} icon={<Receipt className="w-5 h-5 text-white" />} iconBg="bg-zinc-600" />
@@ -273,6 +273,7 @@ function PayoutsPageContent() {
                     <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">Delivery Fee</th>
                     <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">Commission</th>
                     <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">Txn Fee</th>
+                    <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">Manual Adjustment</th>
                     <th className="text-right px-4 py-3 font-medium">Net Vendor Balance</th>
                     <th className="text-right px-4 py-3 font-medium hidden md:table-cell">Refunded</th>
                     <th className="text-right px-4 py-3 font-medium">Actions</th>
@@ -300,6 +301,7 @@ function PayoutsPageContent() {
                       <td className="px-4 py-3 text-right hidden sm:table-cell text-gray-600 dark:text-[#a1a1aa]">{fmtPHP(r.deliveryFees)}</td>
                       <td className="px-4 py-3 text-right hidden lg:table-cell text-gray-600 dark:text-[#a1a1aa]">{fmtPHP(r.commissionFees)}</td>
                       <td className="px-4 py-3 text-right hidden lg:table-cell text-gray-600 dark:text-[#a1a1aa]">{fmtPHP(r.commissionTransactionFees)}</td>
+                      <td className="px-4 py-3 text-right hidden lg:table-cell text-gray-600 dark:text-[#a1a1aa]">{fmtPHP(r.manualAdjustments)}</td>
                       <td className="px-4 py-3 text-right"><span className="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">{fmtPHP(r.net)}</span></td>
                       <td className="px-4 py-3 text-right hidden md:table-cell"><span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${r.refunded>0?'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300':'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#262626] dark:text-[#a1a1aa]'}`}>{r.refunded?fmtPHP(r.refunded):'—'}</span></td>
                       <td className="px-4 py-3 text-right">
