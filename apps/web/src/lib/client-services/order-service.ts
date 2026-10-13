@@ -26,11 +26,11 @@ function resolveImageUrl(url: string | null | undefined): string {
 }
 
 function merchantNameOf(merchant: any): string {
-  if (!merchant || typeof merchant !== 'object') return 'Unknown Restaurant';
+  if (!merchant || typeof merchant !== 'object') return 'Unknown Merchant';
   if (merchant.outletName?.trim()) return merchant.outletName;
   if (merchant.name?.trim()) return merchant.name;
   if (merchant.vendor?.businessName?.trim()) return merchant.vendor.businessName;
-  return 'Unknown Restaurant';
+  return 'Unknown Merchant';
 }
 
 function merchantLogoOf(merchant: any): string | null {

@@ -477,7 +477,7 @@ function ResultsContent() {
         </label>
         {query.trim().length === 0 ? (
           <div className="text-gray-500 text-sm">
-            Use the search bar in the header to find restaurants and foods.
+            Use the search bar in the header to find merchants and items.
           </div>
         ) : isFetching && results.length === 0 ? (
           <div className="grid grid-cols-1 gap-6">

@@ -41,7 +41,7 @@ export default function OrderHeader({
               <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#202020] flex items-center justify-center overflow-hidden flex-shrink-0">
                 <Image
                   src={merchantLogo}
-                  alt={restaurantName || 'Restaurant logo'}
+                  alt={restaurantName || 'Merchant logo'}
                   width={40}
                   height={40}
                   className="object-contain"

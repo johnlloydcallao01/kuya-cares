@@ -47,19 +47,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const id = slugId ? slugId.toString().split('-').pop() || '' : '';
   if (!id) {
     return {
-      title: 'Restaurant Not Found | Tap2Go',
-      description: 'The requested restaurant could not be found.'
+      title: 'Merchant Not Found | Tap2Go',
+      description: 'The requested merchant could not be found.'
     };
   }
   const merchant = await getMerchantById(id);
   if (!merchant) {
     return {
-      title: 'Restaurant Not Found | Tap2Go',
-      description: 'The requested restaurant could not be found.'
+      title: 'Merchant Not Found | Tap2Go',
+      description: 'The requested merchant could not be found.'
     };
   }
 
-  const titleBase = merchant.outletName || 'Restaurant';
+  const titleBase = merchant.outletName || 'Merchant';
   const vendorName = merchant.vendor?.businessName ? ` | ${merchant.vendor.businessName}` : '';
   const title = `${titleBase}${vendorName} | Tap2Go`;
 

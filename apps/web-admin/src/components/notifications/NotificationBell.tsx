@@ -52,11 +52,11 @@ export function NotificationBell() {
         onClick={handleClick}
         aria-label="Notifications"
         aria-expanded={open}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--card-border)] bg-[var(--card-background)] text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+        className="p-2 hover:bg-gray-100 dark:hover:bg-[#262626] rounded-full text-gray-600 dark:text-[#a1a1aa] hover:text-gray-800 dark:hover:text-white transition-colors relative"
       >
-        <i className="fa fa-bell text-sm" />
+        <i className="fas fa-bell text-lg"></i>
         {!!notifications?.unseenCount && (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[11px] font-semibold flex items-center justify-center leading-none" style={{ backgroundColor: '#239459' }}>
             {notifications.unseenCount > 9 ? '9+' : notifications.unseenCount}
           </span>
         )}

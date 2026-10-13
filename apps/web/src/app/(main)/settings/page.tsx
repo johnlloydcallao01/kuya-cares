@@ -1110,7 +1110,7 @@ function SettingsContent() {
                   {toggleRow('orderPush', 'Push updates', 'Real-time order alerts on your devices')}
                   {toggleRow('orderSms', 'SMS updates', 'Text alerts for critical order events')}
                   <h3 className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mt-4">Promotions</h3>
-                  {toggleRow('promoEmail', 'Email promos', 'Vouchers, deals and new restaurants')}
+                  {toggleRow('promoEmail', 'Email promos', 'Vouchers, deals and new merchants')}
                   {toggleRow('promoPush', 'Push promos', 'Flash deals on your devices')}
                   {toggleRow('promoSms', 'SMS promos', 'Text offers (standard rates may apply)')}
                   <h3 className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mt-4">Account</h3>

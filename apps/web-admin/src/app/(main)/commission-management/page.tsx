@@ -276,8 +276,14 @@ export default function CommissionManagementPage() {
       setSaving(false)
       return
     }
-    if (form.effective_from && form.effective_to && new Date(form.effective_to) < new Date(form.effective_from)) {
-      setError('The end date must be on or after the start date.')
+    const targetId = form.scope === 'global' ? null : Number(form.targetId)
+    if (targetId !== null && (!Number.isSafeInteger(targetId) || targetId <= 0)) {
+      setError(`The selected ${form.scope} has an invalid ID. Reload the options and select it again.`)
+      setSaving(false)
+      return
+    }
+    if (form.effective_from && form.effective_to && new Date(form.effective_to) <= new Date(form.effective_from)) {
+      setError('The end date must be after the start date.')
       setSaving(false)
       return
     }
@@ -290,9 +296,9 @@ export default function CommissionManagementPage() {
       effective_from: form.effective_from ? new Date(form.effective_from).toISOString() : null,
       effective_to: form.effective_to ? new Date(form.effective_to).toISOString() : null,
       is_active: form.is_active,
-      plan: form.scope === 'plan' ? form.targetId : null,
-      category: form.scope === 'category' ? form.targetId : null,
-      vendor: form.scope === 'vendor' ? form.targetId : null,
+      plan: form.scope === 'plan' ? targetId : null,
+      category: form.scope === 'category' ? targetId : null,
+      vendor: form.scope === 'vendor' ? targetId : null,
     }
     try {
       const response = await fetch(editingId ? `/api/commission-rules/${encodeURIComponent(editingId)}` : '/api/commission-rules', {

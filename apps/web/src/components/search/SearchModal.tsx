@@ -561,7 +561,7 @@ export default function SearchModal({ isOpen, onClose, initialQuery }: Props) {
                         <div>{s.text}</div>
                         {s.source === 'product' && (
                           <div className="mt-1">
-                            <span className="px-2 py-0.5 text-xs text-gray-600 bg-gray-100 rounded">in Restaurants</span>
+                            <span className="px-2 py-0.5 text-xs text-gray-600 bg-gray-100 rounded">in Merchants</span>
                           </div>
                         )}
                       </div>

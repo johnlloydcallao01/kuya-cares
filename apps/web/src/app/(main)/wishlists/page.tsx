@@ -382,7 +382,7 @@ export default function WishlistsPage() {
                   </span>
                 ) : (
                   <>
-                    {merchantCount} restaurants, {productCount} items saved
+                    {merchantCount} merchants, {productCount} items saved
                   </>
                 )}
               </div>
@@ -511,7 +511,7 @@ export default function WishlistsPage() {
               Sign in to see your wishlist
             </h3>
             <p className="text-gray-600 mb-6">
-              Save restaurants and food items across devices once you&apos;re signed in.
+              Save merchants and items across devices once you&apos;re signed in.
             </p>
             <Link
               href="/signin"
@@ -550,7 +550,7 @@ export default function WishlistsPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Restaurants
+                    Merchants
                   </h2>
                   <span className="text-sm text-gray-500">
                     {visibleMerchantDocs.length} saved

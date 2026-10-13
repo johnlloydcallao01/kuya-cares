@@ -195,7 +195,7 @@ export default function CartPage() {
               onClick={() => router.push('/' as any)}
             >
               <i className="fas fa-utensils mr-2"></i>
-              Browse Restaurants
+              Browse Merchants
             </button>
           )}
         </div>

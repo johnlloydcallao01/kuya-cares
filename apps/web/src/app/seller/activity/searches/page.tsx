@@ -43,7 +43,7 @@ const SORTS: { value: string; label: string }[] = [
 ]
 
 const SCOPE_OPTS = [
-  { value: 'restaurants', label: 'Restaurants' },
+  { value: 'restaurants', label: 'Merchants' },
   { value: 'merchant_menu', label: 'Merchant menu' },
   { value: 'global', label: 'Global' },
 ]

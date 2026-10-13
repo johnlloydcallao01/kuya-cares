@@ -426,7 +426,7 @@ export default function OrdersPage() {
               <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
               <input
                 type="text"
-                placeholder="Search by order #, restaurant, or item…"
+                placeholder="Search by order #, merchant, or item…"
                 value={searchInput}
                 onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
                 className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-[#202020] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-transparent rounded-xl focus:ring-2 focus:bg-white dark:focus:bg-[#262626] focus:border-transparent transition-all text-sm outline-none"
@@ -554,7 +554,7 @@ export default function OrdersPage() {
                   className="inline-block px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-md hover:opacity-90"
                   style={{ backgroundColor: BRAND }}
                 >
-                  <i className="fas fa-utensils mr-2" />Browse restaurants
+                  <i className="fas fa-utensils mr-2" />Browse merchants
                 </Link>
               )}
             </div>

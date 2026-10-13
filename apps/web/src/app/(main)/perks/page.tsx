@@ -47,7 +47,7 @@ export default function PerksPage() {
     {
       id: 3,
       title: 'Early Access',
-      description: 'First access to new restaurants and menus',
+      description: 'First access to new merchants and products',
       category: 'exclusive',
       tier: 'Gold',
       icon: 'fa-star',

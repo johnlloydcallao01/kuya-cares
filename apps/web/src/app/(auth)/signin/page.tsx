@@ -196,7 +196,7 @@ function SignInContent() {
                     <i className="fa fa-certificate text-sm"></i>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Trusted Restaurants</h3>
+                    <h3 className="font-semibold mb-1">Trusted Merchants</h3>
                     <p className="text-blue-100 text-sm">Curated local favorites from verified partners</p>
                   </div>
                 </div>

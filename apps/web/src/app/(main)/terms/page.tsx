@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 
 /**
- * Terms and Conditions Page - Legal terms for Kuya Cares food delivery service
+ * Terms and Conditions Page - Legal terms for the Kuya Cares marketplace
  * Features comprehensive terms with minimal design
  */
 export default function TermsPage() {
@@ -71,7 +71,7 @@ export default function TermsPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Overview</h2>
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-600 mb-4">
-                      Welcome to Kuya Cares, your premier food delivery platform in the Philippines. These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, mobile application, and services.
+                      Welcome to Kuya Cares, a marketplace connecting customers with local merchants in the Philippines. These Terms and Conditions (&quot;Terms&quot;) govern your use of our website, mobile application, and services.
                     </p>
                     <p className="text-gray-600 mb-4">
                       By accessing or using Kuya Cares, you agree to be bound by these Terms. If you do not agree with any part of these terms, you may not use our services.
@@ -109,12 +109,12 @@ export default function TermsPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">Our Services</h2>
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-600 mb-4">
-                      Kuya Cares provides an online platform that connects customers with local restaurants and food establishments for food ordering and delivery services.
+                      Kuya Cares provides an online platform that connects customers with local merchants for product ordering and delivery services.
                     </p>
                     <h4 className="font-semibold text-gray-900 mb-2">Service Description</h4>
                     <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
-                      <li>Online food ordering platform</li>
-                      <li>Restaurant discovery and menu browsing</li>
+                      <li>Online marketplace for merchant products</li>
+                      <li>Merchant discovery and product browsing</li>
                       <li>Order processing and payment handling</li>
                       <li>Delivery coordination and tracking</li>
                       <li>Customer support services</li>
@@ -156,7 +156,7 @@ export default function TermsPage() {
                   <div className="prose prose-gray max-w-none">
                     <h4 className="font-semibold text-gray-900 mb-2">Order Placement</h4>
                     <p className="text-gray-600 mb-4">
-                      When you place an order through our platform, you are making an offer to purchase food items from the restaurant. Orders are subject to acceptance by the restaurant.
+                      When you place an order through our platform, you are making an offer to purchase items from the merchant. Orders are subject to acceptance by the merchant.
                     </p>
                     <h4 className="font-semibold text-gray-900 mb-2">Pricing and Fees</h4>
                     <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
@@ -188,7 +188,7 @@ export default function TermsPage() {
                     <h4 className="font-semibold text-gray-900 mb-2">Delivery Times</h4>
                     <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
                       <li>Estimated delivery times are approximate and may vary</li>
-                      <li>Delivery times depend on restaurant preparation time, distance, and traffic conditions</li>
+                      <li>Delivery times depend on merchant preparation time, distance, and traffic conditions</li>
                       <li>We are not liable for delays caused by circumstances beyond our control</li>
                     </ul>
                     <h4 className="font-semibold text-gray-900 mb-2">Delivery Requirements</h4>
@@ -232,7 +232,7 @@ export default function TermsPage() {
                     </p>
                     <h4 className="font-semibold text-gray-900 mb-2">Food Quality and Safety</h4>
                     <p className="text-gray-600 mb-4">
-                      Restaurants are responsible for food quality, safety, and preparation. We are not liable for food-related issues, allergic reactions, or foodborne illnesses.
+                      Merchants are responsible for product quality, safety, and preparation. We are not liable for product-related issues, allergic reactions, or foodborne illnesses.
                     </p>
                     <h4 className="font-semibold text-gray-900 mb-2">Limitation of Liability</h4>
                     <p className="text-gray-600 mb-4">

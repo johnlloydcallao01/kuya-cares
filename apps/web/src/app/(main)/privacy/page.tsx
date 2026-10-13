@@ -125,7 +125,7 @@ export default function PrivacyPage() {
 
                     <h4 className="font-semibold text-gray-900 mb-2">Location Information</h4>
                     <p className="text-gray-600 mb-4">
-                      We collect location information to provide delivery services, find nearby restaurants, and estimate delivery times. You can control location sharing through your device settings.
+                      We collect location information to provide delivery services, find nearby merchants, and estimate delivery times. You can control location sharing through your device settings.
                     </p>
                   </div>
                 </div>
@@ -182,7 +182,7 @@ export default function PrivacyPage() {
 
                     <h4 className="font-semibold text-gray-900 mb-2">Service Providers</h4>
                     <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
-                      <li>Restaurant partners (order details and delivery information)</li>
+                      <li>Merchant partners (order details and delivery information)</li>
                       <li>Delivery partners (delivery address and contact information)</li>
                       <li>Payment processors (payment information for transaction processing)</li>
                       <li>Technology service providers (hosting, analytics, customer support)</li>

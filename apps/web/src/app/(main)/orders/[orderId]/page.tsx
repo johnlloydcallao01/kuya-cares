@@ -233,7 +233,7 @@ export default function OrderDetailPage({ params }: PageProps) {
           placedAt: data.placed_at ? formatOrderDateTime(data.placed_at) : '',
           status: data.status as OrderStatus,
           restaurantName: (() => {
-            let name = 'Unknown Restaurant';
+            let name = 'Unknown Merchant';
             const merchant = data.merchant;
             if (merchant && typeof merchant === 'object') {
               if (merchant.outletName && merchant.outletName.trim() !== '') {

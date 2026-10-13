@@ -447,7 +447,7 @@ export default function RecentlyViewedPage() {
 
   const filterOptions = useMemo(() => {
     const total = recentViews.length;
-    const restaurantCount = recentViews.filter(
+    const merchantCount = recentViews.filter(
       (doc) => doc?.itemType === 'merchant' && doc?.merchant,
     ).length;
     const foodCount = recentViews.filter(
@@ -457,7 +457,7 @@ export default function RecentlyViewedPage() {
     ).length;
     return [
       { id: 'all', label: 'All Items', count: total },
-      { id: 'restaurants', label: 'Restaurants', count: restaurantCount },
+      { id: 'restaurants', label: 'Merchants', count: merchantCount },
       { id: 'food_items', label: 'Food Items', count: foodCount },
     ];
   }, [recentViews]);
@@ -652,7 +652,7 @@ export default function RecentlyViewedPage() {
               {merchantTiles.length > 0 && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                    Recently viewed restaurants
+                    Recently viewed merchants
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {merchantTiles.map((doc) => (

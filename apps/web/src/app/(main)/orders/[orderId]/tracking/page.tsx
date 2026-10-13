@@ -230,7 +230,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             placedAt: placedAt ? formatOrderDateTime(order.placed_at) : '',
             status: order.status,
             restaurantName: (() => {
-              let name = 'Unknown Restaurant';
+              let name = 'Unknown Merchant';
               const merchant = order.merchant;
               if (merchant && typeof merchant === 'object') {
                 if (merchant.outletName && merchant.outletName.trim() !== '') {
