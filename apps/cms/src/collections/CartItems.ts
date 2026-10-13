@@ -425,6 +425,10 @@ export const CartItems: CollectionConfig = {
                         depth: 0,
                     })
 
+                    if (product.approvalStatus !== 'approved') {
+                        throw new Error('This product is not approved for sale')
+                    }
+
                     if (product.productType === 'variable' && !currentVariationId) {
                         throw new Error('Variable products require a selectedVariation')
                     }

@@ -134,10 +134,11 @@ function sanitizeTransactionDoc(raw: Record<string, any>): Record<string, any> {
     currency: str(raw.currency, 'PHP') || 'PHP',
     status,
     paid_at: raw.paid_at ? String(raw.paid_at) : null,
+    refunded_amount: num(raw.refunded_amount, 0),
     createdAt: String(raw.createdAt ?? ''),
     updatedAt: String(raw.updatedAt ?? ''),
     order: sanitizeOrderBrief(raw.order),
-    isPaid: status === 'paid',
+    isPaid: status === 'paid' || status === 'partially_refunded',
   }
 }
 

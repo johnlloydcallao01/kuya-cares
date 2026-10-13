@@ -137,6 +137,7 @@ export interface Config {
     'vendor-subscriptions': VendorSubscription;
     'subscription-invoices': SubscriptionInvoice;
     'commission-rules': CommissionRule;
+    'vendor-commission-entries': VendorCommissionEntry;
     'vendor-entitlements': VendorEntitlement;
     'membership-audit-log': MembershipAuditLog;
     'member-invites': MemberInvite;
@@ -219,6 +220,7 @@ export interface Config {
     'vendor-subscriptions': VendorSubscriptionsSelect<false> | VendorSubscriptionsSelect<true>;
     'subscription-invoices': SubscriptionInvoicesSelect<false> | SubscriptionInvoicesSelect<true>;
     'commission-rules': CommissionRulesSelect<false> | CommissionRulesSelect<true>;
+    'vendor-commission-entries': VendorCommissionEntriesSelect<false> | VendorCommissionEntriesSelect<true>;
     'vendor-entitlements': VendorEntitlementsSelect<false> | VendorEntitlementsSelect<true>;
     'membership-audit-log': MembershipAuditLogSelect<false> | MembershipAuditLogSelect<true>;
     'member-invites': MemberInvitesSelect<false> | MemberInvitesSelect<true>;
@@ -1570,7 +1572,7 @@ export interface CommissionRule {
   /**
    * Only when scope === 'category'
    */
-  category?: (number | null) | ProductCategory;
+  category?: (number | null) | MerchantCategory;
   /**
    * Only when scope === 'vendor'
    */
@@ -1580,6 +1582,26 @@ export interface CommissionRule {
   effective_from?: string | null;
   effective_to?: string | null;
   is_active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "merchant-categories".
+ */
+export interface MerchantCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  displayOrder?: number | null;
+  isActive?: boolean | null;
+  isFeatured?: boolean | null;
+  icon?: (number | null) | Media;
+  /**
+   * Category-level commission override (nullable, inherits when empty)
+   */
+  commissionOverridePct?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1944,26 +1966,6 @@ export interface Merchant {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "merchant-categories".
- */
-export interface MerchantCategory {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string | null;
-  displayOrder?: number | null;
-  isActive?: boolean | null;
-  isFeatured?: boolean | null;
-  icon?: (number | null) | Media;
-  /**
-   * Category-level commission override (nullable, inherits when empty)
-   */
-  commissionOverridePct?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "drivers".
  */
 export interface Driver {
@@ -2015,6 +2017,10 @@ export interface Driver {
  */
 export interface Product {
   id: number;
+  /**
+   * Admin-controlled product moderation status. Only approved products are available in the catalog.
+   */
+  approvalStatus: 'pending' | 'approved' | 'disapproved';
   /**
    * Vendor that created this product (mutually exclusive with merchant)
    */
@@ -2329,6 +2335,22 @@ export interface Order {
    */
   discount_total: number;
   /**
+   * Commission rate locked when payment is confirmed.
+   */
+  commission_percent?: number | null;
+  /**
+   * Merchandise subtotal less vendor-funded discounts.
+   */
+  commission_base_amount?: number | null;
+  commission_vendor_discount?: number | null;
+  commission_amount?: number | null;
+  commission_transaction_fee?: number | null;
+  commission_vendor_net?: number | null;
+  commission_source?: ('vendor' | 'category' | 'plan' | 'global') | null;
+  commission_rule?: (number | null) | CommissionRule;
+  commission_status?: ('pending' | 'accrued' | 'partially_refunded' | 'reversed' | 'legacy') | null;
+  commission_calculated_at?: string | null;
+  /**
    * Coupon code applied to this order (denormalized for ops search)
    */
   coupon_code?: string | null;
@@ -2589,6 +2611,10 @@ export interface Transaction {
    */
   payment_intent_id?: string | null;
   /**
+   * PayMongo payment resource ID used to match refund events.
+   */
+  payment_id?: string | null;
+  /**
    * e.g., card, gcash, grab_pay
    */
   payment_method?: string | null;
@@ -2600,11 +2626,23 @@ export interface Transaction {
    * Default PHP
    */
   currency?: string | null;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: 'pending' | 'paid' | 'failed' | 'partially_refunded' | 'refunded';
   /**
    * Timestamp of successful payment
    */
   paid_at?: string | null;
+  /**
+   * Cumulative successful refunds in the transaction currency.
+   */
+  refunded_amount?: number | null;
+  /**
+   * Most recently processed PayMongo refund ID.
+   */
+  last_refund_id?: string | null;
+  /**
+   * Amount of the most recently processed refund.
+   */
+  refund_event_amount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4129,6 +4167,43 @@ export interface SubscriptionInvoice {
   createdAt: string;
 }
 /**
+ * Immutable order commission and refund accounting ledger.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-commission-entries".
+ */
+export interface VendorCommissionEntry {
+  id: number;
+  vendor: number | Vendor;
+  order: number | Order;
+  transaction: number | Transaction;
+  entry_type: 'accrual' | 'reversal';
+  idempotency_key: string;
+  provider_refund_id?: string | null;
+  refund_amount?: number | null;
+  currency: string;
+  commission_percent: number;
+  /**
+   * Signed seller merchandise base after vendor-funded discounts.
+   */
+  commission_base_amount: number;
+  commission_vendor_discount: number;
+  /**
+   * Signed platform commission.
+   */
+  commission_amount: number;
+  commission_transaction_fee: number;
+  /**
+   * Signed amount payable to vendor.
+   */
+  commission_vendor_net: number;
+  commission_source: 'vendor' | 'category' | 'plan' | 'global';
+  commission_rule?: (number | null) | CommissionRule;
+  effective_at: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Materialized entitlement snapshot (one doc per vendor; gating reads this)
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4679,6 +4754,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'commission-rules';
         value: number | CommissionRule;
+      } | null)
+    | ({
+        relationTo: 'vendor-commission-entries';
+        value: number | VendorCommissionEntry;
       } | null)
     | ({
         relationTo: 'vendor-entitlements';
@@ -5321,6 +5400,7 @@ export interface ProductCategoriesSelect<T extends boolean = true> {
  * via the `definition` "products_select".
  */
 export interface ProductsSelect<T extends boolean = true> {
+  approvalStatus?: T;
   createdByVendor?: T;
   createdByMerchant?: T;
   productType?: T;
@@ -5396,6 +5476,16 @@ export interface OrdersSelect<T extends boolean = true> {
   platform_fee?: T;
   priority_fee?: T;
   discount_total?: T;
+  commission_percent?: T;
+  commission_base_amount?: T;
+  commission_vendor_discount?: T;
+  commission_amount?: T;
+  commission_transaction_fee?: T;
+  commission_vendor_net?: T;
+  commission_source?: T;
+  commission_rule?: T;
+  commission_status?: T;
+  commission_calculated_at?: T;
   coupon_code?: T;
   free_delivery_applied?: T;
   wallet_amount_used?: T;
@@ -5456,11 +5546,15 @@ export interface DeliveryLocationsSelect<T extends boolean = true> {
 export interface TransactionsSelect<T extends boolean = true> {
   order?: T;
   payment_intent_id?: T;
+  payment_id?: T;
   payment_method?: T;
   amount?: T;
   currency?: T;
   status?: T;
   paid_at?: T;
+  refunded_amount?: T;
+  last_refund_id?: T;
+  refund_event_amount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6311,6 +6405,31 @@ export interface CommissionRulesSelect<T extends boolean = true> {
   effective_from?: T;
   effective_to?: T;
   is_active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-commission-entries_select".
+ */
+export interface VendorCommissionEntriesSelect<T extends boolean = true> {
+  vendor?: T;
+  order?: T;
+  transaction?: T;
+  entry_type?: T;
+  idempotency_key?: T;
+  provider_refund_id?: T;
+  refund_amount?: T;
+  currency?: T;
+  commission_percent?: T;
+  commission_base_amount?: T;
+  commission_vendor_discount?: T;
+  commission_amount?: T;
+  commission_transaction_fee?: T;
+  commission_vendor_net?: T;
+  commission_source?: T;
+  commission_rule?: T;
+  effective_at?: T;
   updatedAt?: T;
   createdAt?: T;
 }

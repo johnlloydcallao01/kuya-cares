@@ -5,7 +5,7 @@ export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'sku', 'productType', 'basePrice', 'isActive', 'catalogVisibility', 'createdByVendor', 'createdByMerchant'],
+    defaultColumns: ['name', 'sku', 'productType', 'approvalStatus', 'basePrice', 'isActive', 'catalogVisibility', 'createdByVendor', 'createdByMerchant'],
     group: 'Food Delivery',
     description: 'Master product catalog for vendors and merchants',
   },
@@ -19,9 +19,11 @@ export const Products: CollectionConfig = {
         // populate product_id.media.primaryImage for merchant-products search
         // (see apps/web-merchant search routes, parity with apps/web-admin).
         // Members (unified private-marketplace buy+sell) get read-only catalog
-        // visibility; admin supervises. Writes stay service|admin only.
-        if (user.role === 'service' || user.role === 'admin' || user.role === 'vendor' || user.role === 'member') {
-          return true
+        // visibility; admin supervises. Non-admin catalog reads only expose
+        // products that have passed admin moderation.
+        if (user.role === 'admin') return true
+        if (user.role === 'service' || user.role === 'vendor' || user.role === 'member') {
+          return { approvalStatus: { equals: 'approved' } }
         }
       }
 
@@ -42,6 +44,21 @@ export const Products: CollectionConfig = {
     },
   },
   fields: [
+    {
+      name: 'approvalStatus',
+      type: 'select',
+      required: true,
+      defaultValue: 'pending',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Disapproved', value: 'disapproved' },
+      ],
+      admin: {
+        description: 'Admin-controlled product moderation status. Only approved products are available in the catalog.',
+        position: 'sidebar',
+      },
+    },
     // === OWNERSHIP TRACKING ===
     {
       name: 'createdByVendor',
@@ -308,6 +325,14 @@ export const Products: CollectionConfig = {
       },
     ],
     beforeChange: [
+      async ({ data, originalDoc, req, operation }) => {
+        if (!data) return data
+        if (req.user?.role !== 'admin') {
+          data.approvalStatus =
+            operation === 'create' ? 'pending' : originalDoc?.approvalStatus ?? 'pending'
+        }
+        return data
+      },
       // Membership enforcement (membership.md §5): block publish without membership.
       (async ({ data, req, operation }: any) => {
         try {

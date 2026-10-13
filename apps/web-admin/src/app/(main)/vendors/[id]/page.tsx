@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ClientOnly } from '@/components/ClientOnly'
+import { VendorCommissionOverride } from '../_components/VendorCommissionOverride'
 import {
   Building, ArrowLeft, Pencil, Trash2, Store, Star, ShieldCheck, ShieldAlert, Clock,
   Mail, Phone, Globe, CalendarDays, AlertCircle, RefreshCw, X, FileText
@@ -143,6 +144,8 @@ function VendorViewContent() {
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Outlets</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Store className="w-5 h-5 text-[#239459]" /> {doc.totalMerchants}</p><p className="text-xs text-gray-500">merchant stores</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Rating</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Star className="w-5 h-5 text-amber-400" /> {doc.averageRating ? doc.averageRating.toFixed(1) : '—'} <span className="text-sm font-normal text-gray-500">({doc.totalReviews})</span></p><p className="text-xs text-gray-500">{doc.totalOrders} total orders</p></div>
       </div>
+
+      <VendorCommissionOverride vendorId={doc.id} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-5">

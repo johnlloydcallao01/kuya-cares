@@ -134,10 +134,11 @@ function sanitizeTransactionDoc(raw: Record<string, any>): Record<string, any> {
     currency: str(raw.currency, 'PHP') || 'PHP',
     status,
     paid_at: raw.paid_at ? String(raw.paid_at) : null,
+    refunded_amount: num(raw.refunded_amount, 0),
     createdAt: String(raw.createdAt ?? ''),
     updatedAt: String(raw.updatedAt ?? ''),
     order: sanitizeOrderBrief(raw.order),
-    isPaid: status === 'paid',
+    isPaid: status === 'paid' || status === 'partially_refunded',
   }
 }
 
@@ -149,7 +150,7 @@ function parseCsv(value: string | null): string[] {
     .filter(Boolean)
 }
 
-const STATUS_SET = new Set(['pending', 'paid', 'failed', 'refunded'])
+const STATUS_SET = new Set(['pending', 'paid', 'partially_refunded', 'failed', 'refunded'])
 const ALLOWED_SORT = new Set([
   '-paid_at',
   'paid_at',
@@ -169,7 +170,7 @@ function zeroedStats() {
   return {
     totalAll: 0,
     filteredTotal: 0,
-    statusBreakdown: { pending: 0, paid: 0, failed: 0, refunded: 0 },
+    statusBreakdown: { pending: 0, paid: 0, partially_refunded: 0, failed: 0, refunded: 0 },
     paymentMethodBreakdown: {},
     totalRevenue: 0,
     totalRefunded: 0,
@@ -333,7 +334,7 @@ export async function GET(request: NextRequest) {
     const totalAll = typeof (statsAll as any).totalDocs === 'number' ? (statsAll as any).totalDocs : statsDocs.length
     const filteredTotal = typeof paginated.totalDocs === 'number' ? paginated.totalDocs : docs.length
 
-    const statusBreakdown: Record<string, number> = { pending: 0, paid: 0, failed: 0, refunded: 0 }
+    const statusBreakdown: Record<string, number> = { pending: 0, paid: 0, partially_refunded: 0, failed: 0, refunded: 0 }
     const paymentMethodBreakdown: Record<string, number> = {}
     let totalRevenue = 0
     let totalRefunded = 0
@@ -354,13 +355,15 @@ export async function GET(request: NextRequest) {
       paymentMethodBreakdown[pm] = (paymentMethodBreakdown[pm] || 0) + 1
 
       const amt = num(t.amount, 0)
-      if (st === 'paid') {
+      if (st === 'paid' || st === 'partially_refunded') {
         totalRevenue += amt
         paidCount++
-      } else if (st === 'refunded') {
-        totalRefunded += amt
+      }
+      if (st === 'refunded' || st === 'partially_refunded') {
+        totalRefunded += num(t.refunded_amount, st === 'refunded' ? amt : 0)
         refundedCount++
-      } else if (st === 'failed') {
+      }
+      if (st === 'failed') {
         totalFailed += amt
         failedCount++
       } else if (st === 'pending') {

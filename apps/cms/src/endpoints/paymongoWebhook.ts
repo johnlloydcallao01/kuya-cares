@@ -1,4 +1,4 @@
-import { PayloadRequest } from 'payload'
+import type { PayloadRequest, Where } from 'payload'
 import crypto from 'crypto'
 import { CouponService } from '../services/CouponService'
 import { WalletService } from '../services/WalletService'
@@ -16,18 +16,19 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
         return Response.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    const secret = process.env.PAYMONGO_SANDBOX === 'true'
+    const isSandbox = process.env.PAYMONGO_SANDBOX === 'true'
+    const secret = isSandbox
       ? process.env.PAYMONGO_SANDBOX_WEBHOOK_SECRET
       : process.env.PAYMONGO_WEBHOOK_SECRET;
 
     // 1. Verify Signature
-    if (secret) {
-        if (!verifySignature(rawBody, signature, secret)) {
-             console.error('PayMongo Webhook Signature Verification Failed');
-             return Response.json({ error: 'Invalid signature' }, { status: 401 });
-        }
-    } else {
-        console.warn('PAYMONGO_WEBHOOK_SECRET not set. Skipping signature verification.');
+    if (!secret) {
+        console.error('PayMongo webhook signing secret is not configured.');
+        return Response.json({ error: 'Webhook verification is not configured' }, { status: 503 });
+    }
+    if (!verifySignature(rawBody, signature, secret, isSandbox)) {
+        console.error('PayMongo Webhook Signature Verification Failed');
+        return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const event = body.data.attributes;
@@ -47,38 +48,56 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
               payment_intent_id: {
                   equals: paymentIntentId
               }
-          }
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
       });
 
       if (transactions.docs.length > 0) {
           const transaction = transactions.docs[0];
+          const refundedAmount = Number(transaction.refunded_amount ?? 0);
+          const transactionAmount = Number(transaction.amount);
+          const paidStatus = refundedAmount >= transactionAmount - 0.01
+            ? 'refunded'
+            : refundedAmount > 0
+              ? 'partially_refunded'
+              : 'paid';
           
           // Update Transaction
           await req.payload.update({
               collection: 'transactions',
               id: transaction.id,
               data: {
-                  status: 'paid',
+                  status: paidStatus,
+                  payment_id: resource.id,
                   paid_at: new Date(resource.attributes.paid_at * 1000).toISOString(),
-              }
+              },
+              overrideAccess: true,
+              context: { paymongoWebhook: true },
+              req,
           });
           
           console.log(`Transaction ${transaction.id} updated to paid.`);
 
           // Update Order
-          if (transaction.order) {
+          if (transaction.order && paidStatus !== 'refunded') {
               const orderId = typeof transaction.order === 'object' ? transaction.order.id : transaction.order;
-              // Check current order status to avoid overwriting advanced states (e.g. if it's already 'delivered')
-              // But usually 'pending' -> 'accepted' is safe.
-              
-              await req.payload.update({
+              const currentOrder = await req.payload.findByID({
                   collection: 'orders',
                   id: orderId,
-                  data: {
-                      status: 'accepted',
-                  }
+                  depth: 0,
+                  overrideAccess: true,
               });
-              console.log(`Order ${orderId} updated to accepted.`);
+              if (currentOrder.status === 'pending') {
+                await req.payload.update({
+                    collection: 'orders',
+                    id: orderId,
+                    data: { status: 'accepted' },
+                    overrideAccess: true,
+                  });
+                console.log(`Order ${orderId} updated to accepted.`);
+              }
 
               // Update all CartItems linked to this order to 'ordered'
               await req.payload.update({
@@ -91,7 +110,8 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                   data: {
                       status: 'ordered',
                       ordered_at: new Date(resource.attributes.paid_at * 1000).toISOString(),
-                  }
+                  },
+                  overrideAccess: true,
               });
               console.log(`Cart items for order ${orderId} soft-cleared (status: ordered).`);
 
@@ -141,6 +161,7 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                       collection: 'coupon-claims',
                       id: claim.id,
                       data: { status: 'used' },
+                      overrideAccess: true,
                     });
                   }
                 }
@@ -165,6 +186,7 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                   status: 'paid',
                   paid_at: new Date(resource.attributes.paid_at * 1000).toISOString(),
                 },
+                overrideAccess: true,
               });
               const customerId = typeof topup.customer === 'object' ? topup.customer.id : topup.customer;
               await new WalletService(req.payload).postEntry({
@@ -194,7 +216,10 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                payment_intent_id: {
                    equals: paymentIntentId
                }
-           }
+           },
+           limit: 1,
+           depth: 0,
+           overrideAccess: true,
        });
 
        if (transactions.docs.length > 0) {
@@ -205,7 +230,8 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
                id: transaction.id,
                data: {
                    status: 'failed',
-               }
+               },
+               overrideAccess: true,
            });
            console.log(`Transaction ${transaction.id} updated to failed.`);
 
@@ -221,24 +247,85 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
            }
        }
      } else if (typeof type === 'string' && type.includes('refund')) {
-       // Reverse applied coupon redemptions on refunds (WooCommerce decrease_usage_count parity).
-       try {
-         const refundIntentId = resource.attributes?.payment_intent_id;
-         if (refundIntentId) {
-           const refundTx = await req.payload.find({
-               collection: 'transactions',
-               where: { payment_intent_id: { equals: refundIntentId } },
+       const attributes = resource.attributes ?? {};
+       const rawProviderRefundId = attributes.refund_id ?? resource.id;
+       const providerRefundId = typeof rawProviderRefundId === 'string' || typeof rawProviderRefundId === 'number'
+         ? String(rawProviderRefundId)
+         : '';
+       const paymentId = attributes.payment_id ?? attributes.payment?.id;
+       const refundIntentId = attributes.payment_intent_id;
+       const refundStatus = String(attributes.status ?? '').toLowerCase();
+       if (refundStatus && !['succeeded', 'success', 'paid', 'refunded', 'completed'].includes(refundStatus)) {
+         return Response.json({ status: 'received' });
+       }
+       const amountInCentavos = Number(attributes.amount);
+       if (!providerRefundId || !Number.isInteger(amountInCentavos) || amountInCentavos <= 0) {
+         throw new Error(`PayMongo refund event ${String(resource.id)} is missing a refund ID or valid amount.`);
+       }
+
+       const transactionWhere: Where | null = paymentId
+         ? { payment_id: { equals: String(paymentId) } }
+         : refundIntentId
+           ? { payment_intent_id: { equals: String(refundIntentId) } }
+           : null;
+       if (!transactionWhere) {
+         throw new Error(`PayMongo refund event ${providerRefundId} has no payment ID or payment intent ID.`);
+       }
+       const refundTx = await req.payload.find({
+         collection: 'transactions',
+         where: transactionWhere,
+         limit: 1,
+         depth: 0,
+         overrideAccess: true,
+       });
+       const transaction = refundTx.docs[0] as (typeof refundTx.docs)[number] | undefined;
+       if (transaction) {
+         let resultingStatus = transaction.status;
+         const orderId = typeof transaction.order === 'object' ? transaction.order.id : transaction.order;
+         const refundKey = `commission:order:${String(orderId)}:refund:${providerRefundId}`;
+         const existingRefund = await req.payload.find({
+           collection: 'vendor-commission-entries',
+           where: { idempotency_key: { equals: refundKey } },
+           limit: 1,
+           depth: 0,
+           overrideAccess: true,
+         });
+         if (existingRefund.docs.length === 0) {
+           const refundAmount = amountInCentavos / 100;
+           const previouslyRefunded = Number(transaction.refunded_amount ?? 0);
+           const cumulativeRefunded = previouslyRefunded + refundAmount;
+           const transactionAmount = Number(transaction.amount);
+           if (
+             !Number.isFinite(previouslyRefunded) ||
+             previouslyRefunded < 0 ||
+             !Number.isFinite(transactionAmount) ||
+             transactionAmount <= 0 ||
+             cumulativeRefunded > transactionAmount + 0.01
+           ) {
+             throw new Error(`PayMongo refund ${providerRefundId} exceeds transaction ${transaction.id}'s refundable balance.`);
+           }
+           resultingStatus = cumulativeRefunded >= transactionAmount - 0.01 ? 'refunded' : 'partially_refunded';
+           await req.payload.update({
+             collection: 'transactions',
+             id: transaction.id,
+             data: {
+               status: resultingStatus,
+               refunded_amount: Math.min(cumulativeRefunded, transactionAmount),
+               last_refund_id: providerRefundId,
+               refund_event_amount: refundAmount,
+             },
+             overrideAccess: true,
+             context: { paymongoWebhook: true },
+             req,
            });
-           const refundOrder = (refundTx.docs[0] as any)?.order;
-            if (refundOrder) {
-              const refundOrderId = typeof refundOrder === 'object' ? refundOrder.id : refundOrder;
-              await new CouponService(req.payload).reverseForOrder(refundOrderId, 'refunded');
-              // Best-effort refund-to-wallet (idempotent ledger post).
-              await new WalletService(req.payload).refundToWallet(refundOrderId);
-            }
          }
-       } catch (couponErr) {
-         console.error('[paymongo/webhook] coupon refund-reverse error:', couponErr);
+         if (resultingStatus === 'refunded') {
+           const refundOrderId = String(orderId);
+           await new CouponService(req.payload).reverseForOrder(refundOrderId, 'refunded');
+           await new WalletService(req.payload).refundToWallet(refundOrderId);
+         }
+       } else {
+         console.warn(`No transaction found for PayMongo refund ${providerRefundId}.`);
        }
      }
 
@@ -251,14 +338,19 @@ export const paymongoWebhook = async (req: PayloadRequest) => {
 };
 
 // Helper function to verify signature
-function verifySignature(payload: string, signatureHeader: string | null, secret: string): boolean {
+function verifySignature(
+  payload: string,
+  signatureHeader: string | null,
+  secret: string,
+  isSandbox: boolean,
+): boolean {
   if (!signatureHeader || !secret) return false;
   const parts = signatureHeader.split(',');
   const timestamp = parts.find(p => p.startsWith('t='))?.split('=')[1];
   const testSig = parts.find(p => p.startsWith('te='))?.split('=')[1];
   const liveSig = parts.find(p => p.startsWith('li='))?.split('=')[1];
   
-  const sigToVerify = liveSig || testSig; // Use live or test signature
+  const sigToVerify = isSandbox ? testSig : liveSig
   if (!timestamp || !sigToVerify) return false;
 
   const stringToSign = `${timestamp}.${payload}`;
@@ -266,6 +358,7 @@ function verifySignature(payload: string, signatureHeader: string | null, secret
     .createHmac('sha256', secret)
     .update(stringToSign)
     .digest('hex');
-
-  return computedSignature === sigToVerify;
+  const expected = Buffer.from(computedSignature, 'hex');
+  const received = Buffer.from(sigToVerify, 'hex');
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 }

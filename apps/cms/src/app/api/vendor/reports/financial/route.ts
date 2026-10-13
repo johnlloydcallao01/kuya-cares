@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       transactionId: String(t.id),
       orderId: resolveId(t.order) || '—',
       date: String(t.createdAt ?? ''),
-      amount: getNum(t.amount),
+      amount: getNum(t.refunded_amount, getNum(t.amount)),
       status: String(t.status),
       paymentMethod: getStr(t.payment_method, 'unknown'),
     }))

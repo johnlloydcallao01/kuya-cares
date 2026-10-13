@@ -34,6 +34,7 @@ Context and Existing Collections
     - `media` group with `primaryImage` and gallery.
   - Visibility and distribution:
     - `isActive`, `catalogVisibility`.
+    - `approvalStatus` (`pending`, `approved`, `disapproved`), controlled by admins; only approved products are readable in the catalog.
     - `assign_to_all_vendor_merchants` flag and hooks that auto-create `merchant-products` records.
   - Hooks:
     - Enforce exactly one owner (vendor or merchant).
@@ -308,4 +309,3 @@ Summary
   - Uses a `compositeKey` and indexes to remain **scalable** and **query-efficient**.
   - Keeps one row per logical item per user, with `viewCount`, `firstViewedAt`, and `lastViewedAt`.
 - Optionally add a raw `view-events` collection later for deeper analytics without affecting the core UI-driven history.
-

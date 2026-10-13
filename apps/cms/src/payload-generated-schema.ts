@@ -38,11 +38,18 @@ export const enum_users_civil_status = pgEnum('enum_users_civil_status', [
 ])
 export const enum_users_role = pgEnum('enum_users_role', [
   'admin',
+  'member',
   'customer',
   'service',
   'vendor',
   'driver',
 ])
+export const enum_users_member_membership_status = pgEnum('enum_users_member_membership_status', [
+  'pending_payment',
+  'active',
+])
+export const enum_users_preferred_language = pgEnum('enum_users_preferred_language', ['en', 'fil'])
+export const enum_devices_platform = pgEnum('enum_devices_platform', ['ios', 'android', 'web'])
 export const enum_customers_current_level = pgEnum('enum_customers_current_level', [
   'beginner',
   'intermediate',
@@ -159,6 +166,15 @@ export const enum_user_notifications_status = pgEnum('enum_user_notifications_st
   'dismissed',
   'hidden',
 ])
+export const enum_vendors_kyc_docs_doc_type = pgEnum('enum_vendors_kyc_docs_doc_type', [
+  'dti',
+  'sec',
+  'bir',
+  'id_front',
+  'id_back',
+  'selfie',
+  'other',
+])
 export const enum_vendors_business_type = pgEnum('enum_vendors_business_type', [
   'restaurant',
   'fast_food',
@@ -174,6 +190,17 @@ export const enum_vendors_verification_status = pgEnum('enum_vendors_verificatio
   'verified',
   'rejected',
   'suspended',
+])
+export const enum_vendors_subscription_status = pgEnum('enum_vendors_subscription_status', [
+  'none',
+  'pending',
+  'trialing',
+  'active',
+  'past_due',
+  'grace',
+  'suspended',
+  'cancelled',
+  'expired',
 ])
 export const enum_merchants_operational_status = pgEnum('enum_merchants_operational_status', [
   'open',
@@ -212,6 +239,11 @@ export const enum_prod_categories_attributes_age_restriction = pgEnum(
   'enum_prod_categories_attributes_age_restriction',
   ['none', '18_plus', '21_plus'],
 )
+export const enum_products_approval_status = pgEnum('enum_products_approval_status', [
+  'pending',
+  'approved',
+  'disapproved',
+])
 export const enum_products_product_type = pgEnum('enum_products_product_type', [
   'simple',
   'variable',
@@ -249,6 +281,19 @@ export const enum_orders_fulfillment_type = pgEnum('enum_orders_fulfillment_type
   'delivery',
   'pickup',
 ])
+export const enum_orders_commission_source = pgEnum('enum_orders_commission_source', [
+  'vendor',
+  'category',
+  'plan',
+  'global',
+])
+export const enum_orders_commission_status = pgEnum('enum_orders_commission_status', [
+  'pending',
+  'accrued',
+  'partially_refunded',
+  'reversed',
+  'legacy',
+])
 export const enum_orders_delivery_status = pgEnum('enum_orders_delivery_status', [
   'none',
   'pending',
@@ -268,6 +313,7 @@ export const enum_transactions_status = pgEnum('enum_transactions_status', [
   'pending',
   'paid',
   'failed',
+  'partially_refunded',
   'refunded',
 ])
 export const enum_order_tracking_status = pgEnum('enum_order_tracking_status', [
@@ -298,6 +344,118 @@ export const enum_delivery_bookings_status = pgEnum('enum_delivery_bookings_stat
 export const enum_order_discounts_type = pgEnum('enum_order_discounts_type', [
   'percentage',
   'fixed',
+])
+export const enum_order_discounts_funded_by = pgEnum('enum_order_discounts_funded_by', [
+  'platform',
+  'vendor',
+  'split',
+])
+export const enum_order_discounts_source = pgEnum('enum_order_discounts_source', [
+  'manual',
+  'coupon',
+  'auto_campaign',
+])
+export const enum_wallets_status = pgEnum('enum_wallets_status', ['active', 'frozen', 'closed'])
+export const enum_wallet_transactions_type = pgEnum('enum_wallet_transactions_type', [
+  'topup',
+  'payment',
+  'refund',
+  'cashback',
+  'withdrawal',
+  'adjustment',
+  'expiry',
+  'earn',
+  'redeem',
+])
+export const enum_wallet_transactions_status = pgEnum('enum_wallet_transactions_status', [
+  'pending',
+  'posted',
+  'failed',
+  'reversed',
+])
+export const enum_wallet_topups_status = pgEnum('enum_wallet_topups_status', [
+  'pending',
+  'paid',
+  'failed',
+  'cancelled',
+])
+export const enum_coupons_allowed_payment_methods = pgEnum('enum_coupons_allowed_payment_methods', [
+  'card',
+  'gcash',
+  'grab_pay',
+  'paymaya',
+  'billease',
+  'dob',
+  'brankas',
+  'qrph',
+])
+export const enum_coupons_time_windows_days = pgEnum('enum_coupons_time_windows_days', [
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+  'fri',
+  'sat',
+  'sun',
+])
+export const enum_coupons_status = pgEnum('enum_coupons_status', [
+  'draft',
+  'scheduled',
+  'published',
+  'paused',
+  'archived',
+])
+export const enum_coupons_discount_type = pgEnum('enum_coupons_discount_type', [
+  'percent',
+  'fixed_cart',
+  'fixed_product',
+])
+export const enum_coupons_applies_to = pgEnum('enum_coupons_applies_to', [
+  'food_subtotal',
+  'delivery_fee',
+  'both',
+  'membership',
+])
+export const enum_coupons_merchant_scope = pgEnum('enum_coupons_merchant_scope', [
+  'all_vendor_branches',
+  'selected_branches',
+])
+export const enum_coupons_funded_by = pgEnum('enum_coupons_funded_by', [
+  'platform',
+  'vendor',
+  'split',
+])
+export const enum_coupon_claims_status = pgEnum('enum_coupon_claims_status', [
+  'claimed',
+  'used',
+  'cancelled',
+])
+export const enum_point_rules_event = pgEnum('enum_point_rules_event', [
+  'order_delivered',
+  'review',
+  'first_order',
+])
+export const enum_rewards_category = pgEnum('enum_rewards_category', [
+  'food',
+  'delivery',
+  'discount',
+  'exclusive',
+])
+export const enum_achievements_metric = pgEnum('enum_achievements_metric', [
+  'orders_count',
+  'reviews_count',
+  'total_spent',
+])
+export const enum_coupon_redemptions_funded_by = pgEnum('enum_coupon_redemptions_funded_by', [
+  'platform',
+  'vendor',
+  'split',
+])
+export const enum_coupon_redemptions_status = pgEnum('enum_coupon_redemptions_status', [
+  'held',
+  'applied',
+  'refunded',
+  'cancelled',
 ])
 export const enum_prod_attributes_type = pgEnum('enum_prod_attributes_type', [
   'select',
@@ -405,6 +563,155 @@ export const enum_wishlists_item_type = pgEnum('enum_wishlists_item_type', [
   'merchant',
   'merchantProduct',
 ])
+export const enum_support_tickets_status = pgEnum('enum_support_tickets_status', [
+  'open',
+  'in_progress',
+  'waiting_for_user',
+  'resolved',
+  'closed',
+])
+export const enum_support_tickets_priority = pgEnum('enum_support_tickets_priority', [
+  'low',
+  'medium',
+  'high',
+  'critical',
+])
+export const enum_support_tickets_category = pgEnum('enum_support_tickets_category', [
+  'order_issue',
+  'delivery',
+  'payment_refund',
+  'product',
+  'account',
+  'technical',
+  'general',
+])
+export const enum_membership_plans_allowed_business_types = pgEnum(
+  'enum_membership_plans_allowed_business_types',
+  [
+    'restaurant',
+    'fast_food',
+    'grocery',
+    'pharmacy',
+    'convenience',
+    'bakery',
+    'coffee_shop',
+    'other',
+  ],
+)
+export const enum_membership_plans_billing_interval = pgEnum(
+  'enum_membership_plans_billing_interval',
+  ['month', 'year', 'one_time'],
+)
+export const enum_membership_plans_capabilities_support_sla = pgEnum(
+  'enum_membership_plans_capabilities_support_sla',
+  ['none', 'email', 'priority', 'dedicated'],
+)
+export const enum_membership_plans_status = pgEnum('enum_membership_plans_status', [
+  'active',
+  'hidden',
+  'disabled',
+  'archived',
+])
+export const enum_vendor_subscriptions_status = pgEnum('enum_vendor_subscriptions_status', [
+  'pending',
+  'trialing',
+  'active',
+  'past_due',
+  'grace',
+  'suspended',
+  'cancelled',
+  'expired',
+])
+export const enum_vendor_subscriptions_billing_interval = pgEnum(
+  'enum_vendor_subscriptions_billing_interval',
+  ['month', 'year', 'one_time'],
+)
+export const enum_vendor_subscriptions_payment_provider = pgEnum(
+  'enum_vendor_subscriptions_payment_provider',
+  ['paymongo', 'stripe', 'manual'],
+)
+export const enum_subscription_invoices_status = pgEnum('enum_subscription_invoices_status', [
+  'pending',
+  'paid',
+  'failed',
+  'past_due',
+  'void',
+  'refunded',
+])
+export const enum_subscription_invoices_billing_reason = pgEnum(
+  'enum_subscription_invoices_billing_reason',
+  ['initial', 'upgrade', 'downgrade', 'renewal', 'proration', 'manual'],
+)
+export const enum_subscription_invoices_payment_provider = pgEnum(
+  'enum_subscription_invoices_payment_provider',
+  ['paymongo', 'stripe', 'manual'],
+)
+export const enum_commission_rules_scope = pgEnum('enum_commission_rules_scope', [
+  'global',
+  'plan',
+  'category',
+  'vendor',
+])
+export const enum_vendor_commission_entries_entry_type = pgEnum(
+  'enum_vendor_commission_entries_entry_type',
+  ['accrual', 'reversal'],
+)
+export const enum_vendor_commission_entries_commission_source = pgEnum(
+  'enum_vendor_commission_entries_commission_source',
+  ['vendor', 'category', 'plan', 'global'],
+)
+export const enum_vendor_entitlements_capabilities_support_sla = pgEnum(
+  'enum_vendor_entitlements_capabilities_support_sla',
+  ['none', 'email', 'priority', 'dedicated'],
+)
+export const enum_membership_audit_log_action = pgEnum('enum_membership_audit_log_action', [
+  'grant',
+  'deny',
+  'upgrade',
+  'downgrade',
+  'renew',
+  'cancel',
+  'grace',
+  'override',
+  'entitlement_check',
+  'sync',
+  'vendor_registered',
+  'admin_approve',
+  'admin_waive',
+  'webhook_paid',
+  'webhook_failed',
+])
+export const enum_member_invites_status = pgEnum('enum_member_invites_status', [
+  'pending',
+  'claimed',
+  'revoked',
+  'expired',
+])
+export const enum_member_listings_condition = pgEnum('enum_member_listings_condition', [
+  'new',
+  'like_new',
+  'good',
+  'fair',
+  'for_parts',
+])
+export const enum_member_listings_status = pgEnum('enum_member_listings_status', [
+  'draft',
+  'active',
+  'reserved',
+  'sold',
+  'removed',
+])
+export const enum_member_orders_status = pgEnum('enum_member_orders_status', [
+  'pending',
+  'confirmed',
+  'handed_over',
+  'completed',
+  'cancelled',
+])
+export const enum_system_settings_membership_pay_provider_default = pgEnum(
+  'enum_system_settings_membership_pay_provider_default',
+  ['paymongo', 'stripe', 'manual'],
+)
 export const enum_system_settings_delivery_provider = pgEnum(
   'enum_system_settings_delivery_provider',
   ['lalamove', 'native'],
@@ -430,6 +737,31 @@ export const users_reset_password_tokens = pgTable(
       columns: [columns['_parentID']],
       foreignColumns: [users.id],
       name: 'users_reset_password_tokens_parent_id_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const users_email_change_tokens = pgTable(
+  'users_email_change_tokens',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    token: varchar('token').notNull(),
+    expiresAt: timestamp('expires_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    newEmail: varchar('new_email').notNull(),
+  },
+  (columns) => ({
+    _orderIdx: index('users_email_change_tokens_order_idx').on(columns._order),
+    _parentIDIdx: index('users_email_change_tokens_parent_id_idx').on(columns._parentID),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [users.id],
+      name: 'users_email_change_tokens_parent_id_fk',
     }).onDelete('cascade'),
   }),
 )
@@ -476,9 +808,46 @@ export const users = pgTable(
     completeAddress: varchar('complete_address'),
     role: enum_users_role('role').notNull().default('customer'),
     isActive: boolean('is_active').default(true),
+    memberMembershipStatus: enum_users_member_membership_status('member_membership_status').default(
+      'pending_payment',
+    ),
+    memberMembershipPaidAt: timestamp('member_membership_paid_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
     lastLogin: timestamp('last_login', { mode: 'string', withTimezone: true, precision: 3 }),
     profilePicture: integer('profile_picture_id').references(() => media.id, {
       onDelete: 'set null',
+    }),
+    emailVerifiedAt: timestamp('email_verified_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    phoneVerifiedAt: timestamp('phone_verified_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    preferredLanguage: enum_users_preferred_language('preferred_language').default('en'),
+    timezone: varchar('timezone').default('Asia/Manila'),
+    currency: varchar('currency').default('PHP'),
+    marketingOptIn: boolean('marketing_opt_in').default(true),
+    dataConsentAt: timestamp('data_consent_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    deactivatedAt: timestamp('deactivated_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    deleteRequestedAt: timestamp('delete_requested_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
     }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
@@ -507,6 +876,109 @@ export const users = pgTable(
     users_updated_at_idx: index('users_updated_at_idx').on(columns.updatedAt),
     users_created_at_idx: index('users_created_at_idx').on(columns.createdAt),
     users_email_idx: uniqueIndex('users_email_idx').on(columns.email),
+  }),
+)
+
+export const notification_preferences = pgTable(
+  'notification_preferences',
+  {
+    id: serial('id').primaryKey(),
+    user: integer('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    orderEmail: boolean('order_email').default(true),
+    orderPush: boolean('order_push').default(true),
+    orderSms: boolean('order_sms').default(true),
+    promoEmail: boolean('promo_email').default(true),
+    promoPush: boolean('promo_push').default(true),
+    promoSms: boolean('promo_sms').default(true),
+    accountEmail: boolean('account_email').default(true),
+    marketingOptIn: boolean('marketing_opt_in').default(true),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    notification_preferences_user_idx: uniqueIndex('notification_preferences_user_idx').on(
+      columns.user,
+    ),
+    notification_preferences_updated_at_idx: index('notification_preferences_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    notification_preferences_created_at_idx: index('notification_preferences_created_at_idx').on(
+      columns.createdAt,
+    ),
+    user_idx: uniqueIndex('user_idx').on(columns.user),
+  }),
+)
+
+export const devices = pgTable(
+  'devices',
+  {
+    id: serial('id').primaryKey(),
+    user: integer('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    pushToken: varchar('push_token').notNull(),
+    platform: enum_devices_platform('platform').notNull().default('android'),
+    appVersion: varchar('app_version'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    devices_user_idx: index('devices_user_idx').on(columns.user),
+    devices_push_token_idx: uniqueIndex('devices_push_token_idx').on(columns.pushToken),
+    devices_updated_at_idx: index('devices_updated_at_idx').on(columns.updatedAt),
+    devices_created_at_idx: index('devices_created_at_idx').on(columns.createdAt),
+    pushToken_idx: uniqueIndex('pushToken_idx').on(columns.pushToken),
+    user_1_idx: index('user_1_idx').on(columns.user),
+  }),
+)
+
+export const payment_methods = pgTable(
+  'payment_methods',
+  {
+    id: serial('id').primaryKey(),
+    user: integer('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    provider: varchar('provider').default('paymongo'),
+    providerMethodId: varchar('provider_method_id').notNull(),
+    brand: varchar('brand'),
+    last4: varchar('last4'),
+    expMonth: numeric('exp_month'),
+    expYear: numeric('exp_year'),
+    nickname: varchar('nickname'),
+    isDefault: boolean('is_default').default(false),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    payment_methods_user_idx: index('payment_methods_user_idx').on(columns.user),
+    payment_methods_updated_at_idx: index('payment_methods_updated_at_idx').on(columns.updatedAt),
+    payment_methods_created_at_idx: index('payment_methods_created_at_idx').on(columns.createdAt),
+    user_providerMethodId_idx: uniqueIndex('user_providerMethodId_idx').on(
+      columns.user,
+      columns.providerMethodId,
+    ),
+    user_2_idx: index('user_2_idx').on(columns.user),
   }),
 )
 
@@ -601,6 +1073,8 @@ export const user_events = pgTable(
     user_events_triggered_by_idx: index('user_events_triggered_by_idx').on(columns.triggeredBy),
     user_events_updated_at_idx: index('user_events_updated_at_idx').on(columns.updatedAt),
     user_events_created_at_idx: index('user_events_created_at_idx').on(columns.createdAt),
+    user_3_idx: index('user_3_idx').on(columns.user),
+    user_createdAt_idx: index('user_createdAt_idx').on(columns.user, columns.createdAt),
   }),
 )
 
@@ -730,7 +1204,7 @@ export const addresses = pgTable(
     addresses_user_idx: index('addresses_user_idx').on(columns.user),
     addresses_updated_at_idx: index('addresses_updated_at_idx').on(columns.updatedAt),
     addresses_created_at_idx: index('addresses_created_at_idx').on(columns.createdAt),
-    user_idx: index('user_idx').on(columns.user),
+    user_4_idx: index('user_4_idx').on(columns.user),
     latitude_longitude_idx: index('latitude_longitude_idx').on(columns.latitude, columns.longitude),
     locality_administrative_area_level_1_idx: index('locality_administrative_area_level_1_idx').on(
       columns.locality,
@@ -1098,6 +1572,31 @@ export const business_zones = pgTable(
   }),
 )
 
+export const vendors_kyc_docs = pgTable(
+  'vendors_kyc_docs',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    docType: enum_vendors_kyc_docs_doc_type('doc_type').notNull(),
+    media: integer('media_id')
+      .notNull()
+      .references(() => media.id, {
+        onDelete: 'set null',
+      }),
+  },
+  (columns) => ({
+    _orderIdx: index('vendors_kyc_docs_order_idx').on(columns._order),
+    _parentIDIdx: index('vendors_kyc_docs_parent_id_idx').on(columns._parentID),
+    vendors_kyc_docs_media_idx: index('vendors_kyc_docs_media_idx').on(columns.media),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [vendors.id],
+      name: 'vendors_kyc_docs_parent_id_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
 export const vendors = pgTable(
   'vendors',
   {
@@ -1144,6 +1643,42 @@ export const vendors = pgTable(
     socialMediaLinks_instagram: varchar('social_media_links_instagram'),
     socialMediaLinks_twitter: varchar('social_media_links_twitter'),
     socialMediaLinks_website: varchar('social_media_links_website'),
+    currentSubscription: integer('current_subscription_id').references(
+      (): AnyPgColumn => vendor_subscriptions.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
+    subscriptionStatus: enum_vendors_subscription_status('subscription_status').default('none'),
+    subscriptionExpiresAt: timestamp('subscription_expires_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    graceEndsAt: timestamp('grace_ends_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    trialEndsAt: timestamp('trial_ends_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    waivedUntil: timestamp('waived_until', { mode: 'string', withTimezone: true, precision: 3 }),
+    waiveReason: varchar('waive_reason'),
+    suspendedReason: varchar('suspended_reason'),
+    grandfatheredBasic: boolean('grandfathered_basic').default(false),
+    grandfatheredAt: timestamp('grandfathered_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    commissionOverride_commission_percent: numeric('commission_override_commission_percent'),
+    commissionOverride_transaction_fee: numeric('commission_override_transaction_fee').default('0'),
+    commissionOverride_rule: integer('commission_override_rule_id').references(
+      (): AnyPgColumn => commission_rules.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
+    lastEntitlementSync: timestamp('last_entitlement_sync', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -1162,6 +1697,12 @@ export const vendors = pgTable(
     vendors_business_license_idx: index('vendors_business_license_idx').on(columns.businessLicense),
     vendors_tax_certificate_idx: index('vendors_tax_certificate_idx').on(columns.taxCertificate),
     vendors_logo_idx: index('vendors_logo_idx').on(columns.logo),
+    vendors_current_subscription_idx: index('vendors_current_subscription_idx').on(
+      columns.currentSubscription,
+    ),
+    vendors_commission_override_commission_override_rule_idx: index(
+      'vendors_commission_override_commission_override_rule_idx',
+    ).on(columns.commissionOverride_rule),
     vendors_updated_at_idx: index('vendors_updated_at_idx').on(columns.updatedAt),
     vendors_created_at_idx: index('vendors_created_at_idx').on(columns.createdAt),
   }),
@@ -1244,6 +1785,8 @@ export const merchants = pgTable(
       precision: 3,
     }),
     timezone: varchar('timezone').notNull().default('Asia/Manila'),
+    isFeatured: boolean('is_featured').default(false),
+    listingBoost: numeric('listing_boost').default('0'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -1380,7 +1923,7 @@ export const drivers = pgTable(
     ),
     drivers_updated_at_idx: index('drivers_updated_at_idx').on(columns.updatedAt),
     drivers_created_at_idx: index('drivers_created_at_idx').on(columns.createdAt),
-    user_1_idx: index('user_1_idx').on(columns.user),
+    user_5_idx: index('user_5_idx').on(columns.user),
     status_idx: index('status_idx').on(columns.status),
     isActive_1_idx: index('isActive_1_idx').on(columns.isActive),
     current_latitude_current_longitude_idx: index('current_latitude_current_longitude_idx').on(
@@ -1404,6 +1947,7 @@ export const merchant_categories = pgTable(
     icon: integer('icon_id').references(() => media.id, {
       onDelete: 'set null',
     }),
+    commissionOverridePct: numeric('commission_override_pct'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -1522,6 +2066,7 @@ export const products = pgTable(
   'products',
   {
     id: serial('id').primaryKey(),
+    approvalStatus: enum_products_approval_status('approval_status').notNull().default('pending'),
     createdByVendor: integer('created_by_vendor_id').references(() => vendors.id, {
       onDelete: 'set null',
     }),
@@ -1693,6 +2238,28 @@ export const orders = pgTable(
     subtotal: numeric('subtotal').notNull(),
     delivery_fee: numeric('delivery_fee').notNull().default('0'),
     platform_fee: numeric('platform_fee').notNull().default('0'),
+    priority_fee: numeric('priority_fee').notNull().default('0'),
+    discount_total: numeric('discount_total').notNull().default('0'),
+    commission_percent: numeric('commission_percent'),
+    commission_base_amount: numeric('commission_base_amount'),
+    commission_vendor_discount: numeric('commission_vendor_discount'),
+    commission_amount: numeric('commission_amount'),
+    commission_transaction_fee: numeric('commission_transaction_fee'),
+    commission_vendor_net: numeric('commission_vendor_net'),
+    commission_source: enum_orders_commission_source('commission_source'),
+    commission_rule: integer('commission_rule_id').references(() => commission_rules.id, {
+      onDelete: 'set null',
+    }),
+    commission_status: enum_orders_commission_status('commission_status').default('pending'),
+    commission_calculated_at: timestamp('commission_calculated_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    coupon_code: varchar('coupon_code'),
+    free_delivery_applied: boolean('free_delivery_applied').default(false),
+    wallet_amount_used: numeric('wallet_amount_used').notNull().default('0'),
+    paid_with_wallet: boolean('paid_with_wallet').default(false),
     notes: varchar('notes'),
     placed_at: timestamp('placed_at', {
       mode: 'string',
@@ -1713,6 +2280,7 @@ export const orders = pgTable(
   (columns) => ({
     orders_customer_idx: index('orders_customer_idx').on(columns.customer),
     orders_merchant_idx: index('orders_merchant_idx').on(columns.merchant),
+    orders_commission_rule_idx: index('orders_commission_rule_idx').on(columns.commission_rule),
     orders_updated_at_idx: index('orders_updated_at_idx').on(columns.updatedAt),
     orders_created_at_idx: index('orders_created_at_idx').on(columns.createdAt),
   }),
@@ -1808,11 +2376,15 @@ export const transactions = pgTable(
         onDelete: 'set null',
       }),
     payment_intent_id: varchar('payment_intent_id'),
+    payment_id: varchar('payment_id'),
     payment_method: varchar('payment_method'),
     amount: numeric('amount').notNull(),
     currency: varchar('currency').default('PHP'),
     status: enum_transactions_status('status').notNull().default('pending'),
     paid_at: timestamp('paid_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    refunded_amount: numeric('refunded_amount').default('0'),
+    last_refund_id: varchar('last_refund_id'),
+    refund_event_amount: numeric('refund_event_amount'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -1822,6 +2394,7 @@ export const transactions = pgTable(
   },
   (columns) => ({
     transactions_order_idx: index('transactions_order_idx').on(columns.order),
+    transactions_payment_id_idx: index('transactions_payment_id_idx').on(columns.payment_id),
     transactions_updated_at_idx: index('transactions_updated_at_idx').on(columns.updatedAt),
     transactions_created_at_idx: index('transactions_created_at_idx').on(columns.createdAt),
   }),
@@ -1970,6 +2543,17 @@ export const order_discounts = pgTable(
     code: varchar('code').notNull(),
     amount_off: numeric('amount_off').notNull(),
     type: enum_order_discounts_type('type').notNull(),
+    coupon: integer('coupon_id').references(() => coupons.id, {
+      onDelete: 'set null',
+    }),
+    coupon_snapshot: jsonb('coupon_snapshot'),
+    food_discount: numeric('food_discount').default('0'),
+    delivery_discount: numeric('delivery_discount').default('0'),
+    funded_by: enum_order_discounts_funded_by('funded_by').default('platform'),
+    vendor_share_pct: numeric('vendor_share_pct').default('0'),
+    platform_share: numeric('platform_share').default('0'),
+    vendor_share: numeric('vendor_share').default('0'),
+    source: enum_order_discounts_source('source').default('coupon'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -1979,8 +2563,569 @@ export const order_discounts = pgTable(
   },
   (columns) => ({
     order_discounts_order_idx: index('order_discounts_order_idx').on(columns.order),
+    order_discounts_coupon_idx: index('order_discounts_coupon_idx').on(columns.coupon),
     order_discounts_updated_at_idx: index('order_discounts_updated_at_idx').on(columns.updatedAt),
     order_discounts_created_at_idx: index('order_discounts_created_at_idx').on(columns.createdAt),
+    order_coupon_idx: index('order_coupon_idx').on(columns.order, columns.coupon),
+    coupon_idx: index('coupon_idx').on(columns.coupon),
+  }),
+)
+
+export const wallets = pgTable(
+  'wallets',
+  {
+    id: serial('id').primaryKey(),
+    customer: integer('customer_id')
+      .notNull()
+      .references(() => customers.id, {
+        onDelete: 'set null',
+      }),
+    balance: numeric('balance').notNull().default('0'),
+    currency: varchar('currency').default('PHP'),
+    status: enum_wallets_status('status').notNull().default('active'),
+    total_topped_up: numeric('total_topped_up').notNull().default('0'),
+    total_spent: numeric('total_spent').notNull().default('0'),
+    total_cashback: numeric('total_cashback').notNull().default('0'),
+    total_refunded: numeric('total_refunded').notNull().default('0'),
+    points_balance: numeric('points_balance').notNull().default('0'),
+    points_earned: numeric('points_earned').notNull().default('0'),
+    points_redeemed: numeric('points_redeemed').notNull().default('0'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    wallets_customer_idx: uniqueIndex('wallets_customer_idx').on(columns.customer),
+    wallets_updated_at_idx: index('wallets_updated_at_idx').on(columns.updatedAt),
+    wallets_created_at_idx: index('wallets_created_at_idx').on(columns.createdAt),
+    customer_idx: uniqueIndex('customer_idx').on(columns.customer),
+    status_1_idx: index('status_1_idx').on(columns.status),
+  }),
+)
+
+export const wallet_transactions = pgTable(
+  'wallet_transactions',
+  {
+    id: serial('id').primaryKey(),
+    wallet: integer('wallet_id')
+      .notNull()
+      .references(() => wallets.id, {
+        onDelete: 'set null',
+      }),
+    customer: integer('customer_id')
+      .notNull()
+      .references(() => customers.id, {
+        onDelete: 'set null',
+      }),
+    type: enum_wallet_transactions_type('type').notNull(),
+    amount: numeric('amount').notNull().default('0'),
+    balance_after: numeric('balance_after').notNull(),
+    points: numeric('points').notNull().default('0'),
+    points_balance_after: numeric('points_balance_after').notNull().default('0'),
+    order: integer('order_id').references(() => orders.id, {
+      onDelete: 'set null',
+    }),
+    payment_intent_id: varchar('payment_intent_id'),
+    gateway: varchar('gateway').default('paymongo'),
+    idempotency_key: varchar('idempotency_key').notNull(),
+    status: enum_wallet_transactions_status('status').notNull().default('posted'),
+    expires_at: timestamp('expires_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    meta: jsonb('meta'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    wallet_transactions_wallet_idx: index('wallet_transactions_wallet_idx').on(columns.wallet),
+    wallet_transactions_customer_idx: index('wallet_transactions_customer_idx').on(
+      columns.customer,
+    ),
+    wallet_transactions_order_idx: index('wallet_transactions_order_idx').on(columns.order),
+    wallet_transactions_updated_at_idx: index('wallet_transactions_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    wallet_transactions_created_at_idx: index('wallet_transactions_created_at_idx').on(
+      columns.createdAt,
+    ),
+    idempotency_key_idx: uniqueIndex('idempotency_key_idx').on(columns.idempotency_key),
+    wallet_idx: index('wallet_idx').on(columns.wallet),
+    customer_1_idx: index('customer_1_idx').on(columns.customer),
+    customer_type_idx: index('customer_type_idx').on(columns.customer, columns.type),
+    order_idx: index('order_idx').on(columns.order),
+    status_2_idx: index('status_2_idx').on(columns.status),
+    expires_at_idx: index('expires_at_idx').on(columns.expires_at),
+  }),
+)
+
+export const wallet_topups = pgTable(
+  'wallet_topups',
+  {
+    id: serial('id').primaryKey(),
+    wallet: integer('wallet_id')
+      .notNull()
+      .references(() => wallets.id, {
+        onDelete: 'set null',
+      }),
+    customer: integer('customer_id')
+      .notNull()
+      .references(() => customers.id, {
+        onDelete: 'set null',
+      }),
+    amount: numeric('amount').notNull(),
+    currency: varchar('currency').default('PHP'),
+    gateway: varchar('gateway').default('paymongo'),
+    payment_intent_id: varchar('payment_intent_id'),
+    status: enum_wallet_topups_status('status').notNull().default('pending'),
+    paid_at: timestamp('paid_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    wallet_topups_wallet_idx: index('wallet_topups_wallet_idx').on(columns.wallet),
+    wallet_topups_customer_idx: index('wallet_topups_customer_idx').on(columns.customer),
+    wallet_topups_updated_at_idx: index('wallet_topups_updated_at_idx').on(columns.updatedAt),
+    wallet_topups_created_at_idx: index('wallet_topups_created_at_idx').on(columns.createdAt),
+    payment_intent_id_idx: uniqueIndex('payment_intent_id_idx').on(columns.payment_intent_id),
+    customer_2_idx: index('customer_2_idx').on(columns.customer),
+    wallet_1_idx: index('wallet_1_idx').on(columns.wallet),
+    status_3_idx: index('status_3_idx').on(columns.status),
+  }),
+)
+
+export const coupons_allowed_payment_methods = pgTable(
+  'coupons_allowed_payment_methods',
+  {
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    value: enum_coupons_allowed_payment_methods('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => ({
+    orderIdx: index('coupons_allowed_payment_methods_order_idx').on(columns.order),
+    parentIdx: index('coupons_allowed_payment_methods_parent_idx').on(columns.parent),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [coupons.id],
+      name: 'coupons_allowed_payment_methods_parent_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const coupons_time_windows_days = pgTable(
+  'coupons_time_windows_days',
+  {
+    order: integer('order').notNull(),
+    parent: varchar('parent_id').notNull(),
+    value: enum_coupons_time_windows_days('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => ({
+    orderIdx: index('coupons_time_windows_days_order_idx').on(columns.order),
+    parentIdx: index('coupons_time_windows_days_parent_idx').on(columns.parent),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [coupons_time_windows.id],
+      name: 'coupons_time_windows_days_parent_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const coupons_time_windows = pgTable(
+  'coupons_time_windows',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    start_time: varchar('start_time').notNull(),
+    end_time: varchar('end_time').notNull(),
+  },
+  (columns) => ({
+    _orderIdx: index('coupons_time_windows_order_idx').on(columns._order),
+    _parentIDIdx: index('coupons_time_windows_parent_id_idx').on(columns._parentID),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [coupons.id],
+      name: 'coupons_time_windows_parent_id_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const coupons = pgTable(
+  'coupons',
+  {
+    id: serial('id').primaryKey(),
+    code: varchar('code').notNull(),
+    description: varchar('description'),
+    title: varchar('title'),
+    short_copy: varchar('short_copy'),
+    image: integer('image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    priority: numeric('priority').default('0'),
+    featured: boolean('featured').default(false),
+    claimable: boolean('claimable').default(true),
+    status: enum_coupons_status('status').notNull().default('draft'),
+    discount_type: enum_coupons_discount_type('discount_type').notNull().default('fixed_cart'),
+    amount: numeric('amount').notNull(),
+    max_discount_amount: numeric('max_discount_amount'),
+    applies_to: enum_coupons_applies_to('applies_to').notNull().default('food_subtotal'),
+    free_delivery: boolean('free_delivery').default(false),
+    delivery_discount_cap: numeric('delivery_discount_cap'),
+    vendor: integer('vendor_id').references((): AnyPgColumn => vendors.id, {
+      onDelete: 'set null',
+    }),
+    merchant_scope: enum_coupons_merchant_scope('merchant_scope')
+      .notNull()
+      .default('all_vendor_branches'),
+    exclude_promo_items: boolean('exclude_promo_items').default(false),
+    minimum_basket: numeric('minimum_basket'),
+    maximum_basket: numeric('maximum_basket'),
+    limit_per_order_items: numeric('limit_per_order_items'),
+    individual_use: boolean('individual_use').default(true),
+    max_coupons_per_order: numeric('max_coupons_per_order').default('1'),
+    starts_at: timestamp('starts_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    expires_at: timestamp('expires_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    usage_limit: numeric('usage_limit').default('0'),
+    usage_limit_per_user: numeric('usage_limit_per_user').default('0'),
+    usage_count: numeric('usage_count').default('0'),
+    first_order_only: boolean('first_order_only').default(false),
+    funded_by: enum_coupons_funded_by('funded_by').notNull().default('platform'),
+    vendor_share_pct: numeric('vendor_share_pct').default('0'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    coupons_image_idx: index('coupons_image_idx').on(columns.image),
+    coupons_vendor_idx: index('coupons_vendor_idx').on(columns.vendor),
+    coupons_updated_at_idx: index('coupons_updated_at_idx').on(columns.updatedAt),
+    coupons_created_at_idx: index('coupons_created_at_idx').on(columns.createdAt),
+    code_vendor_idx: uniqueIndex('code_vendor_idx').on(columns.code, columns.vendor),
+    status_expires_at_idx: index('status_expires_at_idx').on(columns.status, columns.expires_at),
+    vendor_1_idx: index('vendor_1_idx').on(columns.vendor),
+    code_idx: index('code_idx').on(columns.code),
+  }),
+)
+
+export const coupons_texts = pgTable(
+  'coupons_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => ({
+    orderParentIdx: index('coupons_texts_order_parent_idx').on(columns.order, columns.parent),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [coupons.id],
+      name: 'coupons_texts_parent_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const coupons_rels = pgTable(
+  'coupons_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    'membership-plansID': integer('membership_plans_id'),
+    merchantsID: integer('merchants_id'),
+    productsID: integer('products_id'),
+    'product-categoriesID': integer('prod_categories_id'),
+  },
+  (columns) => ({
+    order: index('coupons_rels_order_idx').on(columns.order),
+    parentIdx: index('coupons_rels_parent_idx').on(columns.parent),
+    pathIdx: index('coupons_rels_path_idx').on(columns.path),
+    coupons_rels_membership_plans_id_idx: index('coupons_rels_membership_plans_id_idx').on(
+      columns['membership-plansID'],
+    ),
+    coupons_rels_merchants_id_idx: index('coupons_rels_merchants_id_idx').on(columns.merchantsID),
+    coupons_rels_products_id_idx: index('coupons_rels_products_id_idx').on(columns.productsID),
+    coupons_rels_prod_categories_id_idx: index('coupons_rels_prod_categories_id_idx').on(
+      columns['product-categoriesID'],
+    ),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [coupons.id],
+      name: 'coupons_rels_parent_fk',
+    }).onDelete('cascade'),
+    'membership-plansIdFk': foreignKey({
+      columns: [columns['membership-plansID']],
+      foreignColumns: [membership_plans.id],
+      name: 'coupons_rels_membership_plans_fk',
+    }).onDelete('cascade'),
+    merchantsIdFk: foreignKey({
+      columns: [columns['merchantsID']],
+      foreignColumns: [merchants.id],
+      name: 'coupons_rels_merchants_fk',
+    }).onDelete('cascade'),
+    productsIdFk: foreignKey({
+      columns: [columns['productsID']],
+      foreignColumns: [products.id],
+      name: 'coupons_rels_products_fk',
+    }).onDelete('cascade'),
+    'product-categoriesIdFk': foreignKey({
+      columns: [columns['product-categoriesID']],
+      foreignColumns: [prod_categories.id],
+      name: 'coupons_rels_product_categories_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const coupon_claims = pgTable(
+  'coupon_claims',
+  {
+    id: serial('id').primaryKey(),
+    coupon: integer('coupon_id')
+      .notNull()
+      .references(() => coupons.id, {
+        onDelete: 'set null',
+      }),
+    customer: integer('customer_id')
+      .notNull()
+      .references(() => customers.id, {
+        onDelete: 'set null',
+      }),
+    status: enum_coupon_claims_status('status').notNull().default('claimed'),
+    claimed_at: timestamp('claimed_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    coupon_claims_coupon_idx: index('coupon_claims_coupon_idx').on(columns.coupon),
+    coupon_claims_customer_idx: index('coupon_claims_customer_idx').on(columns.customer),
+    coupon_claims_updated_at_idx: index('coupon_claims_updated_at_idx').on(columns.updatedAt),
+    coupon_claims_created_at_idx: index('coupon_claims_created_at_idx').on(columns.createdAt),
+    coupon_customer_idx: uniqueIndex('coupon_customer_idx').on(columns.coupon, columns.customer),
+    customer_status_idx: index('customer_status_idx').on(columns.customer, columns.status),
+    coupon_1_idx: index('coupon_1_idx').on(columns.coupon),
+    status_4_idx: index('status_4_idx').on(columns.status),
+  }),
+)
+
+export const point_rules = pgTable(
+  'point_rules',
+  {
+    id: serial('id').primaryKey(),
+    event: enum_point_rules_event('event').notNull(),
+    points: numeric('points').default('0'),
+    rate_per_peso: numeric('rate_per_peso').default('0'),
+    min_order_total: numeric('min_order_total').default('0'),
+    cap_points: numeric('cap_points').default('0'),
+    is_active: boolean('is_active').default(true),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    point_rules_updated_at_idx: index('point_rules_updated_at_idx').on(columns.updatedAt),
+    point_rules_created_at_idx: index('point_rules_created_at_idx').on(columns.createdAt),
+    event_is_active_idx: index('event_is_active_idx').on(columns.event, columns.is_active),
+  }),
+)
+
+export const rewards_terms = pgTable(
+  'rewards_terms',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    term: varchar('term').notNull(),
+  },
+  (columns) => ({
+    _orderIdx: index('rewards_terms_order_idx').on(columns._order),
+    _parentIDIdx: index('rewards_terms_parent_id_idx').on(columns._parentID),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [rewards.id],
+      name: 'rewards_terms_parent_id_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const rewards = pgTable(
+  'rewards',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    description: varchar('description'),
+    points_cost: numeric('points_cost').notNull(),
+    category: enum_rewards_category('category').notNull().default('discount'),
+    image: integer('image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    stock: numeric('stock'),
+    coupon: integer('coupon_id').references(() => coupons.id, {
+      onDelete: 'set null',
+    }),
+    priority: numeric('priority').default('0'),
+    is_active: boolean('is_active').default(true),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    rewards_image_idx: index('rewards_image_idx').on(columns.image),
+    rewards_coupon_idx: index('rewards_coupon_idx').on(columns.coupon),
+    rewards_updated_at_idx: index('rewards_updated_at_idx').on(columns.updatedAt),
+    rewards_created_at_idx: index('rewards_created_at_idx').on(columns.createdAt),
+    is_active_category_idx: index('is_active_category_idx').on(columns.is_active, columns.category),
+  }),
+)
+
+export const achievements = pgTable(
+  'achievements',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    description: varchar('description'),
+    points_reward: numeric('points_reward').notNull(),
+    metric: enum_achievements_metric('metric').notNull(),
+    target: numeric('target').notNull(),
+    icon: varchar('icon'),
+    is_active: boolean('is_active').default(true),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    achievements_updated_at_idx: index('achievements_updated_at_idx').on(columns.updatedAt),
+    achievements_created_at_idx: index('achievements_created_at_idx').on(columns.createdAt),
+    is_active_idx: index('is_active_idx').on(columns.is_active),
+  }),
+)
+
+export const user_achievements = pgTable(
+  'user_achievements',
+  {
+    id: serial('id').primaryKey(),
+    user: integer('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    achievement: integer('achievement_id')
+      .notNull()
+      .references(() => achievements.id, {
+        onDelete: 'set null',
+      }),
+    progress: numeric('progress').notNull().default('0'),
+    target: numeric('target').notNull(),
+    completed: boolean('completed').default(false),
+    claimed: boolean('claimed').default(false),
+    completed_at: timestamp('completed_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    user_achievements_user_idx: index('user_achievements_user_idx').on(columns.user),
+    user_achievements_achievement_idx: index('user_achievements_achievement_idx').on(
+      columns.achievement,
+    ),
+    user_achievements_updated_at_idx: index('user_achievements_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    user_achievements_created_at_idx: index('user_achievements_created_at_idx').on(
+      columns.createdAt,
+    ),
+    user_achievement_idx: uniqueIndex('user_achievement_idx').on(columns.user, columns.achievement),
+    user_6_idx: index('user_6_idx').on(columns.user),
+    achievement_idx: index('achievement_idx').on(columns.achievement),
+  }),
+)
+
+export const coupon_redemptions = pgTable(
+  'coupon_redemptions',
+  {
+    id: serial('id').primaryKey(),
+    coupon: integer('coupon_id')
+      .notNull()
+      .references(() => coupons.id, {
+        onDelete: 'set null',
+      }),
+    order: integer('order_id')
+      .notNull()
+      .references(() => orders.id, {
+        onDelete: 'set null',
+      }),
+    customer: integer('customer_id')
+      .notNull()
+      .references(() => customers.id, {
+        onDelete: 'set null',
+      }),
+    customer_email: varchar('customer_email'),
+    customer_phone: varchar('customer_phone'),
+    code_snapshot: varchar('code_snapshot').notNull(),
+    coupon_snapshot: jsonb('coupon_snapshot'),
+    food_discount: numeric('food_discount').notNull().default('0'),
+    delivery_discount: numeric('delivery_discount').notNull().default('0'),
+    total_discount: numeric('total_discount').notNull(),
+    funded_by: enum_coupon_redemptions_funded_by('funded_by').notNull().default('platform'),
+    vendor_share_pct: numeric('vendor_share_pct').default('0'),
+    platform_share: numeric('platform_share').notNull().default('0'),
+    vendor_share: numeric('vendor_share').notNull().default('0'),
+    status: enum_coupon_redemptions_status('status').notNull().default('held'),
+    held_until: timestamp('held_until', { mode: 'string', withTimezone: true, precision: 3 }),
+    hold_key: varchar('hold_key'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    coupon_redemptions_coupon_idx: index('coupon_redemptions_coupon_idx').on(columns.coupon),
+    coupon_redemptions_order_idx: index('coupon_redemptions_order_idx').on(columns.order),
+    coupon_redemptions_customer_idx: index('coupon_redemptions_customer_idx').on(columns.customer),
+    coupon_redemptions_updated_at_idx: index('coupon_redemptions_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    coupon_redemptions_created_at_idx: index('coupon_redemptions_created_at_idx').on(
+      columns.createdAt,
+    ),
+    coupon_order_idx: uniqueIndex('coupon_order_idx').on(columns.coupon, columns.order),
+    coupon_customer_1_idx: index('coupon_customer_1_idx').on(columns.coupon, columns.customer),
+    coupon_status_idx: index('coupon_status_idx').on(columns.coupon, columns.status),
+    order_1_idx: index('order_1_idx').on(columns.order),
+    customer_3_idx: index('customer_3_idx').on(columns.customer),
+    held_until_idx: index('held_until_idx').on(columns.held_until),
   }),
 )
 
@@ -2987,7 +4132,900 @@ export const wishlists = pgTable(
       columns.user,
       columns.merchantProduct,
     ),
-    user_createdAt_idx: index('user_createdAt_idx').on(columns.user, columns.createdAt),
+    user_createdAt_1_idx: index('user_createdAt_1_idx').on(columns.user, columns.createdAt),
+  }),
+)
+
+export const support_tickets = pgTable(
+  'support_tickets',
+  {
+    id: serial('id').primaryKey(),
+    subject: varchar('subject').notNull(),
+    status: enum_support_tickets_status('status').notNull().default('open'),
+    priority: enum_support_tickets_priority('priority').notNull().default('medium'),
+    category: enum_support_tickets_category('category').notNull(),
+    user: integer('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    order: integer('order_id').references(() => orders.id, {
+      onDelete: 'set null',
+    }),
+    merchant: integer('merchant_id').references(() => merchants.id, {
+      onDelete: 'set null',
+    }),
+    product: integer('product_id').references(() => products.id, {
+      onDelete: 'set null',
+    }),
+    assignedTo: integer('assigned_to_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    lastMessageAt: timestamp('last_message_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    support_tickets_user_idx: index('support_tickets_user_idx').on(columns.user),
+    support_tickets_order_idx: index('support_tickets_order_idx').on(columns.order),
+    support_tickets_merchant_idx: index('support_tickets_merchant_idx').on(columns.merchant),
+    support_tickets_product_idx: index('support_tickets_product_idx').on(columns.product),
+    support_tickets_assigned_to_idx: index('support_tickets_assigned_to_idx').on(
+      columns.assignedTo,
+    ),
+    support_tickets_updated_at_idx: index('support_tickets_updated_at_idx').on(columns.updatedAt),
+    support_tickets_created_at_idx: index('support_tickets_created_at_idx').on(columns.createdAt),
+    user_7_idx: index('user_7_idx').on(columns.user),
+    assignedTo_idx: index('assignedTo_idx').on(columns.assignedTo),
+    status_5_idx: index('status_5_idx').on(columns.status),
+    updatedAt_1_idx: index('updatedAt_1_idx').on(columns.updatedAt),
+  }),
+)
+
+export const support_tickets_rels = pgTable(
+  'support_tickets_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    mediaID: integer('media_id'),
+  },
+  (columns) => ({
+    order: index('support_tickets_rels_order_idx').on(columns.order),
+    parentIdx: index('support_tickets_rels_parent_idx').on(columns.parent),
+    pathIdx: index('support_tickets_rels_path_idx').on(columns.path),
+    support_tickets_rels_media_id_idx: index('support_tickets_rels_media_id_idx').on(
+      columns.mediaID,
+    ),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [support_tickets.id],
+      name: 'support_tickets_rels_parent_fk',
+    }).onDelete('cascade'),
+    mediaIdFk: foreignKey({
+      columns: [columns['mediaID']],
+      foreignColumns: [media.id],
+      name: 'support_tickets_rels_media_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const support_ticket_messages = pgTable(
+  'support_ticket_messages',
+  {
+    id: serial('id').primaryKey(),
+    ticket: integer('ticket_id')
+      .notNull()
+      .references(() => support_tickets.id, {
+        onDelete: 'set null',
+      }),
+    sender: integer('sender_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    message: jsonb('message').notNull(),
+    isInternal: boolean('is_internal').default(false),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    support_ticket_messages_ticket_idx: index('support_ticket_messages_ticket_idx').on(
+      columns.ticket,
+    ),
+    support_ticket_messages_sender_idx: index('support_ticket_messages_sender_idx').on(
+      columns.sender,
+    ),
+    support_ticket_messages_updated_at_idx: index('support_ticket_messages_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    support_ticket_messages_created_at_idx: index('support_ticket_messages_created_at_idx').on(
+      columns.createdAt,
+    ),
+  }),
+)
+
+export const support_ticket_messages_rels = pgTable(
+  'support_ticket_messages_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    mediaID: integer('media_id'),
+  },
+  (columns) => ({
+    order: index('support_ticket_messages_rels_order_idx').on(columns.order),
+    parentIdx: index('support_ticket_messages_rels_parent_idx').on(columns.parent),
+    pathIdx: index('support_ticket_messages_rels_path_idx').on(columns.path),
+    support_ticket_messages_rels_media_id_idx: index(
+      'support_ticket_messages_rels_media_id_idx',
+    ).on(columns.mediaID),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [support_ticket_messages.id],
+      name: 'support_ticket_messages_rels_parent_fk',
+    }).onDelete('cascade'),
+    mediaIdFk: foreignKey({
+      columns: [columns['mediaID']],
+      foreignColumns: [media.id],
+      name: 'support_ticket_messages_rels_media_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const membership_plans_allowed_business_types = pgTable(
+  'membership_plans_allowed_business_types',
+  {
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    value: enum_membership_plans_allowed_business_types('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => ({
+    orderIdx: index('membership_plans_allowed_business_types_order_idx').on(columns.order),
+    parentIdx: index('membership_plans_allowed_business_types_parent_idx').on(columns.parent),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [membership_plans.id],
+      name: 'membership_plans_allowed_business_types_parent_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const membership_plans = pgTable(
+  'membership_plans',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name').notNull(),
+    slug: varchar('slug').notNull(),
+    description: varchar('description'),
+    price: numeric('price').notNull(),
+    currency: varchar('currency').notNull().default('PHP'),
+    billing_interval: enum_membership_plans_billing_interval('billing_interval')
+      .notNull()
+      .default('month'),
+    trial_days: numeric('trial_days').default('0'),
+    grace_days: numeric('grace_days').default('7'),
+    commission_percent: numeric('commission_percent').default('0'),
+    transaction_fee: numeric('transaction_fee').default('0'),
+    limits_max_products: numeric('limits_max_products').default('-1'),
+    limits_max_merchants: numeric('limits_max_merchants').default('1'),
+    limits_max_images: numeric('limits_max_images').default('-1'),
+    limits_storage_mb: numeric('limits_storage_mb').default('-1'),
+    limits_staff_seats: numeric('limits_staff_seats').default('1'),
+    limits_monthly_gmv_cap: numeric('limits_monthly_gmv_cap').default('-1'),
+    limits_order_cap: numeric('limits_order_cap').default('-1'),
+    capabilities_microstore: boolean('capabilities_microstore').default(false),
+    capabilities_ads: boolean('capabilities_ads').default(false),
+    capabilities_analytics: boolean('capabilities_analytics').default(false),
+    capabilities_api_access: boolean('capabilities_api_access').default(false),
+    capabilities_promos: boolean('capabilities_promos').default(false),
+    capabilities_custom_shipping: boolean('capabilities_custom_shipping').default(false),
+    capabilities_multi_user: boolean('capabilities_multi_user').default(false),
+    capabilities_visibility_boost: numeric('capabilities_visibility_boost').default('0'),
+    capabilities_support_sla: enum_membership_plans_capabilities_support_sla(
+      'capabilities_support_sla',
+    ).default('email'),
+    status: enum_membership_plans_status('status').notNull().default('active'),
+    display_order: numeric('display_order').default('0'),
+    is_fallback_basic: boolean('is_fallback_basic').default(false),
+    stripe_product_id: varchar('stripe_product_id'),
+    stripe_price_id: varchar('stripe_price_id'),
+    paymongo_plan_ref: varchar('paymongo_plan_ref'),
+    version: numeric('version').notNull().default('1'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    membership_plans_slug_idx: uniqueIndex('membership_plans_slug_idx').on(columns.slug),
+    membership_plans_updated_at_idx: index('membership_plans_updated_at_idx').on(columns.updatedAt),
+    membership_plans_created_at_idx: index('membership_plans_created_at_idx').on(columns.createdAt),
+    slug_1_idx: uniqueIndex('slug_1_idx').on(columns.slug),
+    status_display_order_idx: index('status_display_order_idx').on(
+      columns.status,
+      columns.display_order,
+    ),
+  }),
+)
+
+export const membership_plans_rels = pgTable(
+  'membership_plans_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    'product-categoriesID': integer('prod_categories_id'),
+  },
+  (columns) => ({
+    order: index('membership_plans_rels_order_idx').on(columns.order),
+    parentIdx: index('membership_plans_rels_parent_idx').on(columns.parent),
+    pathIdx: index('membership_plans_rels_path_idx').on(columns.path),
+    membership_plans_rels_prod_categories_id_idx: index(
+      'membership_plans_rels_prod_categories_id_idx',
+    ).on(columns['product-categoriesID']),
+    parentFk: foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [membership_plans.id],
+      name: 'membership_plans_rels_parent_fk',
+    }).onDelete('cascade'),
+    'product-categoriesIdFk': foreignKey({
+      columns: [columns['product-categoriesID']],
+      foreignColumns: [prod_categories.id],
+      name: 'membership_plans_rels_product_categories_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const vendor_subscriptions = pgTable(
+  'vendor_subscriptions',
+  {
+    id: serial('id').primaryKey(),
+    vendor: integer('vendor_id')
+      .notNull()
+      .references((): AnyPgColumn => vendors.id, {
+        onDelete: 'set null',
+      }),
+    plan: integer('plan_id')
+      .notNull()
+      .references(() => membership_plans.id, {
+        onDelete: 'set null',
+      }),
+    plan_version: numeric('plan_version').notNull().default('1'),
+    plan_snapshot: jsonb('plan_snapshot').notNull(),
+    status: enum_vendor_subscriptions_status('status').notNull().default('pending'),
+    billing_interval: enum_vendor_subscriptions_billing_interval('billing_interval'),
+    current_period_start: timestamp('current_period_start', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    current_period_end: timestamp('current_period_end', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    trial_ends_at: timestamp('trial_ends_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    grace_ends_at: timestamp('grace_ends_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    cancel_at: timestamp('cancel_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    cancelled_at: timestamp('cancelled_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+    scheduledPlan: integer('scheduled_plan_id').references(() => membership_plans.id, {
+      onDelete: 'set null',
+    }),
+    scheduledEffectiveAt: timestamp('scheduled_effective_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    auto_renew: boolean('auto_renew').default(true),
+    payment_provider:
+      enum_vendor_subscriptions_payment_provider('payment_provider').default('paymongo'),
+    provider_customer_id: varchar('provider_customer_id'),
+    provider_subscription_id: varchar('provider_subscription_id'),
+    idempotencyKey: varchar('idempotency_key').notNull(),
+    retryCount: numeric('retry_count').default('0'),
+    lastRetryAt: timestamp('last_retry_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    waivedUntil: timestamp('waived_until', { mode: 'string', withTimezone: true, precision: 3 }),
+    waiveReason: varchar('waive_reason'),
+    suspendReason: varchar('suspend_reason'),
+    usage_products_used: numeric('usage_products_used').default('0'),
+    usage_merchants_used: numeric('usage_merchants_used').default('0'),
+    usage_storage_mb_used: numeric('usage_storage_mb_used').default('0'),
+    usage_gmv_current_period: numeric('usage_gmv_current_period').default('0'),
+    usage_orders_current_period: numeric('usage_orders_current_period').default('0'),
+    usage_last_reset_at: timestamp('usage_last_reset_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    grandfathered: boolean('grandfathered').default(false),
+    grandfather_notes: varchar('grandfather_notes'),
+    meta: jsonb('meta'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    vendor_subscriptions_vendor_idx: index('vendor_subscriptions_vendor_idx').on(columns.vendor),
+    vendor_subscriptions_plan_idx: index('vendor_subscriptions_plan_idx').on(columns.plan),
+    vendor_subscriptions_scheduled_plan_idx: index('vendor_subscriptions_scheduled_plan_idx').on(
+      columns.scheduledPlan,
+    ),
+    vendor_subscriptions_provider_subscription_id_idx: index(
+      'vendor_subscriptions_provider_subscription_id_idx',
+    ).on(columns.provider_subscription_id),
+    vendor_subscriptions_idempotency_key_idx: uniqueIndex(
+      'vendor_subscriptions_idempotency_key_idx',
+    ).on(columns.idempotencyKey),
+    vendor_subscriptions_updated_at_idx: index('vendor_subscriptions_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    vendor_subscriptions_created_at_idx: index('vendor_subscriptions_created_at_idx').on(
+      columns.createdAt,
+    ),
+    vendor_status_idx: index('vendor_status_idx').on(columns.vendor, columns.status),
+    plan_status_idx: index('plan_status_idx').on(columns.plan, columns.status),
+    provider_subscription_id_idx: uniqueIndex('provider_subscription_id_idx').on(
+      columns.provider_subscription_id,
+    ),
+    current_period_end_idx: index('current_period_end_idx').on(columns.current_period_end),
+    idempotencyKey_idx: uniqueIndex('idempotencyKey_idx').on(columns.idempotencyKey),
+  }),
+)
+
+export const subscription_invoices = pgTable(
+  'subscription_invoices',
+  {
+    id: serial('id').primaryKey(),
+    subscription: integer('subscription_id')
+      .notNull()
+      .references(() => vendor_subscriptions.id, {
+        onDelete: 'set null',
+      }),
+    vendor: integer('vendor_id')
+      .notNull()
+      .references(() => vendors.id, {
+        onDelete: 'set null',
+      }),
+    plan: integer('plan_id')
+      .notNull()
+      .references(() => membership_plans.id, {
+        onDelete: 'set null',
+      }),
+    invoice_number: varchar('invoice_number').notNull(),
+    amount: numeric('amount').notNull(),
+    currency: varchar('currency').default('PHP'),
+    commission_due: numeric('commission_due').default('0'),
+    status: enum_subscription_invoices_status('status').default('pending'),
+    billingReason: enum_subscription_invoices_billing_reason('billing_reason'),
+    prorationDelta: numeric('proration_delta').default('0'),
+    discount_amount: numeric('discount_amount').default('0'),
+    couponCode: varchar('coupon_code'),
+    payment_provider: enum_subscription_invoices_payment_provider('payment_provider'),
+    provider_payment_intent: varchar('provider_payment_intent'),
+    payment_link_url: varchar('payment_link_url'),
+    paymongo_link_id: varchar('paymongo_link_id'),
+    reference_number: varchar('reference_number'),
+    period_start: timestamp('period_start', { mode: 'string', withTimezone: true, precision: 3 }),
+    period_end: timestamp('period_end', { mode: 'string', withTimezone: true, precision: 3 }),
+    due_at: timestamp('due_at', { mode: 'string', withTimezone: true, precision: 3 }).notNull(),
+    paid_at: timestamp('paid_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    receipt: integer('receipt_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    retry_count: numeric('retry_count').default('0'),
+    failure_reason: varchar('failure_reason'),
+    idempotencyKey: varchar('idempotency_key').notNull(),
+    metadata: jsonb('metadata'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    subscription_invoices_subscription_idx: index('subscription_invoices_subscription_idx').on(
+      columns.subscription,
+    ),
+    subscription_invoices_vendor_idx: index('subscription_invoices_vendor_idx').on(columns.vendor),
+    subscription_invoices_plan_idx: index('subscription_invoices_plan_idx').on(columns.plan),
+    subscription_invoices_invoice_number_idx: uniqueIndex(
+      'subscription_invoices_invoice_number_idx',
+    ).on(columns.invoice_number),
+    subscription_invoices_provider_payment_intent_idx: index(
+      'subscription_invoices_provider_payment_intent_idx',
+    ).on(columns.provider_payment_intent),
+    subscription_invoices_reference_number_idx: index(
+      'subscription_invoices_reference_number_idx',
+    ).on(columns.reference_number),
+    subscription_invoices_receipt_idx: index('subscription_invoices_receipt_idx').on(
+      columns.receipt,
+    ),
+    subscription_invoices_idempotency_key_idx: uniqueIndex(
+      'subscription_invoices_idempotency_key_idx',
+    ).on(columns.idempotencyKey),
+    subscription_invoices_updated_at_idx: index('subscription_invoices_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    subscription_invoices_created_at_idx: index('subscription_invoices_created_at_idx').on(
+      columns.createdAt,
+    ),
+    invoice_number_idx: uniqueIndex('invoice_number_idx').on(columns.invoice_number),
+    vendor_status_1_idx: index('vendor_status_1_idx').on(columns.vendor, columns.status),
+    subscription_status_idx: index('subscription_status_idx').on(
+      columns.subscription,
+      columns.status,
+    ),
+    provider_payment_intent_idx: index('provider_payment_intent_idx').on(
+      columns.provider_payment_intent,
+    ),
+    reference_number_idx: index('reference_number_idx').on(columns.reference_number),
+    idempotencyKey_1_idx: uniqueIndex('idempotencyKey_1_idx').on(columns.idempotencyKey),
+  }),
+)
+
+export const commission_rules = pgTable(
+  'commission_rules',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name').notNull(),
+    scope: enum_commission_rules_scope('scope').notNull(),
+    priority: numeric('priority').notNull().default('0'),
+    plan: integer('plan_id').references(() => membership_plans.id, {
+      onDelete: 'set null',
+    }),
+    category: integer('category_id').references(() => merchant_categories.id, {
+      onDelete: 'set null',
+    }),
+    vendor: integer('vendor_id').references(() => vendors.id, {
+      onDelete: 'set null',
+    }),
+    commission_percent: numeric('commission_percent').notNull(),
+    transaction_fee: numeric('transaction_fee').default('0'),
+    effective_from: timestamp('effective_from', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    effective_to: timestamp('effective_to', { mode: 'string', withTimezone: true, precision: 3 }),
+    is_active: boolean('is_active').default(true),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    commission_rules_plan_idx: index('commission_rules_plan_idx').on(columns.plan),
+    commission_rules_category_idx: index('commission_rules_category_idx').on(columns.category),
+    commission_rules_vendor_idx: index('commission_rules_vendor_idx').on(columns.vendor),
+    commission_rules_updated_at_idx: index('commission_rules_updated_at_idx').on(columns.updatedAt),
+    commission_rules_created_at_idx: index('commission_rules_created_at_idx').on(columns.createdAt),
+    scope_is_active_idx: index('scope_is_active_idx').on(columns.scope, columns.is_active),
+    priority_idx: index('priority_idx').on(columns.priority),
+  }),
+)
+
+export const vendor_commission_entries = pgTable(
+  'vendor_commission_entries',
+  {
+    id: serial('id').primaryKey(),
+    vendor: integer('vendor_id')
+      .notNull()
+      .references(() => vendors.id, {
+        onDelete: 'set null',
+      }),
+    order: integer('order_id')
+      .notNull()
+      .references(() => orders.id, {
+        onDelete: 'set null',
+      }),
+    transaction: integer('transaction_id')
+      .notNull()
+      .references(() => transactions.id, {
+        onDelete: 'set null',
+      }),
+    entry_type: enum_vendor_commission_entries_entry_type('entry_type').notNull(),
+    idempotency_key: varchar('idempotency_key').notNull(),
+    provider_refund_id: varchar('provider_refund_id'),
+    refund_amount: numeric('refund_amount'),
+    currency: varchar('currency').notNull().default('PHP'),
+    commission_percent: numeric('commission_percent').notNull(),
+    commission_base_amount: numeric('commission_base_amount').notNull(),
+    commission_vendor_discount: numeric('commission_vendor_discount').notNull(),
+    commission_amount: numeric('commission_amount').notNull(),
+    commission_transaction_fee: numeric('commission_transaction_fee').notNull(),
+    commission_vendor_net: numeric('commission_vendor_net').notNull(),
+    commission_source:
+      enum_vendor_commission_entries_commission_source('commission_source').notNull(),
+    commission_rule: integer('commission_rule_id').references(() => commission_rules.id, {
+      onDelete: 'set null',
+    }),
+    effective_at: timestamp('effective_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    vendor_commission_entries_vendor_idx: index('vendor_commission_entries_vendor_idx').on(
+      columns.vendor,
+    ),
+    vendor_commission_entries_order_idx: index('vendor_commission_entries_order_idx').on(
+      columns.order,
+    ),
+    vendor_commission_entries_transaction_idx: index(
+      'vendor_commission_entries_transaction_idx',
+    ).on(columns.transaction),
+    vendor_commission_entries_idempotency_key_idx: uniqueIndex(
+      'vendor_commission_entries_idempotency_key_idx',
+    ).on(columns.idempotency_key),
+    vendor_commission_entries_provider_refund_id_idx: index(
+      'vendor_commission_entries_provider_refund_id_idx',
+    ).on(columns.provider_refund_id),
+    vendor_commission_entries_commission_rule_idx: index(
+      'vendor_commission_entries_commission_rule_idx',
+    ).on(columns.commission_rule),
+    vendor_commission_entries_updated_at_idx: index('vendor_commission_entries_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    vendor_commission_entries_created_at_idx: index('vendor_commission_entries_created_at_idx').on(
+      columns.createdAt,
+    ),
+    vendor_effective_at_idx: index('vendor_effective_at_idx').on(
+      columns.vendor,
+      columns.effective_at,
+    ),
+    order_entry_type_idx: index('order_entry_type_idx').on(columns.order, columns.entry_type),
+  }),
+)
+
+export const vendor_entitlements = pgTable(
+  'vendor_entitlements',
+  {
+    id: serial('id').primaryKey(),
+    vendor: integer('vendor_id')
+      .notNull()
+      .references(() => vendors.id, {
+        onDelete: 'set null',
+      }),
+    subscription: integer('subscription_id').references(() => vendor_subscriptions.id, {
+      onDelete: 'set null',
+    }),
+    plan: integer('plan_id').references(() => membership_plans.id, {
+      onDelete: 'set null',
+    }),
+    capabilities_microstore: boolean('capabilities_microstore').default(false),
+    capabilities_ads: boolean('capabilities_ads').default(false),
+    capabilities_analytics: boolean('capabilities_analytics').default(false),
+    capabilities_api_access: boolean('capabilities_api_access').default(false),
+    capabilities_promos: boolean('capabilities_promos').default(false),
+    capabilities_custom_shipping: boolean('capabilities_custom_shipping').default(false),
+    capabilities_multi_user: boolean('capabilities_multi_user').default(false),
+    capabilities_visibility_boost: numeric('capabilities_visibility_boost').default('0'),
+    capabilities_support_sla: enum_vendor_entitlements_capabilities_support_sla(
+      'capabilities_support_sla',
+    ).default('email'),
+    limits_snapshot: jsonb('limits_snapshot'),
+    granted_at: timestamp('granted_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    expires_at: timestamp('expires_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    reason: varchar('reason'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    vendor_entitlements_vendor_idx: uniqueIndex('vendor_entitlements_vendor_idx').on(
+      columns.vendor,
+    ),
+    vendor_entitlements_subscription_idx: index('vendor_entitlements_subscription_idx').on(
+      columns.subscription,
+    ),
+    vendor_entitlements_plan_idx: index('vendor_entitlements_plan_idx').on(columns.plan),
+    vendor_entitlements_updated_at_idx: index('vendor_entitlements_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    vendor_entitlements_created_at_idx: index('vendor_entitlements_created_at_idx').on(
+      columns.createdAt,
+    ),
+    vendor_2_idx: uniqueIndex('vendor_2_idx').on(columns.vendor),
+  }),
+)
+
+export const membership_audit_log = pgTable(
+  'membership_audit_log',
+  {
+    id: serial('id').primaryKey(),
+    vendor: integer('vendor_id').references(() => vendors.id, {
+      onDelete: 'set null',
+    }),
+    subscription: integer('subscription_id').references(() => vendor_subscriptions.id, {
+      onDelete: 'set null',
+    }),
+    invoice: integer('invoice_id').references(() => subscription_invoices.id, {
+      onDelete: 'set null',
+    }),
+    action: enum_membership_audit_log_action('action'),
+    plan_version: numeric('plan_version'),
+    previous_plan: integer('previous_plan_id').references(() => membership_plans.id, {
+      onDelete: 'set null',
+    }),
+    next_plan: integer('next_plan_id').references(() => membership_plans.id, {
+      onDelete: 'set null',
+    }),
+    reason: varchar('reason'),
+    actor: integer('actor_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    metadata: jsonb('metadata'),
+    eventId: varchar('event_id'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    membership_audit_log_vendor_idx: index('membership_audit_log_vendor_idx').on(columns.vendor),
+    membership_audit_log_subscription_idx: index('membership_audit_log_subscription_idx').on(
+      columns.subscription,
+    ),
+    membership_audit_log_invoice_idx: index('membership_audit_log_invoice_idx').on(columns.invoice),
+    membership_audit_log_previous_plan_idx: index('membership_audit_log_previous_plan_idx').on(
+      columns.previous_plan,
+    ),
+    membership_audit_log_next_plan_idx: index('membership_audit_log_next_plan_idx').on(
+      columns.next_plan,
+    ),
+    membership_audit_log_actor_idx: index('membership_audit_log_actor_idx').on(columns.actor),
+    membership_audit_log_event_id_idx: uniqueIndex('membership_audit_log_event_id_idx').on(
+      columns.eventId,
+    ),
+    membership_audit_log_updated_at_idx: index('membership_audit_log_updated_at_idx').on(
+      columns.updatedAt,
+    ),
+    membership_audit_log_created_at_idx: index('membership_audit_log_created_at_idx').on(
+      columns.createdAt,
+    ),
+    vendor_createdAt_idx: index('vendor_createdAt_idx').on(columns.vendor, columns.createdAt),
+    subscription_idx: index('subscription_idx').on(columns.subscription),
+    eventId_idx: uniqueIndex('eventId_idx').on(columns.eventId),
+  }),
+)
+
+export const member_invites = pgTable(
+  'member_invites',
+  {
+    id: serial('id').primaryKey(),
+    code: varchar('code').notNull(),
+    email: varchar('email'),
+    status: enum_member_invites_status('status').notNull().default('pending'),
+    invitedBy: integer('invited_by_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    claimedBy: integer('claimed_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    expiresAt: timestamp('expires_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    claimedAt: timestamp('claimed_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    notes: varchar('notes'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    member_invites_code_idx: uniqueIndex('member_invites_code_idx').on(columns.code),
+    member_invites_invited_by_idx: index('member_invites_invited_by_idx').on(columns.invitedBy),
+    member_invites_claimed_by_idx: index('member_invites_claimed_by_idx').on(columns.claimedBy),
+    member_invites_updated_at_idx: index('member_invites_updated_at_idx').on(columns.updatedAt),
+    member_invites_created_at_idx: index('member_invites_created_at_idx').on(columns.createdAt),
+    code_1_idx: uniqueIndex('code_1_idx').on(columns.code),
+    status_6_idx: index('status_6_idx').on(columns.status),
+    invitedBy_idx: index('invitedBy_idx').on(columns.invitedBy),
+    claimedBy_idx: index('claimedBy_idx').on(columns.claimedBy),
+    expiresAt_1_idx: index('expiresAt_1_idx').on(columns.expiresAt),
+  }),
+)
+
+export const member_listings_images = pgTable(
+  'member_listings_images',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    image: integer('image_id')
+      .notNull()
+      .references(() => media.id, {
+        onDelete: 'set null',
+      }),
+  },
+  (columns) => ({
+    _orderIdx: index('member_listings_images_order_idx').on(columns._order),
+    _parentIDIdx: index('member_listings_images_parent_id_idx').on(columns._parentID),
+    member_listings_images_image_idx: index('member_listings_images_image_idx').on(columns.image),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [member_listings.id],
+      name: 'member_listings_images_parent_id_fk',
+    }).onDelete('cascade'),
+  }),
+)
+
+export const member_listings = pgTable(
+  'member_listings',
+  {
+    id: serial('id').primaryKey(),
+    seller: integer('seller_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    title: varchar('title').notNull(),
+    description: varchar('description'),
+    price: numeric('price').notNull(),
+    currency: varchar('currency').default('PHP'),
+    condition: enum_member_listings_condition('condition').default('good'),
+    category: varchar('category'),
+    quantity: numeric('quantity').default('1'),
+    status: enum_member_listings_status('status').notNull().default('active'),
+    meetupNotes: varchar('meetup_notes'),
+    isActive: boolean('is_active').default(true),
+    soldAt: timestamp('sold_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    buyer: integer('buyer_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    member_listings_seller_idx: index('member_listings_seller_idx').on(columns.seller),
+    member_listings_buyer_idx: index('member_listings_buyer_idx').on(columns.buyer),
+    member_listings_updated_at_idx: index('member_listings_updated_at_idx').on(columns.updatedAt),
+    member_listings_created_at_idx: index('member_listings_created_at_idx').on(columns.createdAt),
+    seller_idx: index('seller_idx').on(columns.seller),
+    status_7_idx: index('status_7_idx').on(columns.status),
+    seller_status_idx: index('seller_status_idx').on(columns.seller, columns.status),
+    isActive_2_idx: index('isActive_2_idx').on(columns.isActive),
+    createdAt_idx: index('createdAt_idx').on(columns.createdAt),
+  }),
+)
+
+export const member_orders = pgTable(
+  'member_orders',
+  {
+    id: serial('id').primaryKey(),
+    listing: integer('listing_id')
+      .notNull()
+      .references(() => member_listings.id, {
+        onDelete: 'set null',
+      }),
+    buyer: integer('buyer_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    seller: integer('seller_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    price: numeric('price').notNull(),
+    quantity: numeric('quantity').default('1'),
+    status: enum_member_orders_status('status').notNull().default('pending'),
+    meetupNotes: varchar('meetup_notes'),
+    cancelledReason: varchar('cancelled_reason'),
+    completedAt: timestamp('completed_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    member_orders_listing_idx: index('member_orders_listing_idx').on(columns.listing),
+    member_orders_buyer_idx: index('member_orders_buyer_idx').on(columns.buyer),
+    member_orders_seller_idx: index('member_orders_seller_idx').on(columns.seller),
+    member_orders_updated_at_idx: index('member_orders_updated_at_idx').on(columns.updatedAt),
+    member_orders_created_at_idx: index('member_orders_created_at_idx').on(columns.createdAt),
+    buyer_idx: index('buyer_idx').on(columns.buyer),
+    seller_1_idx: index('seller_1_idx').on(columns.seller),
+    listing_idx: index('listing_idx').on(columns.listing),
+    status_8_idx: index('status_8_idx').on(columns.status),
+    buyer_status_idx: index('buyer_status_idx').on(columns.buyer, columns.status),
+    seller_status_1_idx: index('seller_status_1_idx').on(columns.seller, columns.status),
+  }),
+)
+
+export const member_membership_payments = pgTable(
+  'member_membership_payments',
+  {
+    id: serial('id').primaryKey(),
+    user: integer('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    amount: numeric('amount').notNull(),
+    currency: varchar('currency').notNull().default('PHP'),
+    status: varchar('status').notNull().default('pending'),
+    paymentProvider: varchar('payment_provider').notNull().default('paymongo'),
+    paymentReference: varchar('payment_reference').notNull(),
+    providerReference: varchar('provider_reference'),
+    providerClientKey: varchar('provider_client_key'),
+    paymentLinkId: varchar('payment_link_id'),
+    checkoutUrl: varchar('checkout_url'),
+    memberMembershipIdempotencyKey: varchar('member_membership_idempotency_key').notNull(),
+    paidAt: timestamp('paid_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    failureReason: varchar('failure_reason'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    member_membership_payments_user_idx: index('member_membership_payments_user_idx').on(
+      columns.user,
+    ),
+    member_membership_payments_payment_reference_idx: uniqueIndex(
+      'member_membership_payments_payment_reference_idx',
+    ).on(columns.paymentReference),
+    member_membership_payments_provider_reference_idx: uniqueIndex(
+      'member_membership_payments_provider_reference_idx',
+    ).on(columns.providerReference),
+    member_membership_payments_member_membership_idempotency_key_idx: uniqueIndex(
+      'member_membership_payments_member_membership_idempotency_key_idx',
+    ).on(columns.memberMembershipIdempotencyKey),
+    member_membership_payments_updated_at_idx: index(
+      'member_membership_payments_updated_at_idx',
+    ).on(columns.updatedAt),
+    member_membership_payments_created_at_idx: index(
+      'member_membership_payments_created_at_idx',
+    ).on(columns.createdAt),
+    user_status_idx: index('user_status_idx').on(columns.user, columns.status),
   }),
 )
 
@@ -3024,6 +5062,9 @@ export const payload_locked_documents_rels = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     usersID: integer('users_id'),
+    'notification-preferencesID': integer('notification_preferences_id'),
+    devicesID: integer('devices_id'),
+    'payment-methodsID': integer('payment_methods_id'),
     customersID: integer('customers_id'),
     adminsID: integer('admins_id'),
     'user-eventsID': integer('user_events_id'),
@@ -3051,6 +5092,16 @@ export const payload_locked_documents_rels = pgTable(
     'driver-assignmentsID': integer('driver_assignments_id'),
     'delivery-bookingsID': integer('delivery_bookings_id'),
     'order-discountsID': integer('order_discounts_id'),
+    walletsID: integer('wallets_id'),
+    'wallet-transactionsID': integer('wallet_transactions_id'),
+    'wallet-topupsID': integer('wallet_topups_id'),
+    couponsID: integer('coupons_id'),
+    'coupon-claimsID': integer('coupon_claims_id'),
+    'point-rulesID': integer('point_rules_id'),
+    rewardsID: integer('rewards_id'),
+    achievementsID: integer('achievements_id'),
+    'user-achievementsID': integer('user_achievements_id'),
+    'coupon-redemptionsID': integer('coupon_redemptions_id'),
     reviewsID: integer('reviews_id'),
     'prod-attributesID': integer('prod_attributes_id'),
     'prod-attribute-termsID': integer('prod_attribute_terms_id'),
@@ -3082,6 +5133,19 @@ export const payload_locked_documents_rels = pgTable(
     'tag-group-membershipsID': integer('tag_group_memberships_id'),
     'recent-viewsID': integer('recent_views_id'),
     wishlistsID: integer('wishlists_id'),
+    'support-ticketsID': integer('support_tickets_id'),
+    'support-ticket-messagesID': integer('support_ticket_messages_id'),
+    'membership-plansID': integer('membership_plans_id'),
+    'vendor-subscriptionsID': integer('vendor_subscriptions_id'),
+    'subscription-invoicesID': integer('subscription_invoices_id'),
+    'commission-rulesID': integer('commission_rules_id'),
+    'vendor-commission-entriesID': integer('vendor_commission_entries_id'),
+    'vendor-entitlementsID': integer('vendor_entitlements_id'),
+    'membership-audit-logID': integer('membership_audit_log_id'),
+    'member-invitesID': integer('member_invites_id'),
+    'member-listingsID': integer('member_listings_id'),
+    'member-ordersID': integer('member_orders_id'),
+    'member-membership-paymentsID': integer('member_membership_payments_id'),
   },
   (columns) => ({
     order: index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -3090,6 +5154,15 @@ export const payload_locked_documents_rels = pgTable(
     payload_locked_documents_rels_users_id_idx: index(
       'payload_locked_documents_rels_users_id_idx',
     ).on(columns.usersID),
+    payload_locked_documents_rels_notification_preferences_id_idx: index(
+      'payload_locked_documents_rels_notification_preferences_id_idx',
+    ).on(columns['notification-preferencesID']),
+    payload_locked_documents_rels_devices_id_idx: index(
+      'payload_locked_documents_rels_devices_id_idx',
+    ).on(columns.devicesID),
+    payload_locked_documents_rels_payment_methods_id_idx: index(
+      'payload_locked_documents_rels_payment_methods_id_idx',
+    ).on(columns['payment-methodsID']),
     payload_locked_documents_rels_customers_id_idx: index(
       'payload_locked_documents_rels_customers_id_idx',
     ).on(columns.customersID),
@@ -3171,6 +5244,36 @@ export const payload_locked_documents_rels = pgTable(
     payload_locked_documents_rels_order_discounts_id_idx: index(
       'payload_locked_documents_rels_order_discounts_id_idx',
     ).on(columns['order-discountsID']),
+    payload_locked_documents_rels_wallets_id_idx: index(
+      'payload_locked_documents_rels_wallets_id_idx',
+    ).on(columns.walletsID),
+    payload_locked_documents_rels_wallet_transactions_id_idx: index(
+      'payload_locked_documents_rels_wallet_transactions_id_idx',
+    ).on(columns['wallet-transactionsID']),
+    payload_locked_documents_rels_wallet_topups_id_idx: index(
+      'payload_locked_documents_rels_wallet_topups_id_idx',
+    ).on(columns['wallet-topupsID']),
+    payload_locked_documents_rels_coupons_id_idx: index(
+      'payload_locked_documents_rels_coupons_id_idx',
+    ).on(columns.couponsID),
+    payload_locked_documents_rels_coupon_claims_id_idx: index(
+      'payload_locked_documents_rels_coupon_claims_id_idx',
+    ).on(columns['coupon-claimsID']),
+    payload_locked_documents_rels_point_rules_id_idx: index(
+      'payload_locked_documents_rels_point_rules_id_idx',
+    ).on(columns['point-rulesID']),
+    payload_locked_documents_rels_rewards_id_idx: index(
+      'payload_locked_documents_rels_rewards_id_idx',
+    ).on(columns.rewardsID),
+    payload_locked_documents_rels_achievements_id_idx: index(
+      'payload_locked_documents_rels_achievements_id_idx',
+    ).on(columns.achievementsID),
+    payload_locked_documents_rels_user_achievements_id_idx: index(
+      'payload_locked_documents_rels_user_achievements_id_idx',
+    ).on(columns['user-achievementsID']),
+    payload_locked_documents_rels_coupon_redemptions_id_idx: index(
+      'payload_locked_documents_rels_coupon_redemptions_id_idx',
+    ).on(columns['coupon-redemptionsID']),
     payload_locked_documents_rels_reviews_id_idx: index(
       'payload_locked_documents_rels_reviews_id_idx',
     ).on(columns.reviewsID),
@@ -3240,6 +5343,45 @@ export const payload_locked_documents_rels = pgTable(
     payload_locked_documents_rels_wishlists_id_idx: index(
       'payload_locked_documents_rels_wishlists_id_idx',
     ).on(columns.wishlistsID),
+    payload_locked_documents_rels_support_tickets_id_idx: index(
+      'payload_locked_documents_rels_support_tickets_id_idx',
+    ).on(columns['support-ticketsID']),
+    payload_locked_documents_rels_support_ticket_messages_id_idx: index(
+      'payload_locked_documents_rels_support_ticket_messages_id_idx',
+    ).on(columns['support-ticket-messagesID']),
+    payload_locked_documents_rels_membership_plans_id_idx: index(
+      'payload_locked_documents_rels_membership_plans_id_idx',
+    ).on(columns['membership-plansID']),
+    payload_locked_documents_rels_vendor_subscriptions_id_idx: index(
+      'payload_locked_documents_rels_vendor_subscriptions_id_idx',
+    ).on(columns['vendor-subscriptionsID']),
+    payload_locked_documents_rels_subscription_invoices_id_idx: index(
+      'payload_locked_documents_rels_subscription_invoices_id_idx',
+    ).on(columns['subscription-invoicesID']),
+    payload_locked_documents_rels_commission_rules_id_idx: index(
+      'payload_locked_documents_rels_commission_rules_id_idx',
+    ).on(columns['commission-rulesID']),
+    payload_locked_documents_rels_vendor_commission_entries_id_idx: index(
+      'payload_locked_documents_rels_vendor_commission_entries_id_idx',
+    ).on(columns['vendor-commission-entriesID']),
+    payload_locked_documents_rels_vendor_entitlements_id_idx: index(
+      'payload_locked_documents_rels_vendor_entitlements_id_idx',
+    ).on(columns['vendor-entitlementsID']),
+    payload_locked_documents_rels_membership_audit_log_id_idx: index(
+      'payload_locked_documents_rels_membership_audit_log_id_idx',
+    ).on(columns['membership-audit-logID']),
+    payload_locked_documents_rels_member_invites_id_idx: index(
+      'payload_locked_documents_rels_member_invites_id_idx',
+    ).on(columns['member-invitesID']),
+    payload_locked_documents_rels_member_listings_id_idx: index(
+      'payload_locked_documents_rels_member_listings_id_idx',
+    ).on(columns['member-listingsID']),
+    payload_locked_documents_rels_member_orders_id_idx: index(
+      'payload_locked_documents_rels_member_orders_id_idx',
+    ).on(columns['member-ordersID']),
+    payload_locked_documents_rels_member_membership_payments_id_idx: index(
+      'payload_locked_documents_rels_member_membership_payments_id_idx',
+    ).on(columns['member-membership-paymentsID']),
     parentFk: foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -3249,6 +5391,21 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['usersID']],
       foreignColumns: [users.id],
       name: 'payload_locked_documents_rels_users_fk',
+    }).onDelete('cascade'),
+    'notification-preferencesIdFk': foreignKey({
+      columns: [columns['notification-preferencesID']],
+      foreignColumns: [notification_preferences.id],
+      name: 'payload_locked_documents_rels_notification_preferences_fk',
+    }).onDelete('cascade'),
+    devicesIdFk: foreignKey({
+      columns: [columns['devicesID']],
+      foreignColumns: [devices.id],
+      name: 'payload_locked_documents_rels_devices_fk',
+    }).onDelete('cascade'),
+    'payment-methodsIdFk': foreignKey({
+      columns: [columns['payment-methodsID']],
+      foreignColumns: [payment_methods.id],
+      name: 'payload_locked_documents_rels_payment_methods_fk',
     }).onDelete('cascade'),
     customersIdFk: foreignKey({
       columns: [columns['customersID']],
@@ -3385,6 +5542,56 @@ export const payload_locked_documents_rels = pgTable(
       foreignColumns: [order_discounts.id],
       name: 'payload_locked_documents_rels_order_discounts_fk',
     }).onDelete('cascade'),
+    walletsIdFk: foreignKey({
+      columns: [columns['walletsID']],
+      foreignColumns: [wallets.id],
+      name: 'payload_locked_documents_rels_wallets_fk',
+    }).onDelete('cascade'),
+    'wallet-transactionsIdFk': foreignKey({
+      columns: [columns['wallet-transactionsID']],
+      foreignColumns: [wallet_transactions.id],
+      name: 'payload_locked_documents_rels_wallet_transactions_fk',
+    }).onDelete('cascade'),
+    'wallet-topupsIdFk': foreignKey({
+      columns: [columns['wallet-topupsID']],
+      foreignColumns: [wallet_topups.id],
+      name: 'payload_locked_documents_rels_wallet_topups_fk',
+    }).onDelete('cascade'),
+    couponsIdFk: foreignKey({
+      columns: [columns['couponsID']],
+      foreignColumns: [coupons.id],
+      name: 'payload_locked_documents_rels_coupons_fk',
+    }).onDelete('cascade'),
+    'coupon-claimsIdFk': foreignKey({
+      columns: [columns['coupon-claimsID']],
+      foreignColumns: [coupon_claims.id],
+      name: 'payload_locked_documents_rels_coupon_claims_fk',
+    }).onDelete('cascade'),
+    'point-rulesIdFk': foreignKey({
+      columns: [columns['point-rulesID']],
+      foreignColumns: [point_rules.id],
+      name: 'payload_locked_documents_rels_point_rules_fk',
+    }).onDelete('cascade'),
+    rewardsIdFk: foreignKey({
+      columns: [columns['rewardsID']],
+      foreignColumns: [rewards.id],
+      name: 'payload_locked_documents_rels_rewards_fk',
+    }).onDelete('cascade'),
+    achievementsIdFk: foreignKey({
+      columns: [columns['achievementsID']],
+      foreignColumns: [achievements.id],
+      name: 'payload_locked_documents_rels_achievements_fk',
+    }).onDelete('cascade'),
+    'user-achievementsIdFk': foreignKey({
+      columns: [columns['user-achievementsID']],
+      foreignColumns: [user_achievements.id],
+      name: 'payload_locked_documents_rels_user_achievements_fk',
+    }).onDelete('cascade'),
+    'coupon-redemptionsIdFk': foreignKey({
+      columns: [columns['coupon-redemptionsID']],
+      foreignColumns: [coupon_redemptions.id],
+      name: 'payload_locked_documents_rels_coupon_redemptions_fk',
+    }).onDelete('cascade'),
     reviewsIdFk: foreignKey({
       columns: [columns['reviewsID']],
       foreignColumns: [reviews.id],
@@ -3500,6 +5707,71 @@ export const payload_locked_documents_rels = pgTable(
       foreignColumns: [wishlists.id],
       name: 'payload_locked_documents_rels_wishlists_fk',
     }).onDelete('cascade'),
+    'support-ticketsIdFk': foreignKey({
+      columns: [columns['support-ticketsID']],
+      foreignColumns: [support_tickets.id],
+      name: 'payload_locked_documents_rels_support_tickets_fk',
+    }).onDelete('cascade'),
+    'support-ticket-messagesIdFk': foreignKey({
+      columns: [columns['support-ticket-messagesID']],
+      foreignColumns: [support_ticket_messages.id],
+      name: 'payload_locked_documents_rels_support_ticket_messages_fk',
+    }).onDelete('cascade'),
+    'membership-plansIdFk': foreignKey({
+      columns: [columns['membership-plansID']],
+      foreignColumns: [membership_plans.id],
+      name: 'payload_locked_documents_rels_membership_plans_fk',
+    }).onDelete('cascade'),
+    'vendor-subscriptionsIdFk': foreignKey({
+      columns: [columns['vendor-subscriptionsID']],
+      foreignColumns: [vendor_subscriptions.id],
+      name: 'payload_locked_documents_rels_vendor_subscriptions_fk',
+    }).onDelete('cascade'),
+    'subscription-invoicesIdFk': foreignKey({
+      columns: [columns['subscription-invoicesID']],
+      foreignColumns: [subscription_invoices.id],
+      name: 'payload_locked_documents_rels_subscription_invoices_fk',
+    }).onDelete('cascade'),
+    'commission-rulesIdFk': foreignKey({
+      columns: [columns['commission-rulesID']],
+      foreignColumns: [commission_rules.id],
+      name: 'payload_locked_documents_rels_commission_rules_fk',
+    }).onDelete('cascade'),
+    'vendor-commission-entriesIdFk': foreignKey({
+      columns: [columns['vendor-commission-entriesID']],
+      foreignColumns: [vendor_commission_entries.id],
+      name: 'payload_locked_documents_rels_vendor_commission_entries_fk',
+    }).onDelete('cascade'),
+    'vendor-entitlementsIdFk': foreignKey({
+      columns: [columns['vendor-entitlementsID']],
+      foreignColumns: [vendor_entitlements.id],
+      name: 'payload_locked_documents_rels_vendor_entitlements_fk',
+    }).onDelete('cascade'),
+    'membership-audit-logIdFk': foreignKey({
+      columns: [columns['membership-audit-logID']],
+      foreignColumns: [membership_audit_log.id],
+      name: 'payload_locked_documents_rels_membership_audit_log_fk',
+    }).onDelete('cascade'),
+    'member-invitesIdFk': foreignKey({
+      columns: [columns['member-invitesID']],
+      foreignColumns: [member_invites.id],
+      name: 'payload_locked_documents_rels_member_invites_fk',
+    }).onDelete('cascade'),
+    'member-listingsIdFk': foreignKey({
+      columns: [columns['member-listingsID']],
+      foreignColumns: [member_listings.id],
+      name: 'payload_locked_documents_rels_member_listings_fk',
+    }).onDelete('cascade'),
+    'member-ordersIdFk': foreignKey({
+      columns: [columns['member-ordersID']],
+      foreignColumns: [member_orders.id],
+      name: 'payload_locked_documents_rels_member_orders_fk',
+    }).onDelete('cascade'),
+    'member-membership-paymentsIdFk': foreignKey({
+      columns: [columns['member-membership-paymentsID']],
+      foreignColumns: [member_membership_payments.id],
+      name: 'payload_locked_documents_rels_member_membership_payments_fk',
+    }).onDelete('cascade'),
   }),
 )
 
@@ -3582,6 +5854,27 @@ export const payload_migrations = pgTable(
 export const system_settings = pgTable('system_settings', {
   id: serial('id').primaryKey(),
   maintenanceMode: boolean('maintenance_mode').default(false),
+  couponsEnabled: boolean('coupons_enabled').default(true),
+  pointsEnabled: boolean('points_enabled').default(true),
+  pointsExpiryDays: numeric('points_expiry_days').default('365'),
+  membership_membershipEnabled: boolean('membership_membership_enabled').default(false),
+  membership_membershipEnforced: boolean('membership_membership_enforced').default(false),
+  membership_grandfatherBasicEnabled: boolean('membership_grandfather_basic_enabled').default(true),
+  membership_trialDaysDefault: numeric('membership_trial_days_default').default('7'),
+  membership_graceDaysDefault: numeric('membership_grace_days_default').default('7'),
+  membership_dunningMaxRetries: numeric('membership_dunning_max_retries').default('8'),
+  membership_dunningSchedule: jsonb('membership_dunning_schedule').default(
+    sql`'["1h","4h","12h","1d","2d","3d","5d","7d"]'::jsonb`,
+  ),
+  membership_fallbackBasicPlanSlug: varchar('membership_fallback_basic_plan_slug').default('basic'),
+  membership_commissionDefaultPct: numeric('membership_commission_default_pct').default('8'),
+  membership_payProviderDefault: enum_system_settings_membership_pay_provider_default(
+    'membership_pay_provider_default',
+  ).default('paymongo'),
+  membership_paymongoMembershipDisabled: boolean('membership_paymongo_membership_disabled').default(
+    false,
+  ),
+  membership_memberMembershipFeePhp: numeric('membership_member_membership_fee_php').default('0'),
   deliveryProvider: enum_system_settings_delivery_provider('delivery_provider')
     .notNull()
     .default('lalamove'),
@@ -3604,6 +5897,16 @@ export const relations_users_reset_password_tokens = relations(
     }),
   }),
 )
+export const relations_users_email_change_tokens = relations(
+  users_email_change_tokens,
+  ({ one }) => ({
+    _parentID: one(users, {
+      fields: [users_email_change_tokens._parentID],
+      references: [users.id],
+      relationName: 'emailChangeTokens',
+    }),
+  }),
+)
 export const relations_users_sessions = relations(users_sessions, ({ one }) => ({
   _parentID: one(users, {
     fields: [users_sessions._parentID],
@@ -3620,8 +5923,35 @@ export const relations_users = relations(users, ({ one, many }) => ({
   resetPasswordTokens: many(users_reset_password_tokens, {
     relationName: 'resetPasswordTokens',
   }),
+  emailChangeTokens: many(users_email_change_tokens, {
+    relationName: 'emailChangeTokens',
+  }),
   sessions: many(users_sessions, {
     relationName: 'sessions',
+  }),
+}))
+export const relations_notification_preferences = relations(
+  notification_preferences,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [notification_preferences.user],
+      references: [users.id],
+      relationName: 'user',
+    }),
+  }),
+)
+export const relations_devices = relations(devices, ({ one }) => ({
+  user: one(users, {
+    fields: [devices.user],
+    references: [users.id],
+    relationName: 'user',
+  }),
+}))
+export const relations_payment_methods = relations(payment_methods, ({ one }) => ({
+  user: one(users, {
+    fields: [payment_methods.user],
+    references: [users.id],
+    relationName: 'user',
   }),
 }))
 export const relations_customers = relations(customers, ({ one }) => ({
@@ -3779,7 +6109,19 @@ export const relations_user_notifications = relations(user_notifications, ({ one
   }),
 }))
 export const relations_business_zones = relations(business_zones, () => ({}))
-export const relations_vendors = relations(vendors, ({ one }) => ({
+export const relations_vendors_kyc_docs = relations(vendors_kyc_docs, ({ one }) => ({
+  _parentID: one(vendors, {
+    fields: [vendors_kyc_docs._parentID],
+    references: [vendors.id],
+    relationName: 'kycDocs',
+  }),
+  media: one(media, {
+    fields: [vendors_kyc_docs.media],
+    references: [media.id],
+    relationName: 'media',
+  }),
+}))
+export const relations_vendors = relations(vendors, ({ one, many }) => ({
   user: one(users, {
     fields: [vendors.user],
     references: [users.id],
@@ -3799,6 +6141,19 @@ export const relations_vendors = relations(vendors, ({ one }) => ({
     fields: [vendors.logo],
     references: [media.id],
     relationName: 'logo',
+  }),
+  currentSubscription: one(vendor_subscriptions, {
+    fields: [vendors.currentSubscription],
+    references: [vendor_subscriptions.id],
+    relationName: 'currentSubscription',
+  }),
+  commissionOverride_rule: one(commission_rules, {
+    fields: [vendors.commissionOverride_rule],
+    references: [commission_rules.id],
+    relationName: 'commissionOverride_rule',
+  }),
+  kycDocs: many(vendors_kyc_docs, {
+    relationName: 'kycDocs',
   }),
 }))
 export const relations_merchants_rels = relations(merchants_rels, ({ one }) => ({
@@ -3989,6 +6344,11 @@ export const relations_orders = relations(orders, ({ one }) => ({
     references: [merchants.id],
     relationName: 'merchant',
   }),
+  commission_rule: one(commission_rules, {
+    fields: [orders.commission_rule],
+    references: [commission_rules.id],
+    relationName: 'commission_rule',
+  }),
 }))
 export const relations_order_items = relations(order_items, ({ one }) => ({
   order: one(orders, {
@@ -4057,6 +6417,200 @@ export const relations_order_discounts = relations(order_discounts, ({ one }) =>
     fields: [order_discounts.order],
     references: [orders.id],
     relationName: 'order',
+  }),
+  coupon: one(coupons, {
+    fields: [order_discounts.coupon],
+    references: [coupons.id],
+    relationName: 'coupon',
+  }),
+}))
+export const relations_wallets = relations(wallets, ({ one }) => ({
+  customer: one(customers, {
+    fields: [wallets.customer],
+    references: [customers.id],
+    relationName: 'customer',
+  }),
+}))
+export const relations_wallet_transactions = relations(wallet_transactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [wallet_transactions.wallet],
+    references: [wallets.id],
+    relationName: 'wallet',
+  }),
+  customer: one(customers, {
+    fields: [wallet_transactions.customer],
+    references: [customers.id],
+    relationName: 'customer',
+  }),
+  order: one(orders, {
+    fields: [wallet_transactions.order],
+    references: [orders.id],
+    relationName: 'order',
+  }),
+}))
+export const relations_wallet_topups = relations(wallet_topups, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [wallet_topups.wallet],
+    references: [wallets.id],
+    relationName: 'wallet',
+  }),
+  customer: one(customers, {
+    fields: [wallet_topups.customer],
+    references: [customers.id],
+    relationName: 'customer',
+  }),
+}))
+export const relations_coupons_allowed_payment_methods = relations(
+  coupons_allowed_payment_methods,
+  ({ one }) => ({
+    parent: one(coupons, {
+      fields: [coupons_allowed_payment_methods.parent],
+      references: [coupons.id],
+      relationName: 'allowed_payment_methods',
+    }),
+  }),
+)
+export const relations_coupons_time_windows_days = relations(
+  coupons_time_windows_days,
+  ({ one }) => ({
+    parent: one(coupons_time_windows, {
+      fields: [coupons_time_windows_days.parent],
+      references: [coupons_time_windows.id],
+      relationName: 'days',
+    }),
+  }),
+)
+export const relations_coupons_time_windows = relations(coupons_time_windows, ({ one, many }) => ({
+  _parentID: one(coupons, {
+    fields: [coupons_time_windows._parentID],
+    references: [coupons.id],
+    relationName: 'time_windows',
+  }),
+  days: many(coupons_time_windows_days, {
+    relationName: 'days',
+  }),
+}))
+export const relations_coupons_texts = relations(coupons_texts, ({ one }) => ({
+  parent: one(coupons, {
+    fields: [coupons_texts.parent],
+    references: [coupons.id],
+    relationName: '_texts',
+  }),
+}))
+export const relations_coupons_rels = relations(coupons_rels, ({ one }) => ({
+  parent: one(coupons, {
+    fields: [coupons_rels.parent],
+    references: [coupons.id],
+    relationName: '_rels',
+  }),
+  'membership-plansID': one(membership_plans, {
+    fields: [coupons_rels['membership-plansID']],
+    references: [membership_plans.id],
+    relationName: 'membership-plans',
+  }),
+  merchantsID: one(merchants, {
+    fields: [coupons_rels.merchantsID],
+    references: [merchants.id],
+    relationName: 'merchants',
+  }),
+  productsID: one(products, {
+    fields: [coupons_rels.productsID],
+    references: [products.id],
+    relationName: 'products',
+  }),
+  'product-categoriesID': one(prod_categories, {
+    fields: [coupons_rels['product-categoriesID']],
+    references: [prod_categories.id],
+    relationName: 'product-categories',
+  }),
+}))
+export const relations_coupons = relations(coupons, ({ one, many }) => ({
+  image: one(media, {
+    fields: [coupons.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+  vendor: one(vendors, {
+    fields: [coupons.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+  allowed_payment_methods: many(coupons_allowed_payment_methods, {
+    relationName: 'allowed_payment_methods',
+  }),
+  time_windows: many(coupons_time_windows, {
+    relationName: 'time_windows',
+  }),
+  _texts: many(coupons_texts, {
+    relationName: '_texts',
+  }),
+  _rels: many(coupons_rels, {
+    relationName: '_rels',
+  }),
+}))
+export const relations_coupon_claims = relations(coupon_claims, ({ one }) => ({
+  coupon: one(coupons, {
+    fields: [coupon_claims.coupon],
+    references: [coupons.id],
+    relationName: 'coupon',
+  }),
+  customer: one(customers, {
+    fields: [coupon_claims.customer],
+    references: [customers.id],
+    relationName: 'customer',
+  }),
+}))
+export const relations_point_rules = relations(point_rules, () => ({}))
+export const relations_rewards_terms = relations(rewards_terms, ({ one }) => ({
+  _parentID: one(rewards, {
+    fields: [rewards_terms._parentID],
+    references: [rewards.id],
+    relationName: 'terms',
+  }),
+}))
+export const relations_rewards = relations(rewards, ({ one, many }) => ({
+  image: one(media, {
+    fields: [rewards.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+  terms: many(rewards_terms, {
+    relationName: 'terms',
+  }),
+  coupon: one(coupons, {
+    fields: [rewards.coupon],
+    references: [coupons.id],
+    relationName: 'coupon',
+  }),
+}))
+export const relations_achievements = relations(achievements, () => ({}))
+export const relations_user_achievements = relations(user_achievements, ({ one }) => ({
+  user: one(users, {
+    fields: [user_achievements.user],
+    references: [users.id],
+    relationName: 'user',
+  }),
+  achievement: one(achievements, {
+    fields: [user_achievements.achievement],
+    references: [achievements.id],
+    relationName: 'achievement',
+  }),
+}))
+export const relations_coupon_redemptions = relations(coupon_redemptions, ({ one }) => ({
+  coupon: one(coupons, {
+    fields: [coupon_redemptions.coupon],
+    references: [coupons.id],
+    relationName: 'coupon',
+  }),
+  order: one(orders, {
+    fields: [coupon_redemptions.order],
+    references: [orders.id],
+    relationName: 'order',
+  }),
+  customer: one(customers, {
+    fields: [coupon_redemptions.customer],
+    references: [customers.id],
+    relationName: 'customer',
   }),
 }))
 export const relations_reviews = relations(reviews, ({ one }) => ({
@@ -4367,6 +6921,307 @@ export const relations_wishlists = relations(wishlists, ({ one }) => ({
     relationName: 'merchantProduct',
   }),
 }))
+export const relations_support_tickets_rels = relations(support_tickets_rels, ({ one }) => ({
+  parent: one(support_tickets, {
+    fields: [support_tickets_rels.parent],
+    references: [support_tickets.id],
+    relationName: '_rels',
+  }),
+  mediaID: one(media, {
+    fields: [support_tickets_rels.mediaID],
+    references: [media.id],
+    relationName: 'media',
+  }),
+}))
+export const relations_support_tickets = relations(support_tickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [support_tickets.user],
+    references: [users.id],
+    relationName: 'user',
+  }),
+  order: one(orders, {
+    fields: [support_tickets.order],
+    references: [orders.id],
+    relationName: 'order',
+  }),
+  merchant: one(merchants, {
+    fields: [support_tickets.merchant],
+    references: [merchants.id],
+    relationName: 'merchant',
+  }),
+  product: one(products, {
+    fields: [support_tickets.product],
+    references: [products.id],
+    relationName: 'product',
+  }),
+  assignedTo: one(users, {
+    fields: [support_tickets.assignedTo],
+    references: [users.id],
+    relationName: 'assignedTo',
+  }),
+  _rels: many(support_tickets_rels, {
+    relationName: '_rels',
+  }),
+}))
+export const relations_support_ticket_messages_rels = relations(
+  support_ticket_messages_rels,
+  ({ one }) => ({
+    parent: one(support_ticket_messages, {
+      fields: [support_ticket_messages_rels.parent],
+      references: [support_ticket_messages.id],
+      relationName: '_rels',
+    }),
+    mediaID: one(media, {
+      fields: [support_ticket_messages_rels.mediaID],
+      references: [media.id],
+      relationName: 'media',
+    }),
+  }),
+)
+export const relations_support_ticket_messages = relations(
+  support_ticket_messages,
+  ({ one, many }) => ({
+    ticket: one(support_tickets, {
+      fields: [support_ticket_messages.ticket],
+      references: [support_tickets.id],
+      relationName: 'ticket',
+    }),
+    sender: one(users, {
+      fields: [support_ticket_messages.sender],
+      references: [users.id],
+      relationName: 'sender',
+    }),
+    _rels: many(support_ticket_messages_rels, {
+      relationName: '_rels',
+    }),
+  }),
+)
+export const relations_membership_plans_allowed_business_types = relations(
+  membership_plans_allowed_business_types,
+  ({ one }) => ({
+    parent: one(membership_plans, {
+      fields: [membership_plans_allowed_business_types.parent],
+      references: [membership_plans.id],
+      relationName: 'allowed_business_types',
+    }),
+  }),
+)
+export const relations_membership_plans_rels = relations(membership_plans_rels, ({ one }) => ({
+  parent: one(membership_plans, {
+    fields: [membership_plans_rels.parent],
+    references: [membership_plans.id],
+    relationName: '_rels',
+  }),
+  'product-categoriesID': one(prod_categories, {
+    fields: [membership_plans_rels['product-categoriesID']],
+    references: [prod_categories.id],
+    relationName: 'product-categories',
+  }),
+}))
+export const relations_membership_plans = relations(membership_plans, ({ many }) => ({
+  allowed_business_types: many(membership_plans_allowed_business_types, {
+    relationName: 'allowed_business_types',
+  }),
+  _rels: many(membership_plans_rels, {
+    relationName: '_rels',
+  }),
+}))
+export const relations_vendor_subscriptions = relations(vendor_subscriptions, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendor_subscriptions.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+  plan: one(membership_plans, {
+    fields: [vendor_subscriptions.plan],
+    references: [membership_plans.id],
+    relationName: 'plan',
+  }),
+  scheduledPlan: one(membership_plans, {
+    fields: [vendor_subscriptions.scheduledPlan],
+    references: [membership_plans.id],
+    relationName: 'scheduledPlan',
+  }),
+}))
+export const relations_subscription_invoices = relations(subscription_invoices, ({ one }) => ({
+  subscription: one(vendor_subscriptions, {
+    fields: [subscription_invoices.subscription],
+    references: [vendor_subscriptions.id],
+    relationName: 'subscription',
+  }),
+  vendor: one(vendors, {
+    fields: [subscription_invoices.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+  plan: one(membership_plans, {
+    fields: [subscription_invoices.plan],
+    references: [membership_plans.id],
+    relationName: 'plan',
+  }),
+  receipt: one(media, {
+    fields: [subscription_invoices.receipt],
+    references: [media.id],
+    relationName: 'receipt',
+  }),
+}))
+export const relations_commission_rules = relations(commission_rules, ({ one }) => ({
+  plan: one(membership_plans, {
+    fields: [commission_rules.plan],
+    references: [membership_plans.id],
+    relationName: 'plan',
+  }),
+  category: one(merchant_categories, {
+    fields: [commission_rules.category],
+    references: [merchant_categories.id],
+    relationName: 'category',
+  }),
+  vendor: one(vendors, {
+    fields: [commission_rules.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+}))
+export const relations_vendor_commission_entries = relations(
+  vendor_commission_entries,
+  ({ one }) => ({
+    vendor: one(vendors, {
+      fields: [vendor_commission_entries.vendor],
+      references: [vendors.id],
+      relationName: 'vendor',
+    }),
+    order: one(orders, {
+      fields: [vendor_commission_entries.order],
+      references: [orders.id],
+      relationName: 'order',
+    }),
+    transaction: one(transactions, {
+      fields: [vendor_commission_entries.transaction],
+      references: [transactions.id],
+      relationName: 'transaction',
+    }),
+    commission_rule: one(commission_rules, {
+      fields: [vendor_commission_entries.commission_rule],
+      references: [commission_rules.id],
+      relationName: 'commission_rule',
+    }),
+  }),
+)
+export const relations_vendor_entitlements = relations(vendor_entitlements, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [vendor_entitlements.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+  subscription: one(vendor_subscriptions, {
+    fields: [vendor_entitlements.subscription],
+    references: [vendor_subscriptions.id],
+    relationName: 'subscription',
+  }),
+  plan: one(membership_plans, {
+    fields: [vendor_entitlements.plan],
+    references: [membership_plans.id],
+    relationName: 'plan',
+  }),
+}))
+export const relations_membership_audit_log = relations(membership_audit_log, ({ one }) => ({
+  vendor: one(vendors, {
+    fields: [membership_audit_log.vendor],
+    references: [vendors.id],
+    relationName: 'vendor',
+  }),
+  subscription: one(vendor_subscriptions, {
+    fields: [membership_audit_log.subscription],
+    references: [vendor_subscriptions.id],
+    relationName: 'subscription',
+  }),
+  invoice: one(subscription_invoices, {
+    fields: [membership_audit_log.invoice],
+    references: [subscription_invoices.id],
+    relationName: 'invoice',
+  }),
+  previous_plan: one(membership_plans, {
+    fields: [membership_audit_log.previous_plan],
+    references: [membership_plans.id],
+    relationName: 'previous_plan',
+  }),
+  next_plan: one(membership_plans, {
+    fields: [membership_audit_log.next_plan],
+    references: [membership_plans.id],
+    relationName: 'next_plan',
+  }),
+  actor: one(users, {
+    fields: [membership_audit_log.actor],
+    references: [users.id],
+    relationName: 'actor',
+  }),
+}))
+export const relations_member_invites = relations(member_invites, ({ one }) => ({
+  invitedBy: one(users, {
+    fields: [member_invites.invitedBy],
+    references: [users.id],
+    relationName: 'invitedBy',
+  }),
+  claimedBy: one(users, {
+    fields: [member_invites.claimedBy],
+    references: [users.id],
+    relationName: 'claimedBy',
+  }),
+}))
+export const relations_member_listings_images = relations(member_listings_images, ({ one }) => ({
+  _parentID: one(member_listings, {
+    fields: [member_listings_images._parentID],
+    references: [member_listings.id],
+    relationName: 'images',
+  }),
+  image: one(media, {
+    fields: [member_listings_images.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+}))
+export const relations_member_listings = relations(member_listings, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [member_listings.seller],
+    references: [users.id],
+    relationName: 'seller',
+  }),
+  images: many(member_listings_images, {
+    relationName: 'images',
+  }),
+  buyer: one(users, {
+    fields: [member_listings.buyer],
+    references: [users.id],
+    relationName: 'buyer',
+  }),
+}))
+export const relations_member_orders = relations(member_orders, ({ one }) => ({
+  listing: one(member_listings, {
+    fields: [member_orders.listing],
+    references: [member_listings.id],
+    relationName: 'listing',
+  }),
+  buyer: one(users, {
+    fields: [member_orders.buyer],
+    references: [users.id],
+    relationName: 'buyer',
+  }),
+  seller: one(users, {
+    fields: [member_orders.seller],
+    references: [users.id],
+    relationName: 'seller',
+  }),
+}))
+export const relations_member_membership_payments = relations(
+  member_membership_payments,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [member_membership_payments.user],
+      references: [users.id],
+      relationName: 'user',
+    }),
+  }),
+)
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
   ({ one }) => ({
@@ -4379,6 +7234,21 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.usersID],
       references: [users.id],
       relationName: 'users',
+    }),
+    'notification-preferencesID': one(notification_preferences, {
+      fields: [payload_locked_documents_rels['notification-preferencesID']],
+      references: [notification_preferences.id],
+      relationName: 'notification-preferences',
+    }),
+    devicesID: one(devices, {
+      fields: [payload_locked_documents_rels.devicesID],
+      references: [devices.id],
+      relationName: 'devices',
+    }),
+    'payment-methodsID': one(payment_methods, {
+      fields: [payload_locked_documents_rels['payment-methodsID']],
+      references: [payment_methods.id],
+      relationName: 'payment-methods',
     }),
     customersID: one(customers, {
       fields: [payload_locked_documents_rels.customersID],
@@ -4515,6 +7385,56 @@ export const relations_payload_locked_documents_rels = relations(
       references: [order_discounts.id],
       relationName: 'order-discounts',
     }),
+    walletsID: one(wallets, {
+      fields: [payload_locked_documents_rels.walletsID],
+      references: [wallets.id],
+      relationName: 'wallets',
+    }),
+    'wallet-transactionsID': one(wallet_transactions, {
+      fields: [payload_locked_documents_rels['wallet-transactionsID']],
+      references: [wallet_transactions.id],
+      relationName: 'wallet-transactions',
+    }),
+    'wallet-topupsID': one(wallet_topups, {
+      fields: [payload_locked_documents_rels['wallet-topupsID']],
+      references: [wallet_topups.id],
+      relationName: 'wallet-topups',
+    }),
+    couponsID: one(coupons, {
+      fields: [payload_locked_documents_rels.couponsID],
+      references: [coupons.id],
+      relationName: 'coupons',
+    }),
+    'coupon-claimsID': one(coupon_claims, {
+      fields: [payload_locked_documents_rels['coupon-claimsID']],
+      references: [coupon_claims.id],
+      relationName: 'coupon-claims',
+    }),
+    'point-rulesID': one(point_rules, {
+      fields: [payload_locked_documents_rels['point-rulesID']],
+      references: [point_rules.id],
+      relationName: 'point-rules',
+    }),
+    rewardsID: one(rewards, {
+      fields: [payload_locked_documents_rels.rewardsID],
+      references: [rewards.id],
+      relationName: 'rewards',
+    }),
+    achievementsID: one(achievements, {
+      fields: [payload_locked_documents_rels.achievementsID],
+      references: [achievements.id],
+      relationName: 'achievements',
+    }),
+    'user-achievementsID': one(user_achievements, {
+      fields: [payload_locked_documents_rels['user-achievementsID']],
+      references: [user_achievements.id],
+      relationName: 'user-achievements',
+    }),
+    'coupon-redemptionsID': one(coupon_redemptions, {
+      fields: [payload_locked_documents_rels['coupon-redemptionsID']],
+      references: [coupon_redemptions.id],
+      relationName: 'coupon-redemptions',
+    }),
     reviewsID: one(reviews, {
       fields: [payload_locked_documents_rels.reviewsID],
       references: [reviews.id],
@@ -4639,6 +7559,71 @@ export const relations_payload_locked_documents_rels = relations(
       references: [wishlists.id],
       relationName: 'wishlists',
     }),
+    'support-ticketsID': one(support_tickets, {
+      fields: [payload_locked_documents_rels['support-ticketsID']],
+      references: [support_tickets.id],
+      relationName: 'support-tickets',
+    }),
+    'support-ticket-messagesID': one(support_ticket_messages, {
+      fields: [payload_locked_documents_rels['support-ticket-messagesID']],
+      references: [support_ticket_messages.id],
+      relationName: 'support-ticket-messages',
+    }),
+    'membership-plansID': one(membership_plans, {
+      fields: [payload_locked_documents_rels['membership-plansID']],
+      references: [membership_plans.id],
+      relationName: 'membership-plans',
+    }),
+    'vendor-subscriptionsID': one(vendor_subscriptions, {
+      fields: [payload_locked_documents_rels['vendor-subscriptionsID']],
+      references: [vendor_subscriptions.id],
+      relationName: 'vendor-subscriptions',
+    }),
+    'subscription-invoicesID': one(subscription_invoices, {
+      fields: [payload_locked_documents_rels['subscription-invoicesID']],
+      references: [subscription_invoices.id],
+      relationName: 'subscription-invoices',
+    }),
+    'commission-rulesID': one(commission_rules, {
+      fields: [payload_locked_documents_rels['commission-rulesID']],
+      references: [commission_rules.id],
+      relationName: 'commission-rules',
+    }),
+    'vendor-commission-entriesID': one(vendor_commission_entries, {
+      fields: [payload_locked_documents_rels['vendor-commission-entriesID']],
+      references: [vendor_commission_entries.id],
+      relationName: 'vendor-commission-entries',
+    }),
+    'vendor-entitlementsID': one(vendor_entitlements, {
+      fields: [payload_locked_documents_rels['vendor-entitlementsID']],
+      references: [vendor_entitlements.id],
+      relationName: 'vendor-entitlements',
+    }),
+    'membership-audit-logID': one(membership_audit_log, {
+      fields: [payload_locked_documents_rels['membership-audit-logID']],
+      references: [membership_audit_log.id],
+      relationName: 'membership-audit-log',
+    }),
+    'member-invitesID': one(member_invites, {
+      fields: [payload_locked_documents_rels['member-invitesID']],
+      references: [member_invites.id],
+      relationName: 'member-invites',
+    }),
+    'member-listingsID': one(member_listings, {
+      fields: [payload_locked_documents_rels['member-listingsID']],
+      references: [member_listings.id],
+      relationName: 'member-listings',
+    }),
+    'member-ordersID': one(member_orders, {
+      fields: [payload_locked_documents_rels['member-ordersID']],
+      references: [member_orders.id],
+      relationName: 'member-orders',
+    }),
+    'member-membership-paymentsID': one(member_membership_payments, {
+      fields: [payload_locked_documents_rels['member-membership-paymentsID']],
+      references: [member_membership_payments.id],
+      relationName: 'member-membership-payments',
+    }),
   }),
 )
 export const relations_payload_locked_documents = relations(
@@ -4676,6 +7661,9 @@ type DatabaseSchema = {
   enum_users_gender: typeof enum_users_gender
   enum_users_civil_status: typeof enum_users_civil_status
   enum_users_role: typeof enum_users_role
+  enum_users_member_membership_status: typeof enum_users_member_membership_status
+  enum_users_preferred_language: typeof enum_users_preferred_language
+  enum_devices_platform: typeof enum_devices_platform
   enum_customers_current_level: typeof enum_customers_current_level
   enum_admins_admin_level: typeof enum_admins_admin_level
   enum_user_events_event_type: typeof enum_user_events_event_type
@@ -4696,19 +7684,24 @@ type DatabaseSchema = {
   enum_notification_events_priority: typeof enum_notification_events_priority
   enum_user_notifications_channel: typeof enum_user_notifications_channel
   enum_user_notifications_status: typeof enum_user_notifications_status
+  enum_vendors_kyc_docs_doc_type: typeof enum_vendors_kyc_docs_doc_type
   enum_vendors_business_type: typeof enum_vendors_business_type
   enum_vendors_verification_status: typeof enum_vendors_verification_status
+  enum_vendors_subscription_status: typeof enum_vendors_subscription_status
   enum_merchants_operational_status: typeof enum_merchants_operational_status
   enum_drivers_status: typeof enum_drivers_status
   enum_drivers_vehicle_type: typeof enum_drivers_vehicle_type
   enum_prod_categories_attributes_category_type: typeof enum_prod_categories_attributes_category_type
   enum_prod_categories_attributes_age_restriction: typeof enum_prod_categories_attributes_age_restriction
+  enum_products_approval_status: typeof enum_products_approval_status
   enum_products_product_type: typeof enum_products_product_type
   enum_products_catalog_visibility: typeof enum_products_catalog_visibility
   enum_cart_items_status: typeof enum_cart_items_status
   enum_cart_items_product_size: typeof enum_cart_items_product_size
   enum_orders_status: typeof enum_orders_status
   enum_orders_fulfillment_type: typeof enum_orders_fulfillment_type
+  enum_orders_commission_source: typeof enum_orders_commission_source
+  enum_orders_commission_status: typeof enum_orders_commission_status
   enum_orders_delivery_status: typeof enum_orders_delivery_status
   enum_delivery_locations_label: typeof enum_delivery_locations_label
   enum_transactions_status: typeof enum_transactions_status
@@ -4716,6 +7709,25 @@ type DatabaseSchema = {
   enum_driver_assignments_status: typeof enum_driver_assignments_status
   enum_delivery_bookings_status: typeof enum_delivery_bookings_status
   enum_order_discounts_type: typeof enum_order_discounts_type
+  enum_order_discounts_funded_by: typeof enum_order_discounts_funded_by
+  enum_order_discounts_source: typeof enum_order_discounts_source
+  enum_wallets_status: typeof enum_wallets_status
+  enum_wallet_transactions_type: typeof enum_wallet_transactions_type
+  enum_wallet_transactions_status: typeof enum_wallet_transactions_status
+  enum_wallet_topups_status: typeof enum_wallet_topups_status
+  enum_coupons_allowed_payment_methods: typeof enum_coupons_allowed_payment_methods
+  enum_coupons_time_windows_days: typeof enum_coupons_time_windows_days
+  enum_coupons_status: typeof enum_coupons_status
+  enum_coupons_discount_type: typeof enum_coupons_discount_type
+  enum_coupons_applies_to: typeof enum_coupons_applies_to
+  enum_coupons_merchant_scope: typeof enum_coupons_merchant_scope
+  enum_coupons_funded_by: typeof enum_coupons_funded_by
+  enum_coupon_claims_status: typeof enum_coupon_claims_status
+  enum_point_rules_event: typeof enum_point_rules_event
+  enum_rewards_category: typeof enum_rewards_category
+  enum_achievements_metric: typeof enum_achievements_metric
+  enum_coupon_redemptions_funded_by: typeof enum_coupon_redemptions_funded_by
+  enum_coupon_redemptions_status: typeof enum_coupon_redemptions_status
   enum_prod_attributes_type: typeof enum_prod_attributes_type
   enum_prod_variations_modifier_behavior_mode: typeof enum_prod_variations_modifier_behavior_mode
   enum_merchant_products_added_by: typeof enum_merchant_products_added_by
@@ -4740,10 +7752,37 @@ type DatabaseSchema = {
   enum_recent_views_item_type: typeof enum_recent_views_item_type
   enum_recent_views_source: typeof enum_recent_views_source
   enum_wishlists_item_type: typeof enum_wishlists_item_type
+  enum_support_tickets_status: typeof enum_support_tickets_status
+  enum_support_tickets_priority: typeof enum_support_tickets_priority
+  enum_support_tickets_category: typeof enum_support_tickets_category
+  enum_membership_plans_allowed_business_types: typeof enum_membership_plans_allowed_business_types
+  enum_membership_plans_billing_interval: typeof enum_membership_plans_billing_interval
+  enum_membership_plans_capabilities_support_sla: typeof enum_membership_plans_capabilities_support_sla
+  enum_membership_plans_status: typeof enum_membership_plans_status
+  enum_vendor_subscriptions_status: typeof enum_vendor_subscriptions_status
+  enum_vendor_subscriptions_billing_interval: typeof enum_vendor_subscriptions_billing_interval
+  enum_vendor_subscriptions_payment_provider: typeof enum_vendor_subscriptions_payment_provider
+  enum_subscription_invoices_status: typeof enum_subscription_invoices_status
+  enum_subscription_invoices_billing_reason: typeof enum_subscription_invoices_billing_reason
+  enum_subscription_invoices_payment_provider: typeof enum_subscription_invoices_payment_provider
+  enum_commission_rules_scope: typeof enum_commission_rules_scope
+  enum_vendor_commission_entries_entry_type: typeof enum_vendor_commission_entries_entry_type
+  enum_vendor_commission_entries_commission_source: typeof enum_vendor_commission_entries_commission_source
+  enum_vendor_entitlements_capabilities_support_sla: typeof enum_vendor_entitlements_capabilities_support_sla
+  enum_membership_audit_log_action: typeof enum_membership_audit_log_action
+  enum_member_invites_status: typeof enum_member_invites_status
+  enum_member_listings_condition: typeof enum_member_listings_condition
+  enum_member_listings_status: typeof enum_member_listings_status
+  enum_member_orders_status: typeof enum_member_orders_status
+  enum_system_settings_membership_pay_provider_default: typeof enum_system_settings_membership_pay_provider_default
   enum_system_settings_delivery_provider: typeof enum_system_settings_delivery_provider
   users_reset_password_tokens: typeof users_reset_password_tokens
+  users_email_change_tokens: typeof users_email_change_tokens
   users_sessions: typeof users_sessions
   users: typeof users
+  notification_preferences: typeof notification_preferences
+  devices: typeof devices
+  payment_methods: typeof payment_methods
   customers: typeof customers
   admins: typeof admins
   user_events: typeof user_events
@@ -4760,6 +7799,7 @@ type DatabaseSchema = {
   notification_events: typeof notification_events
   user_notifications: typeof user_notifications
   business_zones: typeof business_zones
+  vendors_kyc_docs: typeof vendors_kyc_docs
   vendors: typeof vendors
   merchants: typeof merchants
   merchants_rels: typeof merchants_rels
@@ -4778,6 +7818,22 @@ type DatabaseSchema = {
   driver_assignments: typeof driver_assignments
   delivery_bookings: typeof delivery_bookings
   order_discounts: typeof order_discounts
+  wallets: typeof wallets
+  wallet_transactions: typeof wallet_transactions
+  wallet_topups: typeof wallet_topups
+  coupons_allowed_payment_methods: typeof coupons_allowed_payment_methods
+  coupons_time_windows_days: typeof coupons_time_windows_days
+  coupons_time_windows: typeof coupons_time_windows
+  coupons: typeof coupons
+  coupons_texts: typeof coupons_texts
+  coupons_rels: typeof coupons_rels
+  coupon_claims: typeof coupon_claims
+  point_rules: typeof point_rules
+  rewards_terms: typeof rewards_terms
+  rewards: typeof rewards
+  achievements: typeof achievements
+  user_achievements: typeof user_achievements
+  coupon_redemptions: typeof coupon_redemptions
   reviews: typeof reviews
   prod_attributes: typeof prod_attributes
   prod_attribute_terms: typeof prod_attribute_terms
@@ -4801,6 +7857,24 @@ type DatabaseSchema = {
   tag_group_memberships: typeof tag_group_memberships
   recent_views: typeof recent_views
   wishlists: typeof wishlists
+  support_tickets: typeof support_tickets
+  support_tickets_rels: typeof support_tickets_rels
+  support_ticket_messages: typeof support_ticket_messages
+  support_ticket_messages_rels: typeof support_ticket_messages_rels
+  membership_plans_allowed_business_types: typeof membership_plans_allowed_business_types
+  membership_plans: typeof membership_plans
+  membership_plans_rels: typeof membership_plans_rels
+  vendor_subscriptions: typeof vendor_subscriptions
+  subscription_invoices: typeof subscription_invoices
+  commission_rules: typeof commission_rules
+  vendor_commission_entries: typeof vendor_commission_entries
+  vendor_entitlements: typeof vendor_entitlements
+  membership_audit_log: typeof membership_audit_log
+  member_invites: typeof member_invites
+  member_listings_images: typeof member_listings_images
+  member_listings: typeof member_listings
+  member_orders: typeof member_orders
+  member_membership_payments: typeof member_membership_payments
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
   payload_preferences: typeof payload_preferences
@@ -4808,8 +7882,12 @@ type DatabaseSchema = {
   payload_migrations: typeof payload_migrations
   system_settings: typeof system_settings
   relations_users_reset_password_tokens: typeof relations_users_reset_password_tokens
+  relations_users_email_change_tokens: typeof relations_users_email_change_tokens
   relations_users_sessions: typeof relations_users_sessions
   relations_users: typeof relations_users
+  relations_notification_preferences: typeof relations_notification_preferences
+  relations_devices: typeof relations_devices
+  relations_payment_methods: typeof relations_payment_methods
   relations_customers: typeof relations_customers
   relations_admins: typeof relations_admins
   relations_user_events: typeof relations_user_events
@@ -4826,6 +7904,7 @@ type DatabaseSchema = {
   relations_notification_events: typeof relations_notification_events
   relations_user_notifications: typeof relations_user_notifications
   relations_business_zones: typeof relations_business_zones
+  relations_vendors_kyc_docs: typeof relations_vendors_kyc_docs
   relations_vendors: typeof relations_vendors
   relations_merchants_rels: typeof relations_merchants_rels
   relations_merchants: typeof relations_merchants
@@ -4844,6 +7923,22 @@ type DatabaseSchema = {
   relations_driver_assignments: typeof relations_driver_assignments
   relations_delivery_bookings: typeof relations_delivery_bookings
   relations_order_discounts: typeof relations_order_discounts
+  relations_wallets: typeof relations_wallets
+  relations_wallet_transactions: typeof relations_wallet_transactions
+  relations_wallet_topups: typeof relations_wallet_topups
+  relations_coupons_allowed_payment_methods: typeof relations_coupons_allowed_payment_methods
+  relations_coupons_time_windows_days: typeof relations_coupons_time_windows_days
+  relations_coupons_time_windows: typeof relations_coupons_time_windows
+  relations_coupons_texts: typeof relations_coupons_texts
+  relations_coupons_rels: typeof relations_coupons_rels
+  relations_coupons: typeof relations_coupons
+  relations_coupon_claims: typeof relations_coupon_claims
+  relations_point_rules: typeof relations_point_rules
+  relations_rewards_terms: typeof relations_rewards_terms
+  relations_rewards: typeof relations_rewards
+  relations_achievements: typeof relations_achievements
+  relations_user_achievements: typeof relations_user_achievements
+  relations_coupon_redemptions: typeof relations_coupon_redemptions
   relations_reviews: typeof relations_reviews
   relations_prod_attributes: typeof relations_prod_attributes
   relations_prod_attribute_terms: typeof relations_prod_attribute_terms
@@ -4867,6 +7962,24 @@ type DatabaseSchema = {
   relations_tag_group_memberships: typeof relations_tag_group_memberships
   relations_recent_views: typeof relations_recent_views
   relations_wishlists: typeof relations_wishlists
+  relations_support_tickets_rels: typeof relations_support_tickets_rels
+  relations_support_tickets: typeof relations_support_tickets
+  relations_support_ticket_messages_rels: typeof relations_support_ticket_messages_rels
+  relations_support_ticket_messages: typeof relations_support_ticket_messages
+  relations_membership_plans_allowed_business_types: typeof relations_membership_plans_allowed_business_types
+  relations_membership_plans_rels: typeof relations_membership_plans_rels
+  relations_membership_plans: typeof relations_membership_plans
+  relations_vendor_subscriptions: typeof relations_vendor_subscriptions
+  relations_subscription_invoices: typeof relations_subscription_invoices
+  relations_commission_rules: typeof relations_commission_rules
+  relations_vendor_commission_entries: typeof relations_vendor_commission_entries
+  relations_vendor_entitlements: typeof relations_vendor_entitlements
+  relations_membership_audit_log: typeof relations_membership_audit_log
+  relations_member_invites: typeof relations_member_invites
+  relations_member_listings_images: typeof relations_member_listings_images
+  relations_member_listings: typeof relations_member_listings
+  relations_member_orders: typeof relations_member_orders
+  relations_member_membership_payments: typeof relations_member_membership_payments
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels

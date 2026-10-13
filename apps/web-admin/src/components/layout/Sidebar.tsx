@@ -243,6 +243,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
             <SidebarSectionLabel isOpen={expanded}>Finance</SidebarSectionLabel>
 
             <SidebarItem icon="payments" label="Transactions" active={dropdownActive(pathname, '/transactions')} collapsed={!expanded} href="/transactions" />
+            <SidebarItem icon="payments" label="Manage Commissions" active={dropdownActive(pathname, '/commission-management')} collapsed={!expanded} href="/commission-management" />
 
             <SidebarDropdownGroup
               icon="campaigns"

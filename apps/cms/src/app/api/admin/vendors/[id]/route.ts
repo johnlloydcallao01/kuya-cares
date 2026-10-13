@@ -48,6 +48,8 @@ function sanitizeVendorDoc(raw: Record<string, any>, merchantCount: number, merc
     description: optionalString(raw.description),
     operatingHours: raw.operatingHours ?? null,
     socialMediaLinks: raw.socialMediaLinks ?? null,
+    commissionOverride: raw.commissionOverride ?? null,
+    commissionOverridePct: raw.commissionOverridePct ?? null,
     logo: sanitizeMediaRef(raw.logo),
     businessLicense: sanitizeMediaRef(raw.businessLicense),
     taxCertificate: sanitizeMediaRef(raw.taxCertificate),

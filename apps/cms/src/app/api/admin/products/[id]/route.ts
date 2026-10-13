@@ -30,6 +30,7 @@ function sanitizeDoc(raw: Record<string, any>): Record<string, any> {
     basePrice: raw.basePrice != null ? Number(raw.basePrice) : null,
     compareAtPrice: raw.compareAtPrice != null ? Number(raw.compareAtPrice) : null,
     isActive: typeof raw.isActive === 'boolean' ? raw.isActive : true,
+    approvalStatus: String(raw.approvalStatus || 'pending'),
     catalogVisibility: String(raw.catalogVisibility || 'visible'),
     categories,
     primaryImage,
@@ -45,6 +46,7 @@ function sanitizeDoc(raw: Record<string, any>): Record<string, any> {
 
 const PRODUCT_TYPES = new Set(['simple', 'variable', 'grouped'])
 const VISIBILITY = new Set(['visible', 'catalog', 'search', 'hidden'])
+const APPROVAL_STATUSES = new Set(['pending', 'approved', 'disapproved'])
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -86,6 +88,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.catalogVisibility === 'string') {
       const v = body.catalogVisibility.trim().toLowerCase(); if (!VISIBILITY.has(v)) return NextResponse.json({ error: `catalogVisibility must be one of ${Array.from(VISIBILITY).join(', ')}` }, { status: 400 }); patch.catalogVisibility = v
     }
+    if (body.approvalStatus !== undefined) {
+      if (typeof body.approvalStatus !== 'string') return NextResponse.json({ error: 'approvalStatus must be pending, approved, or disapproved' }, { status: 400 })
+      const v = body.approvalStatus.trim().toLowerCase()
+      if (!APPROVAL_STATUSES.has(v)) return NextResponse.json({ error: 'approvalStatus must be pending, approved, or disapproved' }, { status: 400 })
+      patch.approvalStatus = v
+    }
     if (typeof body.isActive === 'boolean') patch.isActive = body.isActive
     else if (body.isActive !== undefined) { const v = String(body.isActive).toLowerCase(); if (v === 'true') patch.isActive = true; else if (v === 'false') patch.isActive = false }
     if (typeof body.shortDescription === 'string' || body.shortDescription === null) patch.shortDescription = body.shortDescription ? String(body.shortDescription).trim().slice(0, 500) || null : null
@@ -117,7 +125,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     let updated: Record<string, any>
-    try { updated = await payload.update({ collection: 'products', id: docId as number, data: patch as any, depth: 2, overrideAccess: true }) as unknown as Record<string, any> } catch (e: any) {
+    try { updated = await payload.update({ collection: 'products', id: docId as number, data: patch as any, depth: 2, overrideAccess: true, user: admin as any }) as unknown as Record<string, any> } catch (e: any) {
       const msg = e?.message || 'Failed to update product'
       const lower = String(msg).toLowerCase()
       if (lower.includes('unique') || lower.includes('duplicate')) return NextResponse.json({ error: 'Duplicate slug/sku: already exists', details: msg }, { status: 409 })

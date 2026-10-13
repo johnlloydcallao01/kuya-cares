@@ -13,6 +13,7 @@ type TransactionDoc = {
   payment_intent_id: string | null
   payment_method: string | null
   amount: number
+  refunded_amount?: number
   currency: string
   status: string
   paid_at: string | null
@@ -87,6 +88,7 @@ function fmtCurrency(amount: number, currency = 'PHP') {
 function txnBadge(status: string) {
   const s = status.toLowerCase()
   if (s === 'paid') return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
+  if (s === 'partially_refunded') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800'
   if (s === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800'
   if (s === 'failed') return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
   if (s === 'refunded') return 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'
@@ -406,7 +408,7 @@ function TransactionsContent() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${txnBadge(t.status)}`}>
-                            {t.status === 'paid' ? <CheckCircle className="w-3 h-3" /> : t.status === 'pending' ? <Clock className="w-3 h-3" /> : t.status === 'failed' ? <XCircle className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
+                            {t.status === 'paid' || t.status === 'partially_refunded' ? <CheckCircle className="w-3 h-3" /> : t.status === 'pending' ? <Clock className="w-3 h-3" /> : t.status === 'failed' ? <XCircle className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
                             {t.status}
                           </span>
                         </td>

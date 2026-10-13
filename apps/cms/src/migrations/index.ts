@@ -82,6 +82,10 @@ import * as migration_20261001_115008 from './20261001_115008';
 import * as migration_20261007_011029 from './20261007_011029';
 import * as migration_20261007_120000_add_member_role_to_users from './20261007_120000_add_member_role_to_users';
 import * as migration_20261011_100000_member_lifetime_membership from './20261011_100000_member_lifetime_membership';
+import * as migration_20261013_100008 from './20261013_100008';
+import * as migration_20261013_111807 from './20261013_111807';
+import * as migration_20261013_112838 from './20261013_112838';
+import * as migration_20261013_113000_mark_historical_commissions from './20261013_113000_mark_historical_commissions';
 
 export const migrations = [
   {
@@ -497,11 +501,31 @@ export const migrations = [
   {
     up: migration_20261007_120000_add_member_role_to_users.up,
     down: migration_20261007_120000_add_member_role_to_users.down,
-    name: '20261007_120000_add_member_role_to_users'
+    name: '20261007_120000_add_member_role_to_users',
   },
   {
     up: migration_20261011_100000_member_lifetime_membership.up,
     down: migration_20261011_100000_member_lifetime_membership.down,
-    name: '20261011_100000_member_lifetime_membership'
+    name: '20261011_100000_member_lifetime_membership',
+  },
+  {
+    up: migration_20261013_100008.up,
+    down: migration_20261013_100008.down,
+    name: '20261013_100008',
+  },
+  {
+    up: migration_20261013_111807.up,
+    down: migration_20261013_111807.down,
+    name: '20261013_111807',
+  },
+  {
+    up: migration_20261013_112838.up,
+    down: migration_20261013_112838.down,
+    name: '20261013_112838'
+  },
+  {
+    up: migration_20261013_113000_mark_historical_commissions.up,
+    down: migration_20261013_113000_mark_historical_commissions.down,
+    name: '20261013_113000_mark_historical_commissions',
   },
 ];

@@ -169,10 +169,10 @@ export function buildPayoutsCore(params: PayoutsParams, docs: PayoutsDocs): Payo
     : vendorsDocs
 
   const paidTxPeriod = transactionsDocs.filter(
-    (t) => String(t.status) === 'paid' && isInPeriod(params, t, 'paid_at'),
+    (t) => ['paid', 'partially_refunded'].includes(String(t.status)) && isInPeriod(params, t, 'paid_at'),
   )
   const refundedTxPeriod = transactionsDocs.filter(
-    (t) => String(t.status) === 'refunded' && isInPeriod(params, t, 'createdAt'),
+    (t) => ['partially_refunded', 'refunded'].includes(String(t.status)) && isInPeriod(params, t, 'createdAt'),
   )
 
   return {
@@ -233,6 +233,8 @@ export interface VendorAggEntry {
   orders: number
   gross: number
   platformFees: number
+  commissionFees: number
+  commissionTransactionFees: number
   deliveryFees: number
   net: number
   refunded: number
@@ -254,6 +256,8 @@ export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
       orders: 0,
       gross: 0,
       platformFees: 0,
+      commissionFees: 0,
+      commissionTransactionFees: 0,
       deliveryFees: 0,
       net: 0,
       refunded: 0,
@@ -267,15 +271,21 @@ export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
     agg.orders += 1
     agg.gross += ref.amount
     agg.platformFees += ref.platformFee
+    agg.commissionFees += getNum(ref.order.commission_amount)
+    agg.commissionTransactionFees += getNum(ref.order.commission_transaction_fee)
     agg.deliveryFees += ref.deliveryFee
-    agg.net += Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee)
+    const rawSnapshotNet = ref.order.commission_vendor_net
+    const snapshottedNet = rawSnapshotNet == null || rawSnapshotNet === '' ? Number.NaN : Number(rawSnapshotNet)
+    agg.net += Number.isFinite(snapshottedNet)
+      ? Math.max(0, snapshottedNet)
+      : Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee - getNum(ref.order.priority_fee))
   }
   for (const t of core.refundedTxPeriod) {
     const ref = resolvePayoutVendor(core, t)
     if (!ref) continue
     const agg = vendorAgg.get(ref.vendorId)
     if (!agg) continue
-    agg.refunded += getNum(t.amount)
+    agg.refunded += getNum(t.refunded_amount, getNum(t.amount))
   }
   return vendorAgg
 }
@@ -323,6 +333,8 @@ export function toPayoutSummary(rows: PayoutRow[]) {
     totalGross,
     totalNet,
     totalPlatformFees: rows.reduce((s, r) => s + r.platformFees, 0),
+    totalCommissionFees: rows.reduce((s, r) => s + r.commissionFees, 0),
+    totalCommissionTransactionFees: rows.reduce((s, r) => s + r.commissionTransactionFees, 0),
     totalDeliveryFees: rows.reduce((s, r) => s + r.deliveryFees, 0),
     totalRefunded: rows.reduce((s, r) => s + r.refunded, 0),
     totalOrders,
@@ -342,7 +354,11 @@ export function buildDaily(core: PayoutsCore): { date: string; gross: number; ne
     if (d) {
       const e = dailyMap.get(d) || { date: d, gross: 0, net: 0, orders: 0 }
       e.gross += ref.amount
-      e.net += Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee)
+      const rawSnapshotNet = ref.order.commission_vendor_net
+      const snapshottedNet = rawSnapshotNet == null || rawSnapshotNet === '' ? Number.NaN : Number(rawSnapshotNet)
+      e.net += Number.isFinite(snapshottedNet)
+        ? Math.max(0, snapshottedNet)
+        : Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee - getNum(ref.order.priority_fee))
       e.orders += 1
       dailyMap.set(d, e)
     }

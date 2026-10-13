@@ -15,6 +15,11 @@ const VISIBILITY_OPTS = [
   { value: 'search', label: 'Search Only' },
   { value: 'hidden', label: 'Hidden' },
 ]
+const APPROVAL_STATUS_OPTS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'disapproved', label: 'Disapproved' },
+]
 
 type ProductDoc = {
   id: number
@@ -25,6 +30,7 @@ type ProductDoc = {
   basePrice: number | null
   compareAtPrice: number | null
   isActive: boolean
+  approvalStatus: string
   catalogVisibility: string
   categories: { id: number; name: string; slug: string }[]
   shortDescription: string | null
@@ -53,6 +59,7 @@ export function ProductForm({ initial, onSuccess, onCancel }: { initial?: Produc
     categories: initial?.categories?.map(c => String(c.id)) || [],
     shortDescription: initial?.shortDescription || '',
     isActive: initial?.isActive ?? true,
+    approvalStatus: initial?.approvalStatus || 'pending',
     catalogVisibility: initial?.catalogVisibility || 'visible',
     assign_to_all_vendor_merchants: initial?.assign_to_all_vendor_merchants ?? true,
   })
@@ -93,6 +100,7 @@ export function ProductForm({ initial, onSuccess, onCancel }: { initial?: Produc
       categories: initial.categories?.map(c => String(c.id)) || [],
       shortDescription: initial.shortDescription || '',
       isActive: initial.isActive ?? true,
+      approvalStatus: initial.approvalStatus || 'pending',
       catalogVisibility: initial.catalogVisibility || 'visible',
       assign_to_all_vendor_merchants: initial.assign_to_all_vendor_merchants ?? true,
     })
@@ -127,6 +135,7 @@ export function ProductForm({ initial, onSuccess, onCancel }: { initial?: Produc
         sku: form.sku.trim() ? form.sku.trim().toUpperCase() : null,
         productType: form.productType,
         catalogVisibility: form.catalogVisibility,
+        approvalStatus: form.approvalStatus,
         isActive: !!form.isActive,
         shortDescription: form.shortDescription.trim() || null,
         categories: form.categories.length ? form.categories.map(v => Number(v)) : null,
@@ -178,6 +187,7 @@ export function ProductForm({ initial, onSuccess, onCancel }: { initial?: Produc
             <div><label className={labelCls}>SKU <span className="text-gray-400 font-normal">(unique, auto-uppercased)</span></label><input value={form.sku} onChange={e=>set('sku', e.target.value)} placeholder="CJ-BUCKET-001" className={`${inputCls} font-mono`} /></div>
             <div><label className={labelCls}>Product type *</label><select value={form.productType} onChange={e=>set('productType', e.target.value)} className={inputCls}>{PRODUCT_TYPES.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className={labelCls}>Catalog visibility *</label><select value={form.catalogVisibility} onChange={e=>set('catalogVisibility', e.target.value)} className={inputCls}>{VISIBILITY_OPTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+            <div><label className={labelCls}>Admin approval status *</label><select value={form.approvalStatus} onChange={e=>set('approvalStatus', e.target.value)} className={inputCls}>{APPROVAL_STATUS_OPTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select><p className="text-xs text-gray-400 mt-1">Only approved products are available in the catalog.</p></div>
             <div className="sm:col-span-2"><label className={labelCls}>Short description <span className="text-gray-400 font-normal">(max 500)</span></label><textarea value={form.shortDescription} onChange={e=>set('shortDescription', e.target.value)} rows={2} maxLength={500} placeholder="Brief product description…" className={inputCls} /></div>
             <div className="flex items-center gap-4 pt-2">
               <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={e=>set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active</span></label>

@@ -17,6 +17,8 @@ export type PayoutRow = {
   gross: number;
   platformFees: number;
   deliveryFees: number;
+  commissionFees: number;
+  commissionTransactionFees: number;
   net: number;
   refunded: number;
   avgOrder: number;
@@ -28,6 +30,8 @@ export type Summary = {
   totalNet: number;
   totalPlatformFees: number;
   totalDeliveryFees: number;
+  totalCommissionFees: number;
+  totalCommissionTransactionFees: number;
   totalRefunded: number;
   totalOrders: number;
   totalVendors: number;

@@ -416,6 +416,44 @@ The custom member payment form requires a PayMongo **public key** in the browser
 | `PAYMONGO_MEMBERSHIP_DISABLED` | System Settings `membership.paymongoMembershipDisabled` (env `=true` forces 410 alias-off) |
 | Checkout provider | System Settings `membership.payProviderDefault` (`BILLING_PAY_PROVIDER` env wins when set) |
 
+### 6.3 Marketplace commission accounting
+
+`commission-rules` are evaluated when a transaction is confirmed paid. The active
+matching rule with the highest priority wins; equal-priority ties prefer vendor,
+merchant-category, plan, then global scope, followed by the latest effective
+start. If no rule matches, the legacy vendor override, category override, plan
+snapshot, and System Settings default are used in that order. The selected
+percentage, rule/source, assessed amounts, and vendor net are snapshotted to the
+order and an immutable `vendor-commission-entries` accrual is posted with an
+idempotency key, so webhook retries do not create duplicate commission.
+
+Commissionable merchandise is `max(0, order subtotal - vendor-funded discount
+shares)`. Delivery, platform, and priority fees, and platform-funded discounts
+are excluded from the commission base. The configured fixed transaction fee
+reduces vendor net in addition to percentage commission. PayMongo refund events
+are recorded by refund ID; partial refunds reverse the same proportion of the
+accrual as cumulative refunded payment divided by the original transaction
+amount, rounded to PHP centavos and capped at the original accrual. The order
+and payout reports show the remaining accrued amounts. Because refunds are
+payment-level (not item-level), this proportional allocation is an accounting
+estimate when a refund covers only delivery or selected order items.
+
+PayMongo documents full and multiple partial refunds in its
+[refund guide](https://docs.paymongo.com/docs/payment-acceptance-refunds), while
+its Payment Acceptance key-concepts guide documents `payment.paid` and
+`payment.failed` outcomes. Confirm in the PayMongo dashboard that successful
+refund notifications are configured and delivered to the CMS webhook before
+relying on automatic refund reconciliation; a dashboard refund that does not
+produce a refund webhook must be separately reconciled by an administrator.
+Missing webhook secrets fail closed; configure the mode-matched
+`PAYMONGO_WEBHOOK_SECRET` or `PAYMONGO_SANDBOX_WEBHOOK_SECRET`.
+
+This is an accounting and payout-reporting ledger, not a funds-transfer system.
+It does not split PayMongo charges, create vendor transfers, or execute vendor
+payouts. Historical paid orders predating the ledger are marked `legacy` rather
+than retroactively charged at today's commission rules; reconcile those records
+before using reports as payable balances.
+
 ---
 
 ## 7. Security / cross-cutting

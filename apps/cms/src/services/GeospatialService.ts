@@ -866,6 +866,7 @@ export class GeospatialService {
           AND m.is_active = true
           AND m.is_accepting_orders = true
           AND v.is_active = true
+          AND v.verification_status = 'verified'
           AND (m.business_zone_id IS NULL OR bz.is_active = true)
           AND ST_DWithin(
             ST_Transform(ST_GeomFromGeoJSON(m.merchant_coordinates::text), 3857),
@@ -999,6 +1000,7 @@ export class GeospatialService {
           AND m.is_active = true
           AND m.is_accepting_orders = true
           AND v.is_active = true
+          AND v.verification_status = 'verified'
           AND (m.business_zone_id IS NULL OR bz.is_active = true)
           AND ST_DWithin(
             ST_Transform(ST_GeomFromGeoJSON(m.merchant_coordinates::text), 3857),

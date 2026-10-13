@@ -94,6 +94,7 @@ import { MembershipPlans } from './collections/MembershipPlans'
 import { VendorSubscriptions } from './collections/VendorSubscriptions'
 import { SubscriptionInvoices } from './collections/SubscriptionInvoices'
 import { CommissionRules } from './collections/CommissionRules'
+import { VendorCommissionEntries } from './collections/VendorCommissionEntries'
 import { VendorEntitlements } from './collections/VendorEntitlements'
 import { MembershipAuditLog } from './collections/MembershipAuditLog'
 // Private members-only marketplace (unified buy+sell)
@@ -224,6 +225,7 @@ export default buildConfig({
     VendorSubscriptions,
     SubscriptionInvoices,
     CommissionRules,
+    VendorCommissionEntries,
     VendorEntitlements,
     MembershipAuditLog,
 

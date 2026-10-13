@@ -15,6 +15,7 @@ type ProductDoc = {
   basePrice: number | null
   compareAtPrice: number | null
   isActive: boolean
+  approvalStatus: string
   catalogVisibility: string
   categories: { id: number; name: string; slug: string }[]
   primaryImage: { id: number; url: string | null } | null
@@ -100,9 +101,10 @@ function ProductViewContent(){
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Type</p><p className="mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20">{doc.productType}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Price</p><p className="mt-2 font-bold text-gray-900 dark:text-white">{fmtPHP(doc.basePrice)} {doc.compareAtPrice ? <span className="text-xs font-normal text-gray-400 line-through ml-1">{fmtPHP(doc.compareAtPrice)}</span> : null}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Approval</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${doc.approvalStatus === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20' : doc.approvalStatus === 'disapproved' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20'}`}>{doc.approvalStatus}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Visibility</p><p className="mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20">{doc.catalogVisibility}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Active</p><p className={`mt-2 font-semibold text-sm ${doc.isActive?'text-emerald-600':'text-zinc-500'}`}>{doc.isActive?'Active':'Inactive'}</p></div>
       </div>

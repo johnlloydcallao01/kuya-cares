@@ -78,12 +78,12 @@ export async function GET(request: NextRequest){
       return !isNaN(d.getTime()) && d>=periodStart && d<=now
     }
     const ordersPeriod=ordersDocs.filter(o=>isInPeriod(o as Record<string,unknown>,'createdAt'))
-    const paidTxPeriod=transactionsDocs.filter(t=>String(t.status)==='paid' && isInPeriod(t as Record<string,unknown>,'paid_at'))
-    const refundedTxPeriod=transactionsDocs.filter(t=>String(t.status)==='refunded' && isInPeriod(t as Record<string,unknown>,'createdAt'))
+    const paidTxPeriod=transactionsDocs.filter(t=>['paid','partially_refunded'].includes(String(t.status)) && isInPeriod(t as Record<string,unknown>,'paid_at'))
+    const refundedTxPeriod=transactionsDocs.filter(t=>['partially_refunded','refunded'].includes(String(t.status)) && isInPeriod(t as Record<string,unknown>,'createdAt'))
     const failedTxPeriod=transactionsDocs.filter(t=>String(t.status)==='failed' && isInPeriod(t as Record<string,unknown>,'createdAt'))
 
     const totalRevenue=paidTxPeriod.reduce((s,t)=>s+getNum(t.amount),0)
-    const totalRefunded=refundedTxPeriod.reduce((s,t)=>s+getNum(t.amount),0)
+    const totalRefunded=refundedTxPeriod.reduce((s,t)=>s+getNum(t.refunded_amount,getNum(t.amount)),0)
     const netRevenue=totalRevenue-totalRefunded
     const totalOrders=ordersPeriod.length
     const avgOrder=totalOrders? totalRevenue/totalOrders:0
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest){
     orderItemsDocs.forEach(oi=>{const oid=resolveId(oi.order); if(!paidOrderIds.has(oid)) return; const name=getStr(oi.product_name_snapshot,'Unknown'); const key=String(oi.product??name); const e=productAgg.get(key)||{name,quantity:0,revenue:0,orders:0}; e.quantity+=getNum(oi.quantity); e.revenue+=getNum(oi.total_price); e.orders+=1; productAgg.set(key,e)})
     const productPerformance=Array.from(productAgg.entries()).map(([id,v])=>({id,...v})).sort((a,b)=>b.revenue-a.revenue).slice(0,20)
 
-    const refundsRows=[...refundedTxPeriod,...failedTxPeriod].slice(0,100).map(t=>({transactionId:String(t.id), orderId:resolveId(t.order)||'—', date:String(t.createdAt??''), amount:getNum(t.amount), status:String(t.status), paymentMethod:getStr(t.payment_method,'unknown')}))
+    const refundsRows=[...refundedTxPeriod,...failedTxPeriod].slice(0,100).map(t=>({transactionId:String(t.id), orderId:resolveId(t.order)||'—', date:String(t.createdAt??''), amount:getNum(t.refunded_amount,getNum(t.amount)), status:String(t.status), paymentMethod:getStr(t.payment_method,'unknown')}))
 
     const bookingsPeriod=deliveryBookingsDocs.filter(b=>{const oid=resolveId(b.order); const order=oid?orderMap.get(oid):null; return order? isInPeriod(order,'createdAt'):false})
     const deliveryByStatus=new Map<string,number>()

@@ -1,6 +1,6 @@
 /**
  * @file apps/cms/src/app/api/admin/vendors/[id]/commission-override/route.ts
- * @description PUT set commission override (pct 0-30 clamp + reason) / DELETE clear to inherit.
+ * @description PUT set commission override (pct 0-100 + reason) / DELETE clear to inherit.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -26,20 +26,22 @@ export async function PUT(
     }
     const pctRaw = body.pct
     const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
-    if (pctRaw == null) return NextResponse.json({ error: 'pct is required (0-30, null clears)' }, { status: 400 })
+    if (pctRaw == null) return NextResponse.json({ error: 'pct is required (0-100)' }, { status: 400 })
     const pct = Number(pctRaw)
-    if (!Number.isFinite(pct) || pct < 0 || pct > 30) {
-      return NextResponse.json({ error: 'pct must be 0-30' }, { status: 400 })
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      return NextResponse.json({ error: 'pct must be 0-100' }, { status: 400 })
+    }
+    const transactionFee = Number(body.transaction_fee ?? 0)
+    if (!Number.isFinite(transactionFee) || transactionFee < 0) {
+      return NextResponse.json({ error: 'transaction_fee must be a non-negative amount' }, { status: 400 })
     }
     if (!reason) return NextResponse.json({ error: 'reason is required' }, { status: 400 })
 
-    let vendor: any
     try {
-      vendor = await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true })
+      await payload.findByID({ collection: 'vendors', id: id as any, depth: 0, overrideAccess: true })
     } catch {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
-    void vendor
 
     const updated = await payload.update({
       collection: 'vendors',
@@ -47,18 +49,11 @@ export async function PUT(
       data: {
         commissionOverride: {
           commission_percent: pct,
-          transaction_fee: body.transaction_fee ?? 0,
-          rule: body.rule ?? null,
+          transaction_fee: transactionFee,
+          rule: null,
         },
       } as any,
       overrideAccess: true,
-    }).catch(async () => {
-      // Fallback when group field absent: store flat (parallel collections may rename)
-      return payload.update({
-        collection: 'vendors', id: id as any,
-        data: { commissionOverridePct: pct } as any,
-        overrideAccess: true,
-      })
     })
 
     await audit(payload, {
@@ -97,7 +92,7 @@ export async function DELETE(
       id: id as any,
       data: { commissionOverride: null } as any,
       overrideAccess: true,
-    }).catch(() => null)
+    })
 
     await audit(payload, {
       vendor: id, action: 'override', reason: 'commission override cleared (inherit plan)',

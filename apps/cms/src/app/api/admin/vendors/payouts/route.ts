@@ -130,11 +130,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Period-filtered transactions (paid only for payouts) + isInPeriod on paid_at
-    const paidTxPeriod = transactionsDocs.filter((t) => String(t.status) === 'paid' && isInPeriod(t as Record<string, any>, 'paid_at'))
-    const refundedTxPeriod = transactionsDocs.filter((t) => String(t.status) === 'refunded' && isInPeriod(t as Record<string, any>, 'createdAt'))
+    const paidTxPeriod = transactionsDocs.filter((t) => ['paid', 'partially_refunded'].includes(String(t.status)) && isInPeriod(t as Record<string, any>, 'paid_at'))
+    const refundedTxPeriod = transactionsDocs.filter((t) => ['partially_refunded', 'refunded'].includes(String(t.status)) && isInPeriod(t as Record<string, any>, 'createdAt'))
 
     // Build vendor payout aggregation (verified revenue per vendor, like reports)
-    const vendorAgg = new Map<string, { businessName: string; legalName: string; businessType: string; verificationStatus: string; isActive: boolean; logo: { id: number; url: string | null } | null; totalMerchants: number; averageRating: number; orders: number; gross: number; platformFees: number; deliveryFees: number; net: number; refunded: number }>()
+    const vendorAgg = new Map<string, { businessName: string; legalName: string; businessType: string; verificationStatus: string; isActive: boolean; logo: { id: number; url: string | null } | null; totalMerchants: number; averageRating: number; orders: number; gross: number; platformFees: number; deliveryFees: number; commissionFees: number; commissionTransactionFees: number; net: number; refunded: number }>()
     // Pre-init with filtered vendors so zero-payout vendors still appear
     const vendorsForAgg = filteredVendorIds ? vendorsDocs.filter((v: any) => filteredVendorIds!.has(String(v.id))) : vendorsDocs
     for (const v of vendorsForAgg as any[]) {
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
         logo: sanitizeMediaRef(v.logo),
         totalMerchants: getNum(v.totalMerchants),
         averageRating: getNum(v.averageRating),
-        orders: 0, gross: 0, platformFees: 0, deliveryFees: 0, net: 0, refunded: 0,
+        orders: 0, gross: 0, platformFees: 0, deliveryFees: 0, commissionFees: 0, commissionTransactionFees: 0, net: 0, refunded: 0,
       })
     }
 
@@ -171,17 +171,24 @@ export async function GET(request: NextRequest) {
       const amt = getNum(t.amount)
       const platformFee = getNum((order as any).platform_fee)
       const deliveryFee = getNum((order as any).delivery_fee)
+      const rawSnapshotNet = (order as any).commission_vendor_net
+      const hasCommissionSnapshot = rawSnapshotNet !== null && rawSnapshotNet !== undefined && rawSnapshotNet !== ''
+      const net = hasCommissionSnapshot
+        ? Math.max(0, getNum(rawSnapshotNet))
+        : Math.max(0, amt - platformFee - deliveryFee - getNum((order as any).priority_fee))
       agg.orders += 1
       agg.gross += amt
       agg.platformFees += platformFee
       agg.deliveryFees += deliveryFee
-      agg.net += Math.max(0, amt - platformFee - deliveryFee)
+      agg.commissionFees += getNum((order as any).commission_amount)
+      agg.commissionTransactionFees += getNum((order as any).commission_transaction_fee)
+      agg.net += net
       // daily
       const d = new Date(String(t.paid_at ?? t.createdAt ?? '')).toISOString().split('T')[0]
       if (d) {
         const e = dailyMap.get(d) || { date: d, gross: 0, net: 0, orders: 0 }
         e.gross += amt
-        e.net += Math.max(0, amt - platformFee - deliveryFee)
+        e.net += net
         e.orders += 1
         dailyMap.set(d, e)
       }
@@ -201,7 +208,7 @@ export async function GET(request: NextRequest) {
       if (!vendorId || (filteredVendorIds && !filteredVendorIds.has(vendorId))) continue
       const agg = vendorAgg.get(vendorId)
       if (!agg) continue
-      agg.refunded += getNum(t.amount)
+      agg.refunded += getNum((t as any).refunded_amount, getNum(t.amount))
     }
 
     // Enrich totalMerchants live count
@@ -231,6 +238,8 @@ export async function GET(request: NextRequest) {
       gross: v.gross,
       platformFees: v.platformFees,
       deliveryFees: v.deliveryFees,
+      commissionFees: v.commissionFees,
+      commissionTransactionFees: v.commissionTransactionFees,
       net: v.net,
       refunded: v.refunded,
       avgOrder: v.orders ? v.gross / v.orders : 0,
@@ -245,6 +254,8 @@ export async function GET(request: NextRequest) {
     const totalNet = rows.reduce((s, r) => s + r.net, 0)
     const totalPlatformFees = rows.reduce((s, r) => s + r.platformFees, 0)
     const totalDeliveryFees = rows.reduce((s, r) => s + r.deliveryFees, 0)
+    const totalCommissionFees = rows.reduce((s, r) => s + r.commissionFees, 0)
+    const totalCommissionTransactionFees = rows.reduce((s, r) => s + r.commissionTransactionFees, 0)
     const totalRefunded = rows.reduce((s, r) => s + r.refunded, 0)
     const totalOrders = rows.reduce((s, r) => s + r.orders, 0)
     const totalVendors = rows.length
@@ -274,6 +285,8 @@ export async function GET(request: NextRequest) {
         totalNet,
         totalPlatformFees,
         totalDeliveryFees,
+        totalCommissionFees,
+        totalCommissionTransactionFees,
         totalRefunded,
         totalOrders,
         totalVendors,

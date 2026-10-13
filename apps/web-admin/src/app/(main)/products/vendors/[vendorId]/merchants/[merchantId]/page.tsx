@@ -11,7 +11,7 @@ import { Package, ArrowLeft, Search, X, Plus, RefreshCw, AlertCircle, Eye, Penci
 type MerchantProduct = {
   merchantProductId: number
   merchantId: number
-  product: { id: number; name: string; slug: string; sku: string | null; productType: string; basePrice: number | null; primaryImage: { id: number; url: string | null } | null } | null
+  product: { id: number; name: string; slug: string; sku: string | null; productType: string; approvalStatus: string; basePrice: number | null; primaryImage: { id: number; url: string | null } | null } | null
   price_override: number | null
   stock_quantity: number | null
   is_active: boolean
@@ -78,7 +78,7 @@ function MerchantProductsListPageContent(){
         mps = (mpRes.docs as any[]).map((mp:any)=>({
           merchantProductId: Number(mp.id),
           merchantId: Number(merchantId),
-          product: mp.product_id ? { id: Number(mp.product_id), name: String(mp.product_id), slug: '', sku: null, productType: 'simple', basePrice: null, primaryImage: null } : null,
+          product: mp.product_id ? { id: Number(mp.product_id), name: String(mp.product_id), slug: '', sku: null, productType: 'simple', approvalStatus: 'pending', basePrice: null, primaryImage: null } : null,
           price_override: mp.price_override != null ? Number(mp.price_override) : null,
           stock_quantity: mp.stock_quantity != null ? Number(mp.stock_quantity) : null,
           is_active: !!mp.is_active,
@@ -214,7 +214,7 @@ function MerchantProductsListPageContent(){
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-gray-900 dark:text-white truncate max-w-[160px]">{p.product?.name || '—'}</div>
-                            <div className="text-xs text-gray-500 dark:text-[#a1a1aa] truncate">/{p.product?.slug || '—'}</div>
+                            <div className="text-xs text-gray-500 dark:text-[#a1a1aa] truncate">/{p.product?.slug || '—'} · Approval: {p.product?.approvalStatus || 'pending'}</div>
                           </div>
                         </div>
                       </td>

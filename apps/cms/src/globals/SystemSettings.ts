@@ -112,7 +112,7 @@ export const SystemSettings: GlobalConfig = {
           type: 'number',
           defaultValue: 8,
           min: 0,
-          max: 30,
+          max: 100,
         },
         {
           name: 'payProviderDefault',

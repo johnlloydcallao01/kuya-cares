@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const { ordersPeriod, paidTxPeriod, refundedTxPeriod, failedTxPeriod } = core
 
     const totalRevenue = paidTxPeriod.reduce((s, t) => s + getNum(t.amount), 0)
-    const totalRefunded = refundedTxPeriod.reduce((s, t) => s + getNum(t.amount), 0)
+    const totalRefunded = refundedTxPeriod.reduce((s, t) => s + getNum(t.refunded_amount, getNum(t.amount)), 0)
     const totalOrders = ordersPeriod.length
 
     const responseBody = {

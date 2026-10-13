@@ -84,7 +84,7 @@ export const waiveSchema = z.object({
 })
 
 export const commissionOverrideSchema = z.object({
-  pct: z.number().min(0).max(30).nullable(),
+  pct: z.number().min(0).max(100).nullable(),
   reason: z.string().min(1).max(2000),
 })
 

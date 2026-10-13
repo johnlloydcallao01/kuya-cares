@@ -117,7 +117,7 @@ export class LocationBasedMerchantService {
     }
 
     // Create cache key based on options
-    const cacheKey = `${CACHE_KEYS.MERCHANTS}-location-${customerId}-${limit}-${categoryId || 'all'}`;
+    const cacheKey = `${CACHE_KEYS.MERCHANTS}-location-verified-vendors-${customerId}-${limit}-${categoryId || 'all'}`;
     
     // Check cache first — but never serve stale rows missing vendor owners.
     // Pre-owner caches (same customerId-scoped key) would otherwise hide
@@ -273,7 +273,7 @@ export class LocationBasedMerchantService {
     }
 
     // 2) Generic address-free fallback: GET /merchants?isActive=true
-    const cacheKey = `${CACHE_KEYS.MERCHANTS}-browsing-${limit}-${categoryId || 'all'}`;
+    const cacheKey = `${CACHE_KEYS.MERCHANTS}-browsing-verified-vendors-${limit}-${categoryId || 'all'}`;
     const cached = dataCache.get<LocationBasedMerchant[]>(cacheKey);
     if (cached) return cached;
 
@@ -291,6 +291,7 @@ export class LocationBasedMerchantService {
         page: '1',
       });
       params.append('where[isActive][equals]', 'true');
+      params.append('where[vendor.verificationStatus][equals]', 'verified');
       const url = `${base}/merchants?${params.toString()}&depth=2`;
       const res = await fetch(url, { headers, credentials: 'omit', cache: 'no-store' });
       if (!res.ok) return [];

@@ -627,9 +627,9 @@ export default function RegisterPage(): React.ReactNode {
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
                       Account Type
                     </h3>
-                    <div className="p-4 border border-[#239459] bg-green-50 rounded-xl ring-2 ring-[#239459]/20">
-                      <p className="font-semibold text-gray-900">Member</p>
-                      <p className="text-sm text-gray-600 mt-1">
+                    <div className="p-4 border border-[#239459] bg-green-50 rounded-xl ring-2 ring-[#239459]/20 dark:bg-green-950/40 dark:border-green-700">
+                      <p className="font-semibold text-gray-900 dark:text-green-100">Member</p>
+                      <p className="text-sm text-gray-600 mt-1 dark:text-gray-200">
                         Members only — join the private circle: buy &amp; sell, plus food ordering.
                         Admins supervise members from this same app.
                       </p>

@@ -275,6 +275,7 @@ export async function GET(request: NextRequest) {
               slug: String(product.slug || ''),
               sku: product.sku ? String(product.sku) : null,
               productType: String(product.productType || 'simple'),
+              approvalStatus: String(product.approvalStatus || 'pending'),
               basePrice: product.basePrice != null ? Number(product.basePrice) : null,
               primaryImage: prodMedia,
             } : null,

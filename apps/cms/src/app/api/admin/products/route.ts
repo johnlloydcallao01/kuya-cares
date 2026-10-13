@@ -1,7 +1,7 @@
 /**
  * @file apps/cms/src/app/api/admin/products/route.ts
  * @description BFF aggregation for web-admin /products — master catalog.
- * GET  /api/admin/products?page=1&limit=10&search=&productType=simple&isActive=true&catalogVisibility=visible&sort=-createdAt
+ * GET  /api/admin/products?page=1&limit=10&search=&productType=simple&approvalStatus=pending&isActive=true&catalogVisibility=visible&sort=-createdAt
  * POST /api/admin/products — create product (admin-only)
  */
 
@@ -33,6 +33,7 @@ function sanitizeDoc(raw: Record<string, any>): Record<string, any> {
     basePrice: raw.basePrice != null ? Number(raw.basePrice) : null,
     compareAtPrice: raw.compareAtPrice != null ? Number(raw.compareAtPrice) : null,
     isActive: typeof raw.isActive === 'boolean' ? raw.isActive : true,
+    approvalStatus: String(raw.approvalStatus || 'pending'),
     catalogVisibility: String(raw.catalogVisibility || 'visible'),
     categories,
     primaryImage,
@@ -50,6 +51,7 @@ function parseCsv(s: string | null): string[] { if (!s) return []; return s.spli
 
 const PRODUCT_TYPES = new Set(['simple', 'variable', 'grouped'])
 const VISIBILITY = new Set(['visible', 'catalog', 'search', 'hidden'])
+const APPROVAL_STATUSES = new Set(['pending', 'approved', 'disapproved'])
 
 export async function GET(request: NextRequest) {
   return withAdminRequestSlot(async () => {
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
     const isActiveParam = searchParams.get('isActive')
     const isActiveFilter = isActiveParam === 'true' ? true : isActiveParam === 'false' ? false : null
     const visibilityCsv = parseCsv(searchParams.get('catalogVisibility'))
+    const approvalStatusCsv = parseCsv(searchParams.get('approvalStatus'))
     const categoryParam = searchParams.get('category')
     const categoryId = categoryParam ? Number(categoryParam) : null
 
@@ -98,6 +101,10 @@ export async function GET(request: NextRequest) {
     if (visibilityCsv.length) {
       const filtered = visibilityCsv.filter(v => VISIBILITY.has(v))
       if (filtered.length) where.catalogVisibility = { in: filtered }
+    }
+    if (approvalStatusCsv.length) {
+      const filtered = approvalStatusCsv.filter(v => APPROVAL_STATUSES.has(v))
+      if (filtered.length) where.approvalStatus = { in: filtered }
     }
     if (categoryId && !Number.isNaN(categoryId)) where.categories = { contains: categoryId }
 
@@ -165,6 +172,13 @@ export async function POST(request: NextRequest) {
     const catalogVisibilityRaw = typeof body.catalogVisibility === 'string' ? body.catalogVisibility.trim().toLowerCase() : 'visible'
     const catalogVisibility = VISIBILITY.has(catalogVisibilityRaw) ? catalogVisibilityRaw : 'visible'
     const isActive = typeof body.isActive === 'boolean' ? body.isActive : true
+    const approvalStatusRaw = body.approvalStatus === undefined
+      ? 'pending'
+      : typeof body.approvalStatus === 'string'
+        ? body.approvalStatus.trim().toLowerCase()
+        : ''
+    if (!APPROVAL_STATUSES.has(approvalStatusRaw)) return badRequest('approvalStatus must be pending, approved, or disapproved')
+    const approvalStatus = approvalStatusRaw
     const shortDescription = typeof body.shortDescription === 'string' ? body.shortDescription.trim().slice(0, 500) || null : null
     const description = body.description ?? null
     const sku = typeof body.sku === 'string' ? body.sku.trim().toUpperCase() || null : null
@@ -206,6 +220,7 @@ export async function POST(request: NextRequest) {
       slug,
       productType,
       catalogVisibility,
+      approvalStatus,
       isActive,
       shortDescription: shortDescription ?? undefined,
       description: description ?? undefined,
@@ -221,7 +236,7 @@ export async function POST(request: NextRequest) {
 
     let created: Record<string, any>
     try {
-      created = await payload.create({ collection: 'products', data: data as any, depth: 2, overrideAccess: true }) as unknown as Record<string, any>
+      created = await payload.create({ collection: 'products', data: data as any, depth: 2, overrideAccess: true, user: admin as any }) as unknown as Record<string, any>
     } catch (e: any) {
       const msg = e?.message || 'Failed to create product'
       const lower = String(msg).toLowerCase()

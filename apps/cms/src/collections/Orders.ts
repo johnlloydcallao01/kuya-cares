@@ -45,6 +45,25 @@ export const Orders: CollectionConfig = {
         }
         return data
       }) as never,
+      ({ data, operation, req }) => {
+        if (operation !== 'update' || req.context?.commissionSnapshot) return data
+        const snapshotFields = [
+          'commission_percent',
+          'commission_base_amount',
+          'commission_vendor_discount',
+          'commission_amount',
+          'commission_transaction_fee',
+          'commission_vendor_net',
+          'commission_source',
+          'commission_rule',
+          'commission_status',
+          'commission_calculated_at',
+        ]
+        for (const field of snapshotFields) {
+          delete (data as Record<string, unknown> | undefined)?.[field]
+        }
+        return data
+      },
     ],
     beforeValidate: [
       ({ data, operation }) => {
@@ -322,6 +341,58 @@ export const Orders: CollectionConfig = {
       admin: {
         description: 'Total coupon discount applied (food + delivery legs)',
       },
+    },
+    {
+      name: 'commission_percent',
+      type: 'number',
+      min: 0,
+      max: 100,
+      admin: { readOnly: true, description: 'Commission rate locked when payment is confirmed.' },
+    },
+    {
+      name: 'commission_base_amount',
+      type: 'number',
+      min: 0,
+      admin: { readOnly: true, description: 'Merchandise subtotal less vendor-funded discounts.' },
+    },
+    { name: 'commission_vendor_discount', type: 'number', min: 0, admin: { readOnly: true } },
+    { name: 'commission_amount', type: 'number', min: 0, admin: { readOnly: true } },
+    { name: 'commission_transaction_fee', type: 'number', min: 0, admin: { readOnly: true } },
+    { name: 'commission_vendor_net', type: 'number', min: 0, admin: { readOnly: true } },
+    {
+      name: 'commission_source',
+      type: 'select',
+      options: [
+        { label: 'Vendor', value: 'vendor' },
+        { label: 'Category', value: 'category' },
+        { label: 'Plan', value: 'plan' },
+        { label: 'Global', value: 'global' },
+      ],
+      admin: { readOnly: true },
+    },
+    {
+      name: 'commission_rule',
+      type: 'relationship',
+      relationTo: 'commission-rules',
+      admin: { readOnly: true },
+    },
+    {
+      name: 'commission_status',
+      type: 'select',
+      defaultValue: 'pending',
+      options: [
+        { label: 'Pending payment', value: 'pending' },
+        { label: 'Accrued', value: 'accrued' },
+        { label: 'Partially refunded', value: 'partially_refunded' },
+        { label: 'Refunded / reversed', value: 'reversed' },
+        { label: 'Legacy / unreconciled', value: 'legacy' },
+      ],
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'commission_calculated_at',
+      type: 'date',
+      admin: { readOnly: true, position: 'sidebar' },
     },
     {
       name: 'coupon_code',

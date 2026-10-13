@@ -194,7 +194,7 @@ export async function fetchCustomerOrders(
       merchantId: toId(merchant),
       merchantLogo,
       paymentMethod: tx?.payment_method || undefined,
-      isPaid: tx?.status === 'paid',
+      isPaid: tx?.status === 'paid' || tx?.status === 'partially_refunded',
       items: orderItems.map((item: any) => {
         const product = item.product;
         const mp = item.merchant_product;
