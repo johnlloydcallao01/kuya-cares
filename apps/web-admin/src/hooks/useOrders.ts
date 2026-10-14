@@ -66,6 +66,7 @@ export type OrdersResponse = {
   docs: OrderDoc[];
   pagination: OrderPagination | null;
   stats: OrderStats | null;
+  selectedMember: { id: number; firstName: string; lastName: string; email: string } | null;
 };
 
 async function fetchOrders(qs: string, signal?: AbortSignal): Promise<OrdersResponse> {

@@ -52,6 +52,10 @@ function sanitizeUserDoc(raw: Record<string, any>): Record<string, any> {
     completeAddress: optionalString(raw.completeAddress),
     role: str(raw.role, 'customer'),
     isActive: typeof raw.isActive === 'boolean' ? raw.isActive : true,
+    memberMembershipStatus:
+      raw.memberMembershipStatus === 'active' || raw.memberMembershipStatus === 'pending_payment'
+        ? raw.memberMembershipStatus
+        : null,
     lastLogin: raw.lastLogin ? String(raw.lastLogin) : null,
     profilePicture: sanitizeMediaRef(raw.profilePicture),
     createdAt: String(raw.createdAt ?? ''),
@@ -59,9 +63,10 @@ function sanitizeUserDoc(raw: Record<string, any>): Record<string, any> {
   }
 }
 
-const ROLES = new Set(['admin', 'customer', 'service', 'vendor', 'driver'])
+const ROLES = new Set(['admin', 'customer', 'service', 'vendor', 'driver', 'member'])
 const GENDERS = new Set(['male', 'female', 'other', 'prefer_not_to_say'])
 const CIVIL_STATUSES = new Set(['single', 'married', 'divorced', 'widowed', 'separated'])
+const MEMBER_MEMBERSHIP_STATUSES = new Set(['pending_payment', 'active'])
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -196,6 +201,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         if (!ROLES.has(v)) return NextResponse.json({ error: `role must be one of ${Array.from(ROLES).join(', ')}` }, { status: 400 })
         patch.role = v
       }
+    }
+    if (body.memberMembershipStatus !== undefined) {
+      if (
+        typeof body.memberMembershipStatus !== 'string' ||
+        !MEMBER_MEMBERSHIP_STATUSES.has(body.memberMembershipStatus)
+      ) {
+        return NextResponse.json(
+          { error: `memberMembershipStatus must be one of ${Array.from(MEMBER_MEMBERSHIP_STATUSES).join(', ')}` },
+          { status: 400 },
+        )
+      }
+      patch.memberMembershipStatus = body.memberMembershipStatus
     }
     if (typeof body.isActive === 'boolean') patch.isActive = body.isActive
     else if (body.isActive !== undefined) {

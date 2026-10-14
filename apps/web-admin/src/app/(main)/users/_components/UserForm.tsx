@@ -9,6 +9,7 @@ import { MediaUploader } from '@/components/cms/MediaUploader'
 
 const ROLE_OPTS = [
   { value: 'admin', label: 'Admin' },
+  { value: 'member', label: 'Member' },
   { value: 'customer', label: 'Customer' },
   { value: 'vendor', label: 'Vendor' },
   { value: 'driver', label: 'Driver' },
@@ -45,6 +46,7 @@ type UserDoc = {
   completeAddress: string | null
   role: string
   isActive: boolean
+  memberMembershipStatus?: 'pending_payment' | 'active' | null
   profilePicture: any
   createdAt: string
   updatedAt: string
@@ -75,6 +77,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
     completeAddress: initial?.completeAddress || '',
     role: initial?.role || 'customer',
     isActive: initial?.isActive ?? true,
+    memberMembershipStatus: initial?.memberMembershipStatus ?? 'pending_payment',
     password: '',
     confirmPassword: '',
   })
@@ -99,6 +102,7 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
       completeAddress: initial?.completeAddress || '',
       role: initial?.role || 'customer',
       isActive: initial?.isActive ?? true,
+      memberMembershipStatus: initial?.memberMembershipStatus ?? 'pending_payment',
       password: '',
       confirmPassword: '',
     })
@@ -152,6 +156,9 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
         completeAddress: form.completeAddress.trim() || null,
         role: form.role,
         isActive: form.isActive,
+      }
+      if (isEdit && form.role === 'member') {
+        payload.memberMembershipStatus = form.memberMembershipStatus
       }
       if (profilePictureId != null && profilePictureId !== '') payload.profilePicture = Number(profilePictureId)
       // password handling — grandline pattern: only include if trimmed non-empty, otherwise omit so server keeps hash (actions.ts:178-180)
@@ -216,6 +223,22 @@ export function UserForm({ initial, onSuccess, onCancel }: { initial?: UserDoc |
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Role *</label><select value={form.role} onChange={(e) => set('role', e.target.value)} className={inputCls}>{ROLE_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div className="flex items-center gap-3 pt-6"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-[#239459]" /> <span className="text-sm font-medium text-gray-700 dark:text-white">Active account</span><span className="text-xs text-gray-400"> — inactive users cannot log in</span></label></div>
+            {isEdit && form.role === 'member' && (
+              <div>
+                <label className={labelCls}>Member Membership Status</label>
+                <select
+                  value={form.memberMembershipStatus || 'pending_payment'}
+                  onChange={(e) => set('memberMembershipStatus', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="pending_payment">Pending payment</option>
+                  <option value="active">Active</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-400">
+                  Active members can access the private marketplace.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

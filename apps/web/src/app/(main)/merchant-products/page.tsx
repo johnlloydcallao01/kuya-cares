@@ -190,6 +190,7 @@ function MerchantProductsContent() {
         merchantCategoryId: null,
         customerId: cid,
         ignoreLocation: scopeAll,
+        verifiedVendorsOnly: true,
         // Full window for the listing page (home passes the same; the
         // 40-item ceiling lives only in the home grid display).
         cap: 500,
@@ -274,7 +275,7 @@ function MerchantProductsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6" style={{ backgroundColor: '#f9fafb' }}>
-      <section className="bg-white mt-2 border-y border-gray-200">
+      <section className="bg-white border-y border-gray-200">
         <div className="w-full px-2.5 py-4">
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 mb-2">
             <i className="fas fa-arrow-left" />

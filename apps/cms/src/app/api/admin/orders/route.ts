@@ -208,9 +208,29 @@ export async function GET(request: NextRequest) {
     const statusCsv = parseCsv(searchParams.get('status'))
     const fulfillmentCsv = parseCsv(searchParams.get('fulfillment_type'))
     const deliveryStatusCsv = parseCsv(searchParams.get('delivery_status'))
+    const memberParam = searchParams.get('member')
+    const memberId = memberParam ? Number(memberParam) : null
+    if (memberParam && (!Number.isSafeInteger(memberId) || Number(memberId) <= 0)) {
+      return NextResponse.json({ error: 'A valid member ID is required' }, { status: 400 })
+    }
+
+    const selectedMemberResult = memberId
+      ? await payload.find({
+          collection: 'users',
+          where: { and: [{ id: { equals: memberId } }, { role: { equals: 'member' } }] },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+      : null
+    const selectedMember = selectedMemberResult?.docs[0]
+    if (memberId && !selectedMember) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
 
     const where: Record<string, any> = {}
     const and: any[] = []
+    if (memberId) where['customer.user'] = { equals: memberId }
 
     if (search) {
       const isNumeric = /^\d+$/.test(search)
@@ -318,6 +338,14 @@ export async function GET(request: NextRequest) {
 
     const responseBody = {
       docs,
+      selectedMember: selectedMember
+        ? {
+            id: Number(selectedMember.id),
+            firstName: str(selectedMember.firstName, ''),
+            lastName: str(selectedMember.lastName, ''),
+            email: str(selectedMember.email, ''),
+          }
+        : null,
       pagination: {
         page: paginated.page,
         limit: paginated.limit,

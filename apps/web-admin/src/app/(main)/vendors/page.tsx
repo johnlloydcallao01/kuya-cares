@@ -105,6 +105,8 @@ function VendorsPageContent() {
   // delete confirm only — view/edit now dedicated pages
   const [deleting, setDeleting] = useState<VendorDoc | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [openVerificationVendorId, setOpenVerificationVendorId] = useState<number | null>(null)
+  const [updatingVerificationVendorId, setUpdatingVerificationVendorId] = useState<number | null>(null)
 
   useEffect(() => { const id = setTimeout(() => setDebouncedQ(q.trim()), 400); return () => clearTimeout(id) }, [q])
 
@@ -209,6 +211,27 @@ function VendorsPageContent() {
       await refetch()
     } catch (e: any) { alert(e?.message || 'Delete failed') }
     finally { setIsDeleting(false) }
+  }
+
+  const updateVerificationStatus = async (vendor: VendorDoc, verificationStatus: string) => {
+    if (updatingVerificationVendorId !== null || vendor.verificationStatus === verificationStatus) return
+    setUpdatingVerificationVendorId(vendor.id)
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verificationStatus }),
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(result.error || 'Failed to update vendor verification')
+      setOpenVerificationVendorId(null)
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminVendors().slice(0, 2) })
+      await refetch()
+    } catch (cause) {
+      alert(cause instanceof Error ? cause.message : 'Failed to update vendor verification')
+    } finally {
+      setUpdatingVerificationVendorId(null)
+    }
   }
 
   const showTableSkeleton = loading // professional: skeleton on any loading, not just initial
@@ -405,6 +428,48 @@ function VendorsPageContent() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1">
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setOpenVerificationVendorId((current) => current === v.id ? null : v.id)}
+                              disabled={updatingVerificationVendorId !== null}
+                              aria-label={`Change ${v.businessName} verification status`}
+                              aria-haspopup="menu"
+                              aria-expanded={openVerificationVendorId === v.id}
+                              title={`Change verification status (${v.verificationStatus})`}
+                              className={`h-7 w-7 inline-flex items-center justify-center rounded-lg border disabled:cursor-wait disabled:opacity-50 ${verificationBadge(v.verificationStatus)}`}
+                            >
+                              {updatingVerificationVendorId === v.id
+                                ? <RefreshCw className="h-4 w-4 animate-spin" />
+                                : <ShieldCheck className="h-4 w-4" />}
+                            </button>
+                            {openVerificationVendorId === v.id && (
+                              <div role="menu" aria-label={`${v.businessName} verification status`} className="absolute right-0 top-full z-30 mt-1 min-w-40 rounded-lg border border-gray-200 bg-white p-1 shadow-lg dark:border-[#333] dark:bg-[#171717]">
+                                {VERIFICATION_OPTS.map((option) => (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    role="menuitemradio"
+                                    aria-checked={v.verificationStatus === option.value}
+                                    disabled={updatingVerificationVendorId !== null || v.verificationStatus === option.value}
+                                    onClick={() => void updateVerificationStatus(v, option.value)}
+                                    className={`flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-xs font-medium capitalize hover:bg-gray-50 disabled:cursor-default disabled:opacity-60 dark:hover:bg-[#262626] ${
+                                      option.value === 'verified'
+                                        ? 'text-emerald-700 dark:text-emerald-300'
+                                        : option.value === 'pending'
+                                          ? 'text-amber-700 dark:text-amber-300'
+                                          : option.value === 'rejected'
+                                            ? 'text-red-700 dark:text-red-300'
+                                            : 'text-zinc-700 dark:text-zinc-300'
+                                    }`}
+                                  >
+                                    <span>{option.label}</span>
+                                    {v.verificationStatus === option.value && <CheckCircle className="h-3.5 w-3.5" />}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <Link href={`/vendors/${v.id}`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white" title="View"><Eye className="w-4 h-4" /></Link>
                           <Link href={`/vendors/${v.id}/edit`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-blue-600 dark:hover:text-blue-400" title="Edit"><Pencil className="w-4 h-4" /></Link>
                           <button onClick={() => setDeleting(v)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
@@ -469,4 +534,3 @@ export default function VendorsPage(){
     </ClientOnly>
   )
 }
-

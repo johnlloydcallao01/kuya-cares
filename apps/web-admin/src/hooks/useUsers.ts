@@ -20,6 +20,7 @@ export type UserDoc = {
   completeAddress: string | null;
   role: string;
   isActive: boolean;
+  memberMembershipStatus?: 'pending_payment' | 'active' | null;
   lastLogin: string | null;
   profilePicture: { id: number; url: string | null; filename: string | null } | null;
   createdAt: string;

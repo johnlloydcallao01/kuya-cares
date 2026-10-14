@@ -1,7 +1,7 @@
 /**
  * @file apps/cms/src/app/api/admin/merchant-products/route.ts
  * @description BFF for /products page — vendor-encapsulated merchant products (FoodPanda style).
- * GET  /api/admin/merchant-products?page=1&limit=10&search=&vendor=&productType=&isActive=
+ * GET  /api/admin/merchant-products?view=merchant|all&page=1&limit=10&search=&vendor=&productType=&isActive=
  * POST /api/admin/merchant-products — create merchant product (assign product to merchant)
  */
 
@@ -45,11 +45,156 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '10', 10) || 10))
     const search = searchParams.get('search')?.trim().toLowerCase() || ''
-    const vendorFilter = searchParams.get('vendor') ? Number(searchParams.get('vendor')) : null
+    const vendorParam = searchParams.get('vendor')
+    const vendorFilter = vendorParam ? Number(vendorParam) : null
     const merchantFilter = searchParams.get('merchant') ? Number(searchParams.get('merchant')) : null
     const productTypeFilter = searchParams.get('productType')?.trim().toLowerCase() || ''
     const isActiveParam = searchParams.get('isActive')
     const isActiveFilter = isActiveParam === 'true' ? true : isActiveParam === 'false' ? false : null
+    const requestedView = searchParams.get('view')
+    const view = requestedView === 'all' || requestedView === 'vendor' ? requestedView : 'merchant'
+
+    if (view === 'all' || (view === 'vendor' && vendorFilter !== null)) {
+      if (view === 'vendor' && (!Number.isSafeInteger(vendorFilter) || Number(vendorFilter) <= 0)) {
+        return badRequest('A valid vendor ID is required for vendor-scoped products')
+      }
+
+      const and: Record<string, unknown>[] = []
+      if (view === 'vendor') and.push({ 'merchant_id.vendor': { equals: vendorFilter } })
+      if (search) {
+        and.push({
+          or: [
+            { 'product_id.name': { contains: search } },
+            { 'product_id.slug': { contains: search } },
+            { 'product_id.sku': { contains: search } },
+            { 'merchant_id.outletName': { contains: search } },
+            { 'merchant_id.outletCode': { contains: search } },
+            { 'merchant_id.vendor.businessName': { contains: search } },
+          ],
+        })
+      }
+      if (productTypeFilter && ['simple', 'variable', 'grouped'].includes(productTypeFilter)) {
+        and.push({ 'product_id.productType': { equals: productTypeFilter } })
+      }
+      if (isActiveFilter !== null) and.push({ is_active: { equals: isActiveFilter } })
+
+      const scopeWhere = and.length ? { and } : undefined
+      const baseScopeWhere = view === 'vendor'
+        ? { 'merchant_id.vendor': { equals: vendorFilter } }
+        : undefined
+      const [assignments, allAssignments, activeAssignments, selectedVendor] = await Promise.all([
+        payload.find({
+          collection: 'merchant-products',
+          where: scopeWhere,
+          page,
+          limit,
+          sort: '-createdAt',
+          depth: 2,
+          overrideAccess: true,
+          context: { skipEffectiveModifierPreview: true },
+        } as any),
+        payload.find({
+          collection: 'merchant-products',
+          where: baseScopeWhere,
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+          context: { skipEffectiveModifierPreview: true },
+        } as any),
+        payload.find({
+          collection: 'merchant-products',
+          where: {
+            and: [
+              ...(view === 'vendor' ? [{ 'merchant_id.vendor': { equals: vendorFilter } }] : []),
+              { is_active: { equals: true } },
+              { is_available: { equals: true } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+          context: { skipEffectiveModifierPreview: true },
+        } as any),
+        view === 'vendor'
+          ? payload.find({ collection: 'vendors', where: { id: { equals: Number(vendorFilter) } }, limit: 1, depth: 0, overrideAccess: true } as any)
+          : Promise.resolve(null),
+      ])
+      const selectedVendorDoc: Record<string, any> | null = selectedVendor && 'docs' in selectedVendor
+        ? selectedVendor.docs[0] as Record<string, any> ?? null
+        : null
+      if (view === 'vendor' && !selectedVendorDoc) {
+        return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+      }
+
+      const docs = (assignments.docs as any[]).map((assignment) => {
+        const rawProduct = assignment.product_id
+        const product = rawProduct && typeof rawProduct === 'object' ? rawProduct : null
+        const rawMerchant = assignment.merchant_id
+        const merchant = rawMerchant && typeof rawMerchant === 'object' ? rawMerchant : null
+        const rawVendor = merchant?.vendor
+        const vendor = rawVendor && typeof rawVendor === 'object' ? rawVendor : null
+        return {
+          id: Number(assignment.id),
+          merchantProductId: Number(assignment.id),
+          createdAt: String(assignment.createdAt || ''),
+          priceOverride: assignment.price_override == null ? null : Number(assignment.price_override),
+          stockQuantity: assignment.stock_quantity == null ? null : Number(assignment.stock_quantity),
+          isActive: typeof assignment.is_active === 'boolean' ? assignment.is_active : true,
+          isAvailable: typeof assignment.is_available === 'boolean' ? assignment.is_available : true,
+          product: product ? {
+            id: Number(product.id),
+            name: String(product.name || ''),
+            slug: String(product.slug || ''),
+            sku: product.sku ? String(product.sku) : null,
+            productType: String(product.productType || 'simple'),
+            approvalStatus: String(product.approvalStatus || 'pending'),
+            basePrice: product.basePrice == null ? null : Number(product.basePrice),
+            primaryImage: sanitizeMediaRef(product.media?.primaryImage),
+          } : null,
+          merchant: merchant ? {
+            id: Number(merchant.id),
+            outletName: String(merchant.outletName || ''),
+            outletCode: String(merchant.outletCode || ''),
+            isActive: !!merchant.isActive,
+            operationalStatus: String(merchant.operationalStatus || 'open'),
+          } : null,
+          vendor: vendor ? {
+            id: Number(vendor.id),
+            businessName: String(vendor.businessName || ''),
+          } : null,
+        }
+      })
+
+      const responseBody = {
+        view,
+        selectedVendor: selectedVendorDoc ? {
+          id: Number(selectedVendorDoc.id),
+          businessName: String(selectedVendorDoc.businessName || ''),
+          legalName: String(selectedVendorDoc.legalName || ''),
+          businessType: String(selectedVendorDoc.businessType || 'other'),
+          verificationStatus: String(selectedVendorDoc.verificationStatus || 'pending'),
+          isActive: !!selectedVendorDoc.isActive,
+          logo: sanitizeMediaRef(selectedVendorDoc.logo),
+        } : null,
+        docs,
+        pagination: {
+          page: assignments.page || page,
+          limit: assignments.limit || limit,
+          totalDocs: assignments.totalDocs ?? docs.length,
+          totalPages: assignments.totalPages ?? 1,
+          hasNextPage: assignments.hasNextPage ?? false,
+          hasPrevPage: assignments.hasPrevPage ?? false,
+        },
+        allViewStats: {
+          totalAssignments: allAssignments.totalDocs ?? 0,
+          activeAssignments: activeAssignments.totalDocs ?? 0,
+          filteredAssignments: assignments.totalDocs ?? docs.length,
+        },
+        meta: { generatedAt: new Date().toISOString(), search, productType: productTypeFilter || null },
+      }
+      await setCached(cacheKey, responseBody, 20)
+      return NextResponse.json(responseBody, { headers: { 'X-MerchantProducts-Cache': 'MISS' } })
+    }
 
     const isUnfiltered = !search && !vendorFilter && !merchantFilter && !productTypeFilter && isActiveFilter === null
     let totalVendorsCount: number | null = null

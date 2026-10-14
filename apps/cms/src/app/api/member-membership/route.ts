@@ -48,7 +48,11 @@ export async function GET(request: NextRequest) {
     })
     let latest = payments.docs[0] as Record<string, any> | undefined
     if (latest?.status === 'pending') {
-      await refreshMemberMembershipPayment(payload, latest)
+      try {
+        await refreshMemberMembershipPayment(payload, latest)
+      } catch (error) {
+        console.error('[member-membership] PayMongo status refresh error:', error)
+      }
       payments = await payload.find({
         collection: 'member-membership-payments',
         where,

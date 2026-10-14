@@ -138,6 +138,22 @@ function VendorViewContent() {
         </div>
       </div>
 
+      <nav aria-label="Vendor navigation" className="rounded-xl border border-gray-200 bg-white p-4 dark:border-[#262626] dark:bg-[#171717]">
+        <Link
+          href={`/merchants?vendor=${doc.id}`}
+          className="group flex items-center gap-3 rounded-lg transition hover:text-[#239459]"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-[#239459] dark:bg-emerald-900/30">
+            <Store className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-gray-900 group-hover:text-[#239459] dark:text-white">Merchants</span>
+            <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#a1a1aa]">View this vendor’s outlets</span>
+          </span>
+          <span className="text-xs font-medium text-gray-500 dark:text-[#a1a1aa]">{doc.totalMerchants} outlet{doc.totalMerchants === 1 ? '' : 's'}</span>
+        </Link>
+      </nav>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Verification</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${verificationBadge(doc.verificationStatus)}`}>{doc.verificationStatus}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Status</p><p className={`mt-2 font-semibold text-sm ${doc.isActive ? 'text-emerald-600' : 'text-zinc-500'}`}>{doc.isActive ? 'Active partner' : 'Inactive'}</p><p className="text-xs text-gray-500 mt-1">Onboarded {fmtDate(doc.onboardingDate || doc.createdAt)}</p></div>

@@ -15,6 +15,7 @@ type UserDoc = {
   username: string | null
   role: string
   isActive: boolean
+  memberMembershipStatus: 'pending_payment' | 'active' | null
   gender: string | null
   civilStatus: string | null
   createdAt: string
@@ -85,6 +86,16 @@ function UserDetailContent() {
           <Row label="Username" value={doc.username || '—'} mono />
           <Row label="Role" value={doc.role} />
           <Row label="Status" value={doc.isActive ? 'Active' : 'Inactive'} />
+          {doc.role === 'member' && (
+            <Row
+              label="Member Membership Status"
+              value={doc.memberMembershipStatus === 'active'
+                ? 'Active'
+                : doc.memberMembershipStatus === 'pending_payment'
+                  ? 'Pending payment'
+                  : '—'}
+            />
+          )}
           <Row label="Gender" value={doc.gender || '—'} />
           <Row label="Civil Status" value={doc.civilStatus || '—'} />
         </Section>

@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@encreasl/client-services'
 import { useOrders, type OrderDoc, type OrdersResponse } from '@/hooks/useOrders'
 import { ClientOnly } from '@/components/ClientOnly'
@@ -129,7 +129,11 @@ function OrdersSkeleton(){
 }
 
 function OrdersPageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
+  const memberId = searchParams.get('member') || ''
+  const [memberSearch, setMemberSearch] = useState('')
+  const [debouncedMemberSearch, setDebouncedMemberSearch] = useState('')
   // query state
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
@@ -151,6 +155,33 @@ function OrdersPageContent() {
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => { const id = setTimeout(() => setDebouncedQ(q.trim()), 400); return () => clearTimeout(id) }, [q])
+  useEffect(() => { const id = setTimeout(() => setDebouncedMemberSearch(memberSearch.trim()), 300); return () => clearTimeout(id) }, [memberSearch])
+
+  const memberSearchQuery = useQuery({
+    queryKey: ['admin', 'orderMemberSearch', debouncedMemberSearch],
+    enabled: debouncedMemberSearch.length >= 2,
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams({ search: debouncedMemberSearch, page: '1', limit: '10' })
+      const response = await fetch(`/api/members?${params}`, { signal, cache: 'no-store' })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(typeof body.error === 'string' ? body.error : 'Failed to search members')
+      }
+      return response.json() as Promise<{
+        docs: { id: number; firstName: string; lastName: string; email: string }[]
+      }>
+    },
+  })
+
+  const setMemberFilter = (nextMemberId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextMemberId) params.set('member', nextMemberId)
+    else params.delete('member')
+    params.delete('page')
+    const query = params.toString()
+    router.push(`/orders${query ? `?${query}` : ''}`, { scroll: false })
+    setPage(1)
+  }
 
   useEffect(() => {
     const s = searchParams.get('status')
@@ -158,8 +189,8 @@ function OrdersPageContent() {
   }, [searchParams])
 
   const activeFilterCount = useMemo(() => {
-    return statusFilter.length + fulfillmentFilter.length + deliveryStatusFilter.length + (debouncedQ ? 1 : 0)
-  }, [statusFilter, fulfillmentFilter, deliveryStatusFilter, debouncedQ])
+    return statusFilter.length + fulfillmentFilter.length + deliveryStatusFilter.length + (debouncedQ ? 1 : 0) + (memberId ? 1 : 0)
+  }, [statusFilter, fulfillmentFilter, deliveryStatusFilter, debouncedQ, memberId])
 
   const qs = useMemo(() => {
     const p = new URLSearchParams()
@@ -167,11 +198,12 @@ function OrdersPageContent() {
     p.set('limit', String(limit))
     p.set('sort', sort)
     if (debouncedQ) p.set('search', debouncedQ)
+    if (memberId) p.set('member', memberId)
     if (statusFilter.length) p.set('status', statusFilter.join(','))
     if (fulfillmentFilter.length) p.set('fulfillmentType', fulfillmentFilter.join(','))
     if (deliveryStatusFilter.length) p.set('deliveryStatus', deliveryStatusFilter.join(','))
     return p.toString()
-  }, [page, limit, sort, debouncedQ, statusFilter, fulfillmentFilter, deliveryStatusFilter])
+  }, [page, limit, sort, debouncedQ, memberId, statusFilter, fulfillmentFilter, deliveryStatusFilter])
 
   const queryClient = useQueryClient()
   const [hardRefreshing, setHardRefreshing] = useState(false)
@@ -180,6 +212,7 @@ function OrdersPageContent() {
   const docs = data?.docs || []
   const pagination = data?.pagination || null
   const stats = data?.stats || null
+  const selectedMember = data?.selectedMember || null
 
   const isInitialLoading = (isPending && !data) || hardRefreshing
   const loading = isFetching || hardRefreshing
@@ -197,7 +230,7 @@ function OrdersPageContent() {
   }
 
   // reset page when filters change
-  useEffect(() => { setPage(1) }, [debouncedQ, statusFilter, fulfillmentFilter, deliveryStatusFilter, sort])
+  useEffect(() => { setPage(1) }, [debouncedQ, memberId, statusFilter, fulfillmentFilter, deliveryStatusFilter, sort])
 
   // Prevent page scroll when delete confirm is open
   useEffect(() => {
@@ -221,7 +254,7 @@ function OrdersPageContent() {
   const toggleStatus = (v: string) => setStatusFilter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v])
   const toggleFulfillment = (v: string) => setFulfillmentFilter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v])
   const toggleDeliveryStatus = (v: string) => setDeliveryStatusFilter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v])
-  const clearAll = () => { setQ(''); setDebouncedQ(''); setStatusFilter([]); setFulfillmentFilter([]); setDeliveryStatusFilter([]) }
+  const clearAll = () => { setQ(''); setDebouncedQ(''); setStatusFilter([]); setFulfillmentFilter([]); setDeliveryStatusFilter([]); setMemberFilter(''); setMemberSearch('') }
 
   const handleCancel = async () => {
     if (!deleting || isDeleting) return
@@ -363,7 +396,54 @@ function OrdersPageContent() {
 
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#262626] space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-700 dark:text-[#a1a1aa] mb-2">Member</p>
+                {memberId && (
+                  <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <span className="min-w-0 truncate text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                      {selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}`.trim() || selectedMember.email : `Member #${memberId}`}
+                      {selectedMember?.email ? ` · ${selectedMember.email}` : ''}
+                    </span>
+                    <button type="button" onClick={() => setMemberFilter('')} className="shrink-0 text-xs font-medium text-emerald-800 hover:underline dark:text-emerald-300">Clear</button>
+                  </div>
+                )}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={memberSearch}
+                    onChange={(event) => setMemberSearch(event.target.value)}
+                    placeholder="Search members by name or email…"
+                    aria-label="Search members to filter orders"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#239459] focus:outline-none dark:border-[#333] dark:bg-[#0a0a0a] dark:text-white"
+                  />
+                </div>
+                {memberSearch.trim().length >= 2 && (
+                  <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-[#333] dark:bg-[#0a0a0a]">
+                    {memberSearchQuery.isFetching ? (
+                      <p className="px-3 py-2 text-xs text-gray-500">Searching members…</p>
+                    ) : memberSearchQuery.isError ? (
+                      <p role="alert" className="px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                        {memberSearchQuery.error instanceof Error ? memberSearchQuery.error.message : 'Unable to search members.'}
+                      </p>
+                    ) : memberSearchQuery.data?.docs.length ? memberSearchQuery.data.docs.map((member) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => { setMemberFilter(String(member.id)); setMemberSearch('') }}
+                        className={`block w-full border-b border-gray-100 px-3 py-2 text-left last:border-0 hover:bg-gray-50 dark:border-[#262626] dark:hover:bg-[#171717] ${memberId === String(member.id) ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}
+                      >
+                        <span className="block truncate text-xs font-semibold text-gray-900 dark:text-white">{`${member.firstName} ${member.lastName}`.trim() || member.email}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-gray-500 dark:text-[#a1a1aa]">{member.email} · #{member.id}</span>
+                      </button>
+                    )) : (
+                      <p className="px-3 py-2 text-xs text-gray-500">No members match this search.</p>
+                    )}
+                  </div>
+                )}
+                {memberSearch.trim().length > 0 && memberSearch.trim().length < 2 && <p className="mt-1.5 text-[11px] text-gray-500">Enter at least 2 characters.</p>}
+                {!memberSearch.trim() && !memberId && <p className="mt-1.5 text-[11px] text-gray-500">Search members by name or email.</p>}
+              </div>
               <FilterPills label="Status" options={STATUS_OPTS} value={statusFilter} onToggle={toggleStatus} />
               <FilterPills label="Fulfillment" options={FULFILLMENT_OPTS} value={fulfillmentFilter} onToggle={toggleFulfillment} />
               <FilterPills label="Delivery Status" options={DELIVERY_STATUS_OPTS} value={deliveryStatusFilter} onToggle={toggleDeliveryStatus} />
@@ -375,6 +455,7 @@ function OrdersPageContent() {
         {activeFilterCount > 0 && !showFilters && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {debouncedQ && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#239459]/10 dark:bg-[#239459]/15 text-[#8a5f17] dark:text-[#239459] rounded-full text-xs font-medium border border-[#239459]/30 dark:border-[#239459]/30">Search: “{debouncedQ}” <button onClick={() => setQ('')}><X className="w-3 h-3" /></button></span>}
+            {memberId && <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full text-xs font-medium border border-emerald-200 dark:border-emerald-900">Member: {selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}`.trim() || selectedMember.email : `#${memberId}`} <button onClick={() => setMemberFilter('')} aria-label="Clear member filter"><X className="w-3 h-3" /></button></span>}
             {statusFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">status:{v} <button onClick={() => toggleStatus(v)}><X className="w-3 h-3" /></button></span>)}
             {fulfillmentFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">fulfillment:{v} <button onClick={() => toggleFulfillment(v)}><X className="w-3 h-3" /></button></span>)}
             {deliveryStatusFilter.map((v) => <span key={v} className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#a1a1aa] rounded-full text-xs font-medium">delivery:{v} <button onClick={() => toggleDeliveryStatus(v)}><X className="w-3 h-3" /></button></span>)}

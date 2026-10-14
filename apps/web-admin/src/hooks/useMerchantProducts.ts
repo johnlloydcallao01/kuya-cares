@@ -1,6 +1,6 @@
 'use client';
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { QUERY_KEYS, SHARED_QUERY_DEFAULTS } from '@encreasl/client-services';
 
 export type VendorGroup = {
@@ -29,9 +29,45 @@ export type MerchantProductStats = {
 };
 
 export type MerchantProductsResponse = {
-  vendors: VendorGroup[];
+  view?: 'merchant' | 'vendor' | 'all';
+  selectedVendor?: VendorGroup['vendor'] | null;
+  docs?: MerchantProductRow[];
+  allViewStats?: {
+    totalAssignments: number;
+    activeAssignments: number;
+    filteredAssignments: number;
+  };
+  vendors?: VendorGroup[];
   pagination: MerchantProductPagination | null;
-  stats: MerchantProductStats | null;
+  stats?: MerchantProductStats | null;
+};
+
+export type MerchantProductRow = {
+  id: number;
+  merchantProductId: number;
+  createdAt: string;
+  priceOverride: number | null;
+  stockQuantity: number | null;
+  isActive: boolean;
+  isAvailable: boolean;
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    sku: string | null;
+    productType: string;
+    approvalStatus: string;
+    basePrice: number | null;
+    primaryImage: { id: number; url: string | null } | null;
+  } | null;
+  merchant: {
+    id: number;
+    outletName: string;
+    outletCode: string;
+    isActive: boolean;
+    operationalStatus: string;
+  } | null;
+  vendor: { id: number; businessName: string } | null;
 };
 
 async function fetchMerchantProducts(qs: string, signal?: AbortSignal): Promise<MerchantProductsResponse> {
@@ -53,10 +89,20 @@ async function fetchMerchantProducts(qs: string, signal?: AbortSignal): Promise<
  * Query key encodes page, limit, sort, search, and filters.
  */
 export function useMerchantProducts(qs: string) {
+  const currentView = new URLSearchParams(qs).get('view') ?? 'merchant';
+  const currentVendor = new URLSearchParams(qs).get('vendor');
   return useQuery({
     queryKey: QUERY_KEYS.adminMerchantProducts(qs),
     queryFn: ({ signal }) => fetchMerchantProducts(qs, signal),
-    placeholderData: keepPreviousData,
+    placeholderData: (previousData, previousQuery) => {
+      const previousParams = typeof previousQuery?.queryKey[2] === 'string'
+        ? new URLSearchParams(previousQuery.queryKey[2])
+        : null;
+      return previousParams?.get('view') === currentView &&
+        previousParams?.get('vendor') === currentVendor
+        ? previousData
+        : undefined;
+    },
     ...SHARED_QUERY_DEFAULTS,
   });
 }

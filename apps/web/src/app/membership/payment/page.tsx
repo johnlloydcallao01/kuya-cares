@@ -39,6 +39,12 @@ type MembershipStatus = {
   payment: MembershipPayment | null
 }
 
+type SystemSettingsResponse = {
+  membership?: {
+    memberMembershipFeePhp?: unknown
+  }
+}
+
 type MembershipIntent = {
   paymentId: string | number
   amount: number
@@ -86,8 +92,9 @@ function formatAmount(amount: number, currency: string) {
 
 export default function MemberPaymentPage() {
   const router = useRouter()
-  const { user, isAuthenticated, isInitialized, isLoading: authLoading } = useAuth()
+  const { user, token: authToken, isAuthenticated, isInitialized, isLoading: authLoading } = useAuth()
   const [membership, setMembership] = useState<MembershipStatus | null>(null)
+  const [configuredMembershipFee, setConfiguredMembershipFee] = useState<number | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('gcash')
   const [trackedIntentId, setTrackedIntentId] = useState<string | null>(null)
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null)
@@ -98,7 +105,25 @@ export default function MemberPaymentPage() {
   const startingPaymentRef = useRef(false)
   const paymentIdempotencyKeyRef = useRef<string | null>(null)
 
-  const token = useCallback(() => getStoredToken(), [])
+  const token = useCallback(() => authToken || getStoredToken(), [authToken])
+
+  const loadConfiguredMembershipFee = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/globals/system-settings`, {
+        cache: 'no-store',
+      })
+      const result = await response.json().catch(() => null) as SystemSettingsResponse | null
+      if (!response.ok) {
+        throw new Error(`System Settings request failed (${response.status})`)
+      }
+
+      const amount = Number(result?.membership?.memberMembershipFeePhp)
+      setConfiguredMembershipFee(Number.isFinite(amount) && amount >= 1 ? amount : null)
+    } catch (requestError) {
+      console.error('[member-payment] Could not load System Settings:', requestError)
+      setConfiguredMembershipFee(null)
+    }
+  }, [])
 
   const loadMembership = useCallback(async (paymentIntentId?: string | null): Promise<MembershipStatus | null> => {
     const accessToken = token()
@@ -164,10 +189,11 @@ export default function MemberPaymentPage() {
       return
     }
 
+    void loadConfiguredMembershipFee()
     const paymentIntentId = new URLSearchParams(window.location.search).get('payment_intent_id')
     if (paymentIntentId) setTrackedIntentId(paymentIntentId)
     void loadMembership(paymentIntentId)
-  }, [authLoading, isAuthenticated, isInitialized, loadMembership, router, user])
+  }, [authLoading, isAuthenticated, isInitialized, loadConfiguredMembershipFee, loadMembership, router, user])
 
   useEffect(() => {
     if (!trackedIntentId || membership?.membershipStatus === 'active') return
@@ -329,7 +355,9 @@ export default function MemberPaymentPage() {
   const isNotMember = !isAuthResolving && user.role !== 'member'
   const isLoadingMembership = !isAuthResolving && !isNotMember && isRefreshing && !membership
   const isActive = membership?.membershipStatus === 'active'
-  const paymentAmount = membership?.payment?.amount ?? membership?.membershipFeeAmount
+  const paymentAmount = configuredMembershipFee ??
+    membership?.payment?.amount ??
+    membership?.membershipFeeAmount
   const hasValidFee = typeof paymentAmount === 'number' &&
     Number.isFinite(paymentAmount) && paymentAmount >= 1
   const paymentCurrency = membership?.payment?.currency || 'PHP'
@@ -357,6 +385,20 @@ export default function MemberPaymentPage() {
             Secure membership checkout
           </span>
         </header>
+
+        {isAuthenticated && user && (
+          <section
+            aria-label="Signed-in account"
+            className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 dark:border-emerald-900 dark:bg-emerald-950/30"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-400">
+              Signed in as
+            </p>
+            <p className="mt-1 break-all text-sm font-semibold text-gray-900 dark:text-white">
+              {user.email}
+            </p>
+          </section>
+        )}
 
         {isAuthResolving || isLoadingMembership ? (
           <div className="rounded-3xl bg-white p-12 text-center shadow-sm dark:bg-[#111111]" role="status">

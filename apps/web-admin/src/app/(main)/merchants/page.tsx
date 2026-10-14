@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@encreasl/client-services'
 import { useMerchants, type MerchantDoc, type MerchantsResponse, type MerchantPagination, type MerchantStats } from '@/hooks/useMerchants'
+import { useVendors } from '@/hooks/useVendors'
 import { ClientOnly } from '@/components/ClientOnly'
 import {
   Store, Search, X, SlidersHorizontal, ChevronDown, Plus, RefreshCw, AlertCircle,
@@ -85,8 +87,14 @@ function MerchantsSkeleton(){
 }
 
 function MerchantsPageContent(){
-  const [q,setQ]=useState('')
-  const [debouncedQ,setDebouncedQ]=useState('')
+  const router=useRouter()
+  const searchParams=useSearchParams()
+  const urlSearch=searchParams.get('search')||''
+  const vendorId=searchParams.get('vendor')||''
+  const [q,setQ]=useState(urlSearch)
+  const [debouncedQ,setDebouncedQ]=useState(urlSearch.trim().toLowerCase())
+  const [vendorSearch,setVendorSearch]=useState('')
+  const [debouncedVendorSearch,setDebouncedVendorSearch]=useState('')
   const [operationalFilter,setOperationalFilter]=useState<string[]>([])
   const [isActiveFilter,setIsActiveFilter]=useState<boolean|null>(null)
   const [isAcceptingFilter,setIsAcceptingFilter]=useState<boolean|null>(null)
@@ -97,20 +105,59 @@ function MerchantsPageContent(){
 const [sort,setSort]=useState('-createdAt')
   const [deleting,setDeleting]=useState<MerchantDoc|null>(null)
   const [isDeleting,setIsDeleting]=useState(false)
+  const skipSearchUrlUpdate=useRef(false)
+  const urlQuery=searchParams.toString()
 
   useEffect(()=>{ const t=setTimeout(()=>setDebouncedQ(q.trim().toLowerCase()),400); return()=>clearTimeout(t)},[q])
-  const activeFilterCount=useMemo(()=> operationalFilter.length + verificationFilter.length + (isActiveFilter!==null?1:0) + (isAcceptingFilter!==null?1:0) + (debouncedQ?1:0),[operationalFilter,verificationFilter,isActiveFilter,isAcceptingFilter,debouncedQ])
+  useEffect(()=>{ const t=setTimeout(()=>setDebouncedVendorSearch(vendorSearch.trim()),300); return()=>clearTimeout(t)},[vendorSearch])
+  useEffect(()=>{
+    skipSearchUrlUpdate.current=true
+    setQ(urlSearch)
+    setDebouncedQ(urlSearch.trim().toLowerCase())
+  },[urlSearch])
+  useEffect(()=>{
+    if(skipSearchUrlUpdate.current){
+      skipSearchUrlUpdate.current=false
+      return
+    }
+    const nextParams=new URLSearchParams(urlQuery)
+    if(debouncedQ) nextParams.set('search',debouncedQ)
+    else nextParams.delete('search')
+    nextParams.delete('page')
+    const nextQuery=nextParams.toString()
+    if(nextQuery!==urlQuery) router.replace(`/merchants${nextQuery?`?${nextQuery}`:''}`,{scroll:false})
+  },[debouncedQ,router,urlQuery])
+
+  const setVendorFilter=(nextVendorId:string)=>{
+    const nextParams=new URLSearchParams(urlQuery)
+    if(nextVendorId) nextParams.set('vendor',nextVendorId)
+    else nextParams.delete('vendor')
+    nextParams.delete('page')
+    const nextQuery=nextParams.toString()
+    router.push(`/merchants${nextQuery?`?${nextQuery}`:''}`,{scroll:false})
+    setPage(1)
+  }
+  const vendorSearchQs=useMemo(()=>{
+    const p=new URLSearchParams({page:'1',limit:'10',sort:'businessName'})
+    if(debouncedVendorSearch.length>=2) p.set('search',debouncedVendorSearch)
+    return p.toString()
+  },[debouncedVendorSearch])
+  const {data:vendorOptionsData,isFetching:vendorsLoading,isError:vendorsError}=useVendors(vendorSearchQs,debouncedVendorSearch.length>=2)
+  const vendorOptions=vendorOptionsData?.docs||[]
+
+  const activeFilterCount=useMemo(()=> operationalFilter.length + verificationFilter.length + (isActiveFilter!==null?1:0) + (isAcceptingFilter!==null?1:0) + (debouncedQ?1:0) + (vendorId?1:0),[operationalFilter,verificationFilter,isActiveFilter,isAcceptingFilter,debouncedQ,vendorId])
 
   const qs=useMemo(()=>{
     const p=new URLSearchParams()
     p.set('page',String(page)); p.set('limit',String(limit)); p.set('sort',sort)
     if(debouncedQ) p.set('search',debouncedQ)
+    if(vendorId) p.set('vendor',vendorId)
     if(operationalFilter.length) p.set('operationalStatus',operationalFilter.join(','))
     if(isActiveFilter!==null) p.set('isActive',String(isActiveFilter))
     if(isAcceptingFilter!==null) p.set('isAcceptingOrders',String(isAcceptingFilter))
     if(verificationFilter.length) p.set('verificationStatus',verificationFilter.join(','))
     return p.toString()
-  },[page,limit,sort,debouncedQ,operationalFilter,isActiveFilter,isAcceptingFilter,verificationFilter])
+  },[page,limit,sort,debouncedQ,vendorId,operationalFilter,isActiveFilter,isAcceptingFilter,verificationFilter])
 
   const queryClient=useQueryClient()
   const [hardRefreshing,setHardRefreshing]=useState(false)
@@ -119,6 +166,7 @@ const [sort,setSort]=useState('-createdAt')
   const docs=data?.docs||[]
   const pagination=data?.pagination||null
   const stats=data?.stats||null
+  const selectedVendor=data?.selectedVendor||null
 
   const isInitialLoading=(isPending&&!data)||hardRefreshing
   const loading=isFetching||hardRefreshing
@@ -238,12 +286,54 @@ const [sort,setSort]=useState('-createdAt')
             <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
               <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
             </button>
-            {activeFilterCount>0 && <button onClick={()=>{ setQ(''); setDebouncedQ(''); setOperationalFilter([]); setVerificationFilter([]); setIsActiveFilter(null); setIsAcceptingFilter(null)}} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
+            {activeFilterCount>0 && <button onClick={()=>{ setQ(''); setDebouncedQ(''); setVendorFilter(''); setVendorSearch(''); setOperationalFilter([]); setVerificationFilter([]); setIsActiveFilter(null); setIsAcceptingFilter(null)}} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
           </div>
         </div>
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#262626] space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-700 dark:text-[#a1a1aa] mb-2">Vendor</p>
+                {selectedVendor && (
+                  <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <span className="min-w-0 truncate text-xs font-semibold text-emerald-800 dark:text-emerald-300">{selectedVendor.businessName || `Vendor #${selectedVendor.id}`}</span>
+                    <button type="button" onClick={()=>setVendorFilter('')} className="shrink-0 text-xs font-medium text-emerald-800 hover:underline dark:text-emerald-300">Clear</button>
+                  </div>
+                )}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={vendorSearch}
+                    onChange={(event)=>setVendorSearch(event.target.value)}
+                    placeholder="Search vendors by name…"
+                    aria-label="Search vendors to filter merchants"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#239459] focus:outline-none dark:border-[#333] dark:bg-[#0a0a0a] dark:text-white"
+                  />
+                </div>
+                {vendorSearch.trim().length>=2 && (
+                  <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-[#333] dark:bg-[#0a0a0a]">
+                    {vendorsLoading ? (
+                      <p className="px-3 py-2 text-xs text-gray-500">Searching vendors…</p>
+                    ) : vendorsError ? (
+                      <p role="alert" className="px-3 py-2 text-xs text-red-600 dark:text-red-400">Unable to search vendors. Try again.</p>
+                    ) : vendorOptions.length ? vendorOptions.map((vendor)=>(
+                      <button
+                        key={vendor.id}
+                        type="button"
+                        onClick={()=>{setVendorFilter(String(vendor.id)); setVendorSearch('')}}
+                        className={`block w-full border-b border-gray-100 px-3 py-2 text-left last:border-0 hover:bg-gray-50 dark:border-[#262626] dark:hover:bg-[#171717] ${vendorId===String(vendor.id)?'bg-emerald-50 dark:bg-emerald-950/20':''}`}
+                      >
+                        <span className="block truncate text-xs font-semibold text-gray-900 dark:text-white">{vendor.businessName}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-gray-500 dark:text-[#a1a1aa]">{vendor.legalName} · #{vendor.id}</span>
+                      </button>
+                    )) : (
+                      <p className="px-3 py-2 text-xs text-gray-500">No vendors match this search.</p>
+                    )}
+                  </div>
+                )}
+                {vendorSearch.trim().length>0 && vendorSearch.trim().length<2 && <p className="mt-1.5 text-[11px] text-gray-500">Enter at least 2 characters.</p>}
+                {!vendorSearch.trim() && !vendorId && <p className="mt-1.5 text-[11px] text-gray-500">Search by vendor or legal business name.</p>}
+              </div>
               <FilterPills label="Operational Status" options={OPERATIONAL_OPTS} value={operationalFilter} onToggle={(v)=>{setPage(1); setOperationalFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])}} />
               <FilterPills label="Vendor Verification" options={VERIFICATION_OPTS} value={verificationFilter} onToggle={(v)=>{setPage(1); setVerificationFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])}} />
               <div>

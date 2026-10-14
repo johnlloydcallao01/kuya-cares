@@ -81,7 +81,7 @@ function badRequest(message: string, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status: 400 })
 }
 
-const ROLES = new Set(['admin', 'customer', 'service', 'vendor', 'driver'])
+const ROLES = new Set(['admin', 'customer', 'service', 'vendor', 'driver', 'member'])
 const GENDERS = new Set(['male', 'female', 'other', 'prefer_not_to_say'])
 const CIVIL_STATUSES = new Set(['single', 'married', 'divorced', 'widowed', 'separated'])
 

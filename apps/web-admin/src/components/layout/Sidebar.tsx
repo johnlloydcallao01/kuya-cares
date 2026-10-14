@@ -126,6 +126,8 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
           <div className="space-y-1">
             <SidebarSectionLabel isOpen={expanded}>Vendors & Merchants</SidebarSectionLabel>
 
+            <SidebarItem icon="customers" label="Members" active={dropdownActive(pathname, '/members')} collapsed={!expanded} href="/members" />
+
             <SidebarDropdownGroup
               icon="vendors"
               label="Vendors"

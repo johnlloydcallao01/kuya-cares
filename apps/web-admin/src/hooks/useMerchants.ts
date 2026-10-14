@@ -43,6 +43,7 @@ export type MerchantsResponse = {
   docs: MerchantDoc[];
   pagination: MerchantPagination | null;
   stats: MerchantStats | null;
+  selectedVendor: { id: number; businessName: string } | null;
 };
 
 async function fetchMerchants(qs: string, signal?: AbortSignal): Promise<MerchantsResponse> {

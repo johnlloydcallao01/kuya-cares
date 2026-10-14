@@ -222,13 +222,15 @@ export class MarketplaceProductService {
     customerId?: string | null;
     /** Show-All scope: bypass the location gate entirely (global pool). */
     ignoreLocation?: boolean;
+    /** Include products only when their owning vendor is verified. */
+    verifiedVendorsOnly?: boolean;
     /** Discovery ceiling applied AFTER the location gate + validity filters.
      *  Tap2go parity default is 40. Pass null for the full window (up to 500)
      *  — used by the /merchant-products listing page. */
     cap?: number | null;
   } = {}): Promise<MarketplaceProduct[]> {
-    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false, cap = 40 } = options;
-    const cacheKey = `marketplace-products-${limit}-cap${cap ?? 'all'}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}`;
+    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false, verifiedVendorsOnly = false, cap = 40 } = options;
+    const cacheKey = `marketplace-products-${limit}-cap${cap ?? 'all'}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}-${verifiedVendorsOnly ? 'verified-vendors' : 'all-vendors'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
     // Singleflight: homepage products + flash-deals + header search share one pool build.
@@ -278,6 +280,9 @@ export class MarketplaceProductService {
       });
       params.append('where[is_active][equals]', 'true');
       params.append('where[is_available][equals]', 'true');
+      if (verifiedVendorsOnly) {
+        params.append('where[merchant_id.vendor.verificationStatus][equals]', 'verified');
+      }
 
       const res = await fetch(`${getApiBase()}/merchant-products?${params.toString()}`, {
         headers: getHeaders(),

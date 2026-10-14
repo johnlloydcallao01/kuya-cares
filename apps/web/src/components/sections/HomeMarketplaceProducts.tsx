@@ -175,6 +175,7 @@ export function HomeMarketplaceProducts({ limit = 40, customerId: customerIdProp
         merchantCategoryId: null,
         customerId: cid,
         ignoreLocation: scopeAll,
+        verifiedVendorsOnly: true,
         // Full eligible window (up to 500): the home grid displays the
         // first RECOMMENDED_CAP (40); the remainder lives on /merchant-products.
         cap: 500,

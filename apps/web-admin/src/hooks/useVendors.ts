@@ -76,11 +76,12 @@ async function fetchVendors(qs: string, signal?: AbortSignal): Promise<VendorsRe
  * Vendors list query — 3-min instant-back.
  * Query key encodes page, limit, sort, search, and filters.
  */
-export function useVendors(qs: string) {
+export function useVendors(qs: string, enabled = true) {
   return useQuery({
     queryKey: QUERY_KEYS.adminVendors(qs),
     queryFn: ({ signal }) => fetchVendors(qs, signal),
     placeholderData: keepPreviousData,
+    enabled,
     ...SHARED_QUERY_DEFAULTS,
   });
 }

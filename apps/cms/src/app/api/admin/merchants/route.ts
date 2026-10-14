@@ -104,6 +104,10 @@ export async function GET(request: NextRequest) {
     const verificationCsv = parseCsv(searchParams.get('verificationStatus'))
     const businessTypeCsv = parseCsv(searchParams.get('businessType'))
 
+    if (vendorParam && (!Number.isSafeInteger(vendorIdFilter) || Number(vendorIdFilter) <= 0)) {
+      return badRequest('A valid vendor ID is required')
+    }
+
     // Build where for direct merchant fields
     const where: Record<string, any> = {}
     const and: any[] = []
@@ -126,7 +130,7 @@ export async function GET(request: NextRequest) {
     const needsVendorDocuments = Boolean(search || verificationCsv.length || businessTypeCsv.length)
     // The table needs direct relations only. Stats use count queries instead of
     // transferring every merchant and vendor document on every request.
-    const [paginated, vendorStats, merchantStats] = await Promise.all([
+    const [paginated, vendorStats, merchantStats, selectedVendorResult] = await Promise.all([
       payload.find({ collection: 'merchants', where: Object.keys(finalWhere).length?finalWhere:undefined, page, limit, sort, depth: 1, overrideAccess: true }),
       Promise.all([
         payload.find({ collection: 'vendors', limit: 1, depth: 0, overrideAccess: true } as any),
@@ -141,7 +145,14 @@ export async function GET(request: NextRequest) {
         payload.find({ collection: 'merchants', where: { isAcceptingOrders: { equals: true } }, limit: 1, depth: 0, overrideAccess: true } as any),
         ...Array.from(OPERATIONAL_STATUSES, status => payload.find({ collection: 'merchants', where: { operationalStatus: { equals: status } }, limit: 1, depth: 0, overrideAccess: true } as any)),
       ]),
+      vendorIdFilter
+        ? payload.find({ collection: 'vendors', where: { id: { equals: vendorIdFilter } }, limit: 1, depth: 0, overrideAccess: true })
+        : Promise.resolve(null),
     ])
+    const selectedVendor = selectedVendorResult?.docs[0]
+    if (vendorIdFilter && !selectedVendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+    }
 
     const vendorsDocs = (vendorStats[2].docs as any[]) || []
     const vendorMap = new Map<string, any>()
@@ -251,6 +262,9 @@ export async function GET(request: NextRequest) {
 
     const response = {
       docs,
+      selectedVendor: selectedVendor
+        ? { id: Number(selectedVendor.id), businessName: str(selectedVendor.businessName, '') }
+        : null,
       pagination: {
         page: (paginated as any).page || page,
         limit: (paginated as any).limit || limit,
