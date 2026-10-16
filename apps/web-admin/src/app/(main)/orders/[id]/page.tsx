@@ -62,6 +62,18 @@ type OrderDoc = {
     food_discount: number | null; delivery_discount: number | null; funded_by: string | null
   }>
   review: { id: number; merchant_rating: number | null; driver_rating: number | null; comment: string | null; is_public: boolean | null; createdAt: string } | null
+  commission: {
+    status: string
+    percent: number | null
+    base_amount: number | null
+    vendor_discount: number | null
+    amount: number | null
+    transaction_fee: number | null
+    vendor_net: number | null
+    source: string | null
+    rule: { id: number; name: string } | null
+    calculated_at: string | null
+  } | null
   createdAt: string
   updatedAt: string
 }
@@ -79,8 +91,8 @@ function fmtDate(iso: string | null){ if(!iso) return '—'; try{return new Date
 function fmtDateTime(iso: string | null){ if(!iso) return '—'; try{return new Date(iso).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return String(iso).slice(0,16)} }
 function fmtCurrency(n: number | null | undefined){ if(n==null) return '—'; try{return new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(n)}catch{return `₱${Number(n).toFixed(2)}`} }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }){
-  return <div><h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{title}</h4><div className="rounded-xl border border-gray-200 dark:border-[#262626] divide-y divide-gray-100 dark:divide-[#262626] overflow-hidden bg-white dark:bg-[#171717]">{children}</div></div>
+function Section({ title, children, highlight }: { title: string; children: React.ReactNode; highlight?: boolean }){
+  return <div className={highlight ? 'rounded-xl border-2 border-emerald-400 dark:border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 p-3 shadow-sm' : ''}><h4 className={`text-sm font-semibold mb-2 flex items-center gap-1.5 ${highlight ? 'text-emerald-800 dark:text-emerald-300' : 'text-gray-900 dark:text-white'}`}>{highlight && <Receipt className="w-4 h-4" />}{title}</h4><div className={`rounded-xl border divide-y overflow-hidden ${highlight ? 'border-emerald-300 dark:border-emerald-700 divide-emerald-100 dark:divide-emerald-900 bg-white dark:bg-[#171717]' : 'border-gray-200 dark:border-[#262626] divide-gray-100 dark:divide-[#262626] bg-white dark:bg-[#171717]'}`}>{children}</div></div>
 }
 function Row({ label, value, mono, icon }: { label: string; value: React.ReactNode; mono?: boolean; icon?: React.ReactNode }){
   return <div className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm"><span className="text-gray-500 dark:text-[#a1a1aa] text-xs font-medium shrink-0 flex items-center gap-1">{icon}{label}</span><span className={`text-gray-900 dark:text-white text-right max-w-[60%] break-words ${mono?'font-mono text-xs':'text-sm'}`}>{value as any}</span></div>
@@ -193,6 +205,22 @@ function OrderViewContent(){
           <Section title="Outlet">
             <Row label="Outlet" value={doc.merchant ? `${doc.merchant.outletName} (${doc.merchant.outletCode})` : '—'} icon={<Store className="w-3 h-3" />} />
             <Row label="Vendor" value={doc.merchant?.vendor?.businessName || '—'} icon={<Building className="w-3 h-3" />} />
+          </Section>
+          <Section title="Commission (PHP) — admin earnings" highlight>
+            {doc.commission && doc.commission.status !== 'pending' ? (
+              <>
+                <Row label="Status" value={String(doc.commission.status).replace(/_/g, ' ')} />
+                <Row label="Rate" value={doc.commission.percent != null ? `${doc.commission.percent}%${doc.commission.source ? ` (${doc.commission.source})` : ''}` : '—'} mono />
+                <Row label="Rule" value={doc.commission.rule?.name || (doc.commission.rule ? `Rule #${doc.commission.rule.id}` : '—')} />
+                <Row label="Base" value={fmtCurrency(doc.commission.base_amount)} mono />
+                <Row label="Admin commission" value={<span className="font-bold text-emerald-700 dark:text-emerald-400">{fmtCurrency(doc.commission.amount)}</span>} />
+                <Row label="Transaction fee" value={fmtCurrency(doc.commission.transaction_fee)} mono />
+                <Row label="Vendor payout" value={<span className="font-bold text-gray-900 dark:text-white">{fmtCurrency(doc.commission.vendor_net)}</span>} />
+                <Row label="Calculated" value={fmtDateTime(doc.commission.calculated_at)} mono />
+              </>
+            ) : (
+              <Row label="Status" value="Pending — accrues when the order is paid" />
+            )}
           </Section>
         </div>
         <div className="space-y-5">

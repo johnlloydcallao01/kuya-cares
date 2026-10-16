@@ -12,6 +12,12 @@ export const QUERY_KEYS = {
     ['admin', 'vendors', params ?? 'default'] as const,
   adminVendorPayouts: (params?: string) =>
     ['admin', 'vendors', 'payouts', params ?? 'default'] as const,
+  adminCommissionEarnings: (params?: string) =>
+    ['admin', 'finance', 'commission-earnings', params ?? 'default'] as const,
+  adminGatewayPayments: (params?: string) =>
+    ['admin', 'finance', 'payments', params ?? 'default'] as const,
+  adminGatewayAccount: () =>
+    ['admin', 'finance', 'payments', 'account'] as const,
   adminMerchants: (params?: string) =>
     ['admin', 'merchants', params ?? 'default'] as const,
   adminMerchantCategories: (params?: string) =>

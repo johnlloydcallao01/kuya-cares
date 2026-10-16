@@ -16,6 +16,11 @@ module.exports = [
         require: "readonly",
         exports: "readonly",
         global: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        queueMicrotask: "readonly",
       },
     },
     rules: {

@@ -56,6 +56,8 @@ export const Orders: CollectionConfig = {
           'commission_vendor_net',
           'commission_source',
           'commission_rule',
+          'commission_volume_tier_snapshot',
+          'commission_product_breakdown',
           'commission_status',
           'commission_calculated_at',
         ]
@@ -353,7 +355,7 @@ export const Orders: CollectionConfig = {
       name: 'commission_base_amount',
       type: 'number',
       min: 0,
-      admin: { readOnly: true, description: 'Product subtotal less all product discounts, regardless of funding; excludes delivery and other non-product charges.' },
+      admin: { readOnly: true, description: 'Merchandise subtotal less all product discounts; excludes delivery and other non-product charges. Pre-discount commission rules use the separately recorded pre-discount item base in the product breakdown.' },
     },
     { name: 'commission_vendor_discount', type: 'number', min: 0, admin: { readOnly: true } },
     { name: 'commission_amount', type: 'number', min: 0, admin: { readOnly: true } },
@@ -363,12 +365,31 @@ export const Orders: CollectionConfig = {
       name: 'commission_source',
       type: 'select',
       options: [
+        { label: 'Product', value: 'product' },
+        { label: 'Product Category', value: 'product_category' },
         { label: 'Vendor', value: 'vendor' },
-        { label: 'Category', value: 'category' },
+        { label: 'Merchant Category', value: 'category' },
         { label: 'Plan', value: 'plan' },
+        { label: 'Vendor Volume Tier', value: 'volume_tier' },
         { label: 'Global', value: 'global' },
       ],
       admin: { readOnly: true },
+    },
+    {
+      name: 'commission_volume_tier_snapshot',
+      type: 'json',
+      admin: {
+        readOnly: true,
+        description: 'Payment-time rolling 30-day net sales and the qualifying commission tier snapshot.',
+      },
+    },
+    {
+      name: 'commission_product_breakdown',
+      type: 'json',
+      admin: {
+        readOnly: true,
+        description: 'Per-product method/rate, discounted and pre-discount bases, discount allocations, quantities, fees, tier snapshots, and rule snapshots for mixed-rate orders.',
+      },
     },
     {
       name: 'commission_rule',

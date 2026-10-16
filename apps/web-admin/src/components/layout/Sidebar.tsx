@@ -56,6 +56,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
   const [isModifiersExpanded, setIsModifiersExpanded] = React.useState(false);
   const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
   const [isPromotionsExpanded, setIsPromotionsExpanded] = React.useState(false);
+  const [isCommissionsExpanded, setIsCommissionsExpanded] = React.useState(false);
   const [isCustomerActivityExpanded, setIsCustomerActivityExpanded] = React.useState(false);
   const hasActiveVendorsChild = dropdownActive(pathname, '/vendors');
   const hasActiveMerchantsChild = dropdownActive(pathname, '/merchants') || dropdownActive(pathname, '/merchant-categories');
@@ -75,6 +76,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
   const hasActiveTagsChild = dropdownActive(pathname, '/catalog/tags') || dropdownActive(pathname, '/catalog/tag-groups');
 
   const hasActivePromotionsChild = dropdownActive(pathname, '/promotions') || dropdownActive(pathname, '/coupons');
+  const hasActiveCommissionsChild = dropdownActive(pathname, '/commission-management') || dropdownActive(pathname, '/finance/commission-earnings');
   const hasActiveCustomerActivityChild = dropdownActive(pathname, '/activity');
   const hasActivePlatformConfigChild = dropdownActive(pathname, '/settings/configuration');
 
@@ -86,6 +88,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
   React.useEffect(() => { if (hasActiveTagsChild) setIsTagsExpanded(true); }, [hasActiveTagsChild]);
 
   React.useEffect(() => { if (hasActivePromotionsChild) setIsPromotionsExpanded(true); }, [hasActivePromotionsChild]);
+  React.useEffect(() => { if (hasActiveCommissionsChild) setIsCommissionsExpanded(true); }, [hasActiveCommissionsChild]);
   React.useEffect(() => { if (hasActiveCustomerActivityChild) setIsCustomerActivityExpanded(true); }, [hasActiveCustomerActivityChild]);
 
 
@@ -139,6 +142,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
               {renderChildLink({ label: 'All Vendors', href: '/vendors', isActive: exactActive(pathname, '/vendors') })}
               {renderChildLink({ label: 'Verification & Compliance', href: '/vendors/verification', isActive: dropdownActive(pathname, '/vendors/verification') })}
               {renderChildLink({ label: 'Vendor Payouts Overview', href: '/vendors/payouts', isActive: dropdownActive(pathname, '/vendors/payouts') })}
+              {renderChildLink({ label: 'Withdrawal Requests', href: '/vendors/withdrawal-requests', isActive: dropdownActive(pathname, '/vendors/withdrawal-requests') })}
             </SidebarDropdownGroup>
 
             <SidebarDropdownGroup
@@ -245,7 +249,19 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
             <SidebarSectionLabel isOpen={expanded}>Finance</SidebarSectionLabel>
 
             <SidebarItem icon="payments" label="Transactions" active={dropdownActive(pathname, '/transactions')} collapsed={!expanded} href="/transactions" />
-            <SidebarItem icon="payments" label="Manage Commissions" active={dropdownActive(pathname, '/commission-management')} collapsed={!expanded} href="/commission-management" />
+            <SidebarItem icon="payments" label="Payments" active={dropdownActive(pathname, '/finance/payments')} collapsed={!expanded} href="/finance/payments" />
+
+            <SidebarDropdownGroup
+              icon="payments"
+              label="Commissions"
+              isOpen={expanded}
+              isExpanded={isCommissionsExpanded}
+              onToggle={() => setIsCommissionsExpanded((c) => !c)}
+              active={hasActiveCommissionsChild}
+            >
+              {renderChildLink({ label: 'Manage Commissions', href: '/commission-management', isActive: dropdownActive(pathname, '/commission-management') })}
+              {renderChildLink({ label: 'Commission Earnings', href: '/finance/commission-earnings', isActive: dropdownActive(pathname, '/finance/commission-earnings') })}
+            </SidebarDropdownGroup>
 
             <SidebarDropdownGroup
               icon="campaigns"

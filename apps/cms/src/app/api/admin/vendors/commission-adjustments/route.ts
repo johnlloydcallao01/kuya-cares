@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
     })
 
     await deleteCachedByPrefix('admin:payouts:')
+    await deleteCachedByPrefix('admin:finance:')
     return NextResponse.json({ doc }, { status: 201 })
   } catch (error) {
     console.error('[admin/vendors/commission-adjustments] POST error:', error)

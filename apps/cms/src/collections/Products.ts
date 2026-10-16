@@ -185,6 +185,21 @@ export const Products: CollectionConfig = {
       },
     },
     {
+      name: 'vendorCost',
+      type: 'number',
+      min: 0,
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+        create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+        update: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+      },
+      admin: {
+        description:
+          'Private unit purchase/cost price used for vendor-cost commission rules. Captured on each order item at checkout; never exposed to storefront/vendor catalog reads.',
+        step: 0.01,
+      },
+    },
+    {
       name: 'compareAtPrice',
       type: 'number',
       min: 0,

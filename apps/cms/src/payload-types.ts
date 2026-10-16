@@ -138,6 +138,7 @@ export interface Config {
     'subscription-invoices': SubscriptionInvoice;
     'commission-rules': CommissionRule;
     'vendor-commission-entries': VendorCommissionEntry;
+    'vendor-withdrawal-requests': VendorWithdrawalRequest;
     'vendor-entitlements': VendorEntitlement;
     'membership-audit-log': MembershipAuditLog;
     'member-invites': MemberInvite;
@@ -221,6 +222,7 @@ export interface Config {
     'subscription-invoices': SubscriptionInvoicesSelect<false> | SubscriptionInvoicesSelect<true>;
     'commission-rules': CommissionRulesSelect<false> | CommissionRulesSelect<true>;
     'vendor-commission-entries': VendorCommissionEntriesSelect<false> | VendorCommissionEntriesSelect<true>;
+    'vendor-withdrawal-requests': VendorWithdrawalRequestsSelect<false> | VendorWithdrawalRequestsSelect<true>;
     'vendor-entitlements': VendorEntitlementsSelect<false> | VendorEntitlementsSelect<true>;
     'membership-audit-log': MembershipAuditLogSelect<false> | MembershipAuditLogSelect<true>;
     'member-invites': MemberInvitesSelect<false> | MemberInvitesSelect<true>;
@@ -1552,7 +1554,7 @@ export interface ProductCategory {
   createdAt: string;
 }
 /**
- * Vendor commission rules. Higher priority wins; ties prefer the most specific scope.
+ * Commission rules. Higher priority wins; equal priorities prefer product, product category, vendor, merchant category, plan, then global.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "commission-rules".
@@ -1560,9 +1562,9 @@ export interface ProductCategory {
 export interface CommissionRule {
   id: number;
   name: string;
-  scope: 'global' | 'plan' | 'category' | 'vendor';
+  scope: 'global' | 'plan' | 'category' | 'vendor' | 'product' | 'product_category';
   /**
-   * Higher wins. Equal priorities prefer vendor, category, plan, then global.
+   * Higher wins. Equal priorities prefer product, product category, vendor, merchant category, plan, then global.
    */
   priority: number;
   /**
@@ -1570,14 +1572,40 @@ export interface CommissionRule {
    */
   plan?: (number | null) | MembershipPlan;
   /**
-   * Only when scope === 'category'
+   * Only when scope === 'category'; targets a merchant category.
    */
   category?: (number | null) | MerchantCategory;
   /**
    * Only when scope === 'vendor'
    */
   vendor?: (number | null) | Vendor;
-  commission_percent: number;
+  /**
+   * Only when scope === 'product'; applies to order lines for this product.
+   */
+  product?: (number | null) | Product;
+  /**
+   * Only when scope === 'product_category'; applies to order lines whose product belongs to this catalog category.
+   */
+  product_category?: (number | null) | ProductCategory;
+  /**
+   * Discounted percentage uses merchandise after product discounts; pre-discount percentage uses the customer item subtotal recorded at checkout (including options, before order discounts); fixed-per-unit is PHP per paid product unit; vendor-cost percentage uses the private cost snapshot.
+   */
+  commission_method?:
+    | (
+        | 'percentage_of_discounted_subtotal'
+        | 'percentage_of_pre_discount_subtotal'
+        | 'fixed_amount_per_unit'
+        | 'percentage_of_vendor_cost'
+      )
+    | null;
+  /**
+   * Rate (%) for percentage methods or PHP per unit for fixed amount per unit. Percentage methods are limited to 0–100%; fixed unit amounts must use at most two decimal places. If omitted, legacy commission_percent is used for percentage rules.
+   */
+  commission_value?: number | null;
+  /**
+   * Legacy percentage value retained for API compatibility. New rules should set commission_method and commission_value.
+   */
+  commission_percent?: number | null;
   /**
    * Fixed amount charged once per paid order; refund reversals are proportional.
    */
@@ -1607,6 +1635,123 @@ export interface MerchantCategory {
   commissionOverridePct?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Master product catalog for vendors and merchants
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  /**
+   * Admin-controlled product moderation status. Only approved products are available in the catalog.
+   */
+  approvalStatus: 'pending' | 'approved' | 'disapproved';
+  /**
+   * Vendor that created this product (mutually exclusive with merchant)
+   */
+  createdByVendor?: (number | null) | Vendor;
+  /**
+   * Merchant that created this product (mutually exclusive with vendor)
+   */
+  createdByMerchant?: (number | null) | Merchant;
+  /**
+   * Type of product (simple, variable for variations, or grouped for bundles)
+   */
+  productType: 'simple' | 'variable' | 'grouped';
+  /**
+   * Parent product (for variations, points to the variable product)
+   */
+  parentProduct?: (number | null) | Product;
+  /**
+   * Product name
+   */
+  name: string;
+  /**
+   * URL-friendly identifier auto-generated from name
+   */
+  slug: string;
+  /**
+   * Full product description
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Brief product description (max 500 characters)
+   */
+  shortDescription?: string | null;
+  /**
+   * Product categories (select multiple categories)
+   */
+  categories?: (number | ProductCategory)[] | null;
+  /**
+   * Stock Keeping Unit (unique identifier)
+   */
+  sku?: string | null;
+  /**
+   * Base price of the product
+   */
+  basePrice?: number | null;
+  /**
+   * Private unit purchase/cost price used for vendor-cost commission rules. Captured on each order item at checkout; never exposed to storefront/vendor catalog reads.
+   */
+  vendorCost?: number | null;
+  /**
+   * Original price for showing discounts
+   */
+  compareAtPrice?: number | null;
+  /**
+   * Product images and media
+   */
+  media?: {
+    /**
+     * Primary product image
+     */
+    primaryImage?: (number | null) | Media;
+    /**
+     * Additional product images
+     */
+    images?:
+      | {
+          image: number | Media;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Whether the product is currently active
+   */
+  isActive?: boolean | null;
+  /**
+   * Controls where the product appears in catalog and search
+   */
+  catalogVisibility: 'visible' | 'catalog' | 'search' | 'hidden';
+  /**
+   * Assign this product to all merchants of the same vendor
+   */
+  assign_to_all_vendor_merchants?: boolean | null;
+  /**
+   * Creation timestamp
+   */
+  createdAt: string;
+  /**
+   * Last update timestamp
+   */
+  updatedAt: string;
 }
 /**
  * Manage individual merchant locations and outlets
@@ -2013,119 +2158,6 @@ export interface Driver {
   createdAt: string;
 }
 /**
- * Master product catalog for vendors and merchants
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products".
- */
-export interface Product {
-  id: number;
-  /**
-   * Admin-controlled product moderation status. Only approved products are available in the catalog.
-   */
-  approvalStatus: 'pending' | 'approved' | 'disapproved';
-  /**
-   * Vendor that created this product (mutually exclusive with merchant)
-   */
-  createdByVendor?: (number | null) | Vendor;
-  /**
-   * Merchant that created this product (mutually exclusive with vendor)
-   */
-  createdByMerchant?: (number | null) | Merchant;
-  /**
-   * Type of product (simple, variable for variations, or grouped for bundles)
-   */
-  productType: 'simple' | 'variable' | 'grouped';
-  /**
-   * Parent product (for variations, points to the variable product)
-   */
-  parentProduct?: (number | null) | Product;
-  /**
-   * Product name
-   */
-  name: string;
-  /**
-   * URL-friendly identifier auto-generated from name
-   */
-  slug: string;
-  /**
-   * Full product description
-   */
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * Brief product description (max 500 characters)
-   */
-  shortDescription?: string | null;
-  /**
-   * Product categories (select multiple categories)
-   */
-  categories?: (number | ProductCategory)[] | null;
-  /**
-   * Stock Keeping Unit (unique identifier)
-   */
-  sku?: string | null;
-  /**
-   * Base price of the product
-   */
-  basePrice?: number | null;
-  /**
-   * Original price for showing discounts
-   */
-  compareAtPrice?: number | null;
-  /**
-   * Product images and media
-   */
-  media?: {
-    /**
-     * Primary product image
-     */
-    primaryImage?: (number | null) | Media;
-    /**
-     * Additional product images
-     */
-    images?:
-      | {
-          image: number | Media;
-          id?: string | null;
-        }[]
-      | null;
-  };
-  /**
-   * Whether the product is currently active
-   */
-  isActive?: boolean | null;
-  /**
-   * Controls where the product appears in catalog and search
-   */
-  catalogVisibility: 'visible' | 'catalog' | 'search' | 'hidden';
-  /**
-   * Assign this product to all merchants of the same vendor
-   */
-  assign_to_all_vendor_merchants?: boolean | null;
-  /**
-   * Creation timestamp
-   */
-  createdAt: string;
-  /**
-   * Last update timestamp
-   */
-  updatedAt: string;
-}
-/**
  * Customer shopping cart items
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2342,7 +2374,7 @@ export interface Order {
    */
   commission_percent?: number | null;
   /**
-   * Product subtotal less all product discounts, regardless of funding; excludes delivery and other non-product charges.
+   * Merchandise subtotal less all product discounts; excludes delivery and other non-product charges. Pre-discount commission rules use the separately recorded pre-discount item base in the product breakdown.
    */
   commission_base_amount?: number | null;
   commission_vendor_discount?: number | null;
@@ -2352,7 +2384,33 @@ export interface Order {
    */
   commission_transaction_fee?: number | null;
   commission_vendor_net?: number | null;
-  commission_source?: ('vendor' | 'category' | 'plan' | 'global') | null;
+  commission_source?:
+    | ('product' | 'product_category' | 'vendor' | 'category' | 'plan' | 'volume_tier' | 'global')
+    | null;
+  /**
+   * Payment-time rolling 30-day net sales and the qualifying commission tier snapshot.
+   */
+  commission_volume_tier_snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Per-product method/rate, discounted and pre-discount bases, discount allocations, quantities, fees, tier snapshots, and rule snapshots for mixed-rate orders.
+   */
+  commission_product_breakdown?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   commission_rule?: (number | null) | CommissionRule;
   commission_status?: ('pending' | 'accrued' | 'partially_refunded' | 'reversed' | 'legacy') | null;
   commission_calculated_at?: string | null;
@@ -2483,9 +2541,13 @@ export interface OrderItem {
    */
   product_name_snapshot: string;
   /**
-   * SNAPSHOT: The price/unit paid (overrides current catalog price)
+   * SNAPSHOT: Customer unit price recorded at checkout before order-level discounts; includes the selected product/variation price.
    */
   price_at_purchase: number;
+  /**
+   * Private immutable unit cost copied from the product when this order item is created; used for commission calculations.
+   */
+  vendor_cost_at_purchase?: number | null;
   /**
    * Count of items
    */
@@ -2503,7 +2565,7 @@ export interface OrderItem {
     | boolean
     | null;
   /**
-   * price_at_purchase * quantity + modifiers
+   * SNAPSHOT: Pre-discount customer item subtotal, including quantity and modifiers/options. Excludes delivery and order-level discounts; used for pre-discount commission calculations.
    */
   total_price: number;
   updatedAt: string;
@@ -4190,7 +4252,7 @@ export interface VendorCommissionEntry {
   currency: string;
   commission_percent: number;
   /**
-   * Signed product base after all product discounts; excludes delivery and other non-product charges.
+   * Signed merchandise base after all product discounts; excludes delivery and other non-product charges. Pre-discount commission rules retain their gross item basis in the product breakdown.
    */
   commission_base_amount: number;
   /**
@@ -4209,8 +4271,32 @@ export interface VendorCommissionEntry {
    * Signed amount payable to vendor.
    */
   commission_vendor_net: number;
-  commission_source: 'vendor' | 'category' | 'plan' | 'global';
+  commission_source: 'product' | 'product_category' | 'vendor' | 'category' | 'plan' | 'volume_tier' | 'global';
   commission_rule?: (number | null) | CommissionRule;
+  /**
+   * Payment-time rolling 30-day net sales and the selected volume tier.
+   */
+  commission_volume_tier_snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Per-product method/rate, discounted and pre-discount bases, product discount allocation, quantity, commission, fee, and volume-tier snapshot when rates differ.
+   */
+  commission_product_breakdown?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Required explanation for an immutable manual adjustment.
    */
@@ -4220,6 +4306,33 @@ export interface VendorCommissionEntry {
    */
   adjustment_actor?: (number | null) | User;
   effective_at: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Vendor payout requests and their audited lifecycle.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-withdrawal-requests".
+ */
+export interface VendorWithdrawalRequest {
+  id: number;
+  vendor: number | Vendor;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+  payout_destination: string;
+  payment_reference?: string | null;
+  reason?: string | null;
+  idempotency_key?: string | null;
+  requested_by: number | User;
+  requested_at: string;
+  decided_by?: (number | null) | User;
+  decided_at?: string | null;
+  paid_by?: (number | null) | User;
+  paid_at?: string | null;
+  cancelled_by?: (number | null) | User;
+  cancelled_at?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4778,6 +4891,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'vendor-commission-entries';
         value: number | VendorCommissionEntry;
+      } | null)
+    | ({
+        relationTo: 'vendor-withdrawal-requests';
+        value: number | VendorWithdrawalRequest;
       } | null)
     | ({
         relationTo: 'vendor-entitlements';
@@ -5432,6 +5549,7 @@ export interface ProductsSelect<T extends boolean = true> {
   categories?: T;
   sku?: T;
   basePrice?: T;
+  vendorCost?: T;
   compareAtPrice?: T;
   media?:
     | T
@@ -5503,6 +5621,8 @@ export interface OrdersSelect<T extends boolean = true> {
   commission_transaction_fee?: T;
   commission_vendor_net?: T;
   commission_source?: T;
+  commission_volume_tier_snapshot?: T;
+  commission_product_breakdown?: T;
   commission_rule?: T;
   commission_status?: T;
   commission_calculated_at?: T;
@@ -5529,6 +5649,7 @@ export interface OrderItemsSelect<T extends boolean = true> {
   merchant_product?: T;
   product_name_snapshot?: T;
   price_at_purchase?: T;
+  vendor_cost_at_purchase?: T;
   quantity?: T;
   options_snapshot?: T;
   total_price?: T;
@@ -6420,6 +6541,10 @@ export interface CommissionRulesSelect<T extends boolean = true> {
   plan?: T;
   category?: T;
   vendor?: T;
+  product?: T;
+  product_category?: T;
+  commission_method?: T;
+  commission_value?: T;
   commission_percent?: T;
   transaction_fee?: T;
   effective_from?: T;
@@ -6449,9 +6574,35 @@ export interface VendorCommissionEntriesSelect<T extends boolean = true> {
   commission_vendor_net?: T;
   commission_source?: T;
   commission_rule?: T;
+  commission_volume_tier_snapshot?: T;
+  commission_product_breakdown?: T;
   adjustment_reason?: T;
   adjustment_actor?: T;
   effective_at?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendor-withdrawal-requests_select".
+ */
+export interface VendorWithdrawalRequestsSelect<T extends boolean = true> {
+  vendor?: T;
+  amount?: T;
+  currency?: T;
+  status?: T;
+  payout_destination?: T;
+  payment_reference?: T;
+  reason?: T;
+  idempotency_key?: T;
+  requested_by?: T;
+  requested_at?: T;
+  decided_by?: T;
+  decided_at?: T;
+  paid_by?: T;
+  paid_at?: T;
+  cancelled_by?: T;
+  cancelled_at?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6669,6 +6820,20 @@ export interface SystemSetting {
     memberMembershipFeePhp?: number | null;
   };
   /**
+   * Optional fallback commission rates selected by each vendor’s net paid product sales in the 30 days ending at payment time. Product discounts and successful refund amounts reduce sales; delivery and cancelled orders are excluded. The current paid order’s eligible product subtotal after product discounts is included. The highest qualifying threshold wins; row order does not matter.
+   */
+  commissionVolumeTiers?:
+    | {
+        name: string;
+        /**
+         * PHP threshold, inclusive, up to two decimal places. The highest qualifying threshold is selected.
+         */
+        minimumNetSales: number;
+        commissionPercent: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Select which delivery provider to use for order bookings.
    */
   deliveryProvider: 'lalamove' | 'native';
@@ -6723,6 +6888,14 @@ export interface SystemSettingsSelect<T extends boolean = true> {
         payProviderDefault?: T;
         paymongoMembershipDisabled?: T;
         memberMembershipFeePhp?: T;
+      };
+  commissionVolumeTiers?:
+    | T
+    | {
+        name?: T;
+        minimumNetSales?: T;
+        commissionPercent?: T;
+        id?: T;
       };
   deliveryProvider?: T;
   lalamove?:

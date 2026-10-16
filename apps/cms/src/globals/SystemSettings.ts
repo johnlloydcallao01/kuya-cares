@@ -1,4 +1,5 @@
 import { GlobalConfig } from 'payload'
+import { randomUUID } from 'node:crypto'
 
 export const SystemSettings: GlobalConfig = {
   slug: 'system-settings',
@@ -149,6 +150,44 @@ export const SystemSettings: GlobalConfig = {
       ],
     },
     {
+      name: 'commissionVolumeTiers',
+      label: 'Vendor Commission Volume Tiers',
+      type: 'array',
+      admin: {
+        description:
+          'Optional fallback commission rates selected by each vendor’s net paid product sales in the 30 days ending at payment time. Product discounts and successful refund amounts reduce sales; delivery and cancelled orders are excluded. The current paid order’s eligible product subtotal after product discounts is included. The highest qualifying threshold wins; row order does not matter.',
+        initCollapsed: false,
+      },
+      fields: [
+        {
+          name: 'name',
+          label: 'Tier Name',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'minimumNetSales',
+          label: 'Minimum Net Merchandise Sales',
+          type: 'number',
+          required: true,
+          min: 0,
+          admin: {
+            description: 'PHP threshold, inclusive, up to two decimal places. The highest qualifying threshold is selected.',
+            step: 0.01,
+          },
+        },
+        {
+          name: 'commissionPercent',
+          label: 'Commission Rate (%)',
+          type: 'number',
+          required: true,
+          min: 0,
+          max: 100,
+          admin: { step: 0.01 },
+        },
+      ],
+    },
+    {
       type: 'tabs',
       tabs: [
         {
@@ -235,4 +274,69 @@ export const SystemSettings: GlobalConfig = {
       ],
     },
   ],
+  hooks: {
+    beforeValidate: [
+      ({ data, originalDoc }) => {
+        const tiers = data?.commissionVolumeTiers ?? originalDoc?.commissionVolumeTiers
+        if (!Array.isArray(tiers)) return data
+        const seenThresholds = new Set<number>()
+        for (const tier of tiers) {
+          const threshold = Number(tier?.minimumNetSales)
+          const rate = Number(tier?.commissionPercent)
+          if (!Number.isFinite(threshold) || threshold < 0) {
+            throw new Error('Vendor volume tier minimumNetSales must be a non-negative amount.')
+          }
+          if (Math.abs(threshold * 100 - Math.round(threshold * 100)) > 0.000001) {
+            throw new Error('Vendor volume tier minimumNetSales must use no more than two decimal places.')
+          }
+          if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+            throw new Error('Vendor volume tier commissionPercent must be between 0 and 100.')
+          }
+          if (seenThresholds.has(threshold)) {
+            throw new Error('Vendor volume tiers must have unique minimumNetSales thresholds.')
+          }
+          seenThresholds.add(threshold)
+        }
+        return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, previousDoc, req }) => {
+        const tiersSnapshot = (value: unknown) =>
+          Array.isArray(value)
+            ? value.map((tier) => {
+              const item = tier as Record<string, unknown>
+              return {
+                id: item.id == null ? null : String(item.id),
+                name: String(item.name ?? ''),
+                minimumNetSales: Number(item.minimumNetSales ?? 0),
+                commissionPercent: Number(item.commissionPercent ?? 0),
+              }
+            })
+            : []
+        const before = tiersSnapshot(previousDoc?.commissionVolumeTiers)
+        const after = tiersSnapshot(doc.commissionVolumeTiers)
+        if (JSON.stringify(before) === JSON.stringify(after)) return doc
+
+        await req.payload.create({
+          collection: 'membership-audit-log',
+          data: {
+            action: 'override',
+            reason: 'Vendor commission rolling 30-day volume tiers changed.',
+            actor: req.user?.id ?? undefined,
+            eventId: `commission-volume-tiers:${randomUUID()}`,
+            metadata: {
+              kind: 'commission-volume-tiers',
+              operation: 'update',
+              before: { commissionVolumeTiers: before },
+              after: { commissionVolumeTiers: after },
+            },
+          },
+          overrideAccess: true,
+          req,
+        })
+        return doc
+      },
+    ],
+  },
 }

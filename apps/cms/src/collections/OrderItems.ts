@@ -111,7 +111,22 @@ export const OrderItems: CollectionConfig = {
       type: 'number',
       required: true,
       admin: {
-        description: 'SNAPSHOT: The price/unit paid (overrides current catalog price)',
+        description: 'SNAPSHOT: Customer unit price recorded at checkout before order-level discounts; includes the selected product/variation price.',
+      },
+    },
+    {
+      name: 'vendor_cost_at_purchase',
+      type: 'number',
+      min: 0,
+      access: {
+        read: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+        create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+        update: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'service',
+      },
+      admin: {
+        readOnly: true,
+        description:
+          'Private immutable unit cost copied from the product when this order item is created; used for commission calculations.',
       },
     },
     {
@@ -135,15 +150,40 @@ export const OrderItems: CollectionConfig = {
       type: 'number',
       required: true,
       admin: {
-        description: 'price_at_purchase * quantity + modifiers',
+        description: 'SNAPSHOT: Pre-discount customer item subtotal, including quantity and modifiers/options. Excludes delivery and order-level discounts; used for pre-discount commission calculations.',
       },
     },
   ],
   hooks: {
     beforeValidate: [
-      ({ data, operation, originalDoc, req }) => {
+      async ({ data, operation, originalDoc, req }) => {
         if (!data) {
           return data
+        }
+
+        const originalCost = originalDoc?.vendor_cost_at_purchase
+        if (originalCost !== undefined && originalCost !== null) {
+          data.vendor_cost_at_purchase = originalCost
+        } else if (req?.payload) {
+          const productId = extractRelationshipId(
+            (data.product ?? originalDoc?.product) as never,
+          )
+          if (productId) {
+            const product = await req.payload.findByID({
+              collection: 'products',
+              id: productId as never,
+              depth: 0,
+              overrideAccess: true,
+              req,
+            })
+            const vendorCost = Number((product as unknown as { vendorCost?: unknown }).vendorCost)
+            data.vendor_cost_at_purchase =
+              Number.isFinite(vendorCost) && vendorCost >= 0 ? vendorCost : null
+          } else {
+            data.vendor_cost_at_purchase = null
+          }
+        } else {
+          data.vendor_cost_at_purchase = null
         }
 
         const optionsSnapshot = data.options_snapshot ?? originalDoc?.options_snapshot

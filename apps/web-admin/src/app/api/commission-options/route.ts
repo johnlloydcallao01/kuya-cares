@@ -29,15 +29,19 @@ export async function GET(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE)?.value
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    const [vendors, categories, plans] = await Promise.all([
+    const [vendors, categories, plans, products, productCategories] = await Promise.all([
       fetchDocs(token, 'vendors'),
       fetchDocs(token, 'merchant-categories'),
       fetchDocs(token, 'membership-plans'),
+      fetchDocs(token, 'products'),
+      fetchDocs(token, 'product-categories'),
     ])
     return NextResponse.json({
       vendors: vendors.map((doc) => option(doc, 'businessName')),
       categories: categories.map((doc) => option(doc, 'name')),
       plans: plans.map((doc) => option(doc, 'name')),
+      products: products.map((doc) => option(doc, 'name')),
+      productCategories: productCategories.map((doc) => option(doc, 'name')),
     })
   } catch (error) {
     console.error('[web-admin commission options] failed:', error)

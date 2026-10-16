@@ -186,9 +186,41 @@ Hooks: `beforeChange` — autonumber, stamp `paid_at`, increment `retry_count` o
 
 Resolves vendor debit at payout. Never mutates order `total` (that invariant stays in `Orders.ts:beforeValidate`). Admin-only write; vendor `read: false` (or true if transparency desired — default false).
 
-Fields: `name` text required; `scope` select required (`global \| plan \| category \| vendor`); `priority` number required default 0 (higher wins; recommended `vendor 100 > category 50 > plan 10 > global 0`); `plan` rel → `membership-plans` (only when `scope==='plan'`); `category` rel → `product-categories` (only when `scope==='category'`); `vendor` rel → `vendors` (only when `scope==='vendor'`); `commission_percent` number 0–100 required; `transaction_fee` number min 0 default 0; `effective_from` / `effective_to` date nullable; `is_active` checkbox default true.
+Fields: `name` text required; `scope` select required (`global \| plan \| category \| vendor \| product \| product_category`); `priority` number required default 0 (higher wins first; equal priorities prefer `product > product_category > vendor > merchant category > plan > global`; ties within a scope prefer the latest `effective_from`, then the lowest stable rule ID); `plan` rel → `membership-plans` (only when `scope==='plan'`); `category` rel → `merchant-categories` (only when `scope==='category'`, preserving merchant-category rules); `vendor` rel → `vendors` (only when `scope==='vendor'`); `product` rel → `products` (only when `scope==='product'`); `product_category` rel → `product-categories` (only when `scope==='product_category'`, matching the category relations on each order item's product); `commission_method` select (default `percentage_of_discounted_subtotal`; also `fixed_amount_per_unit` and `percentage_of_vendor_cost`); `commission_value` non-negative number (percentage methods accept 0–100, fixed method is a currency amount per unit); `commission_percent` remains an optional legacy percentage fallback for pre-existing API clients; `transaction_fee` number min 0 default 0; `effective_from` / `effective_to` date nullable; `is_active` checkbox default true.
 
-Resolution (in `CommissionService`, not a hook): filter `is_active && now in [from,to] && scope matches (vendor/category/plan)` → winner = max `priority`, tie → most specific scope, then latest `effective_from`.
+#### CMS rule and admin-form API contract
+
+Create/update payloads may provide:
+
+```json
+{
+  "commission_method": "percentage_of_discounted_subtotal",
+  "commission_value": 7.5,
+  "commission_percent": 7.5,
+  "transaction_fee": 5
+}
+```
+
+`commission_method` accepts exactly `percentage_of_discounted_subtotal`, `fixed_amount_per_unit`, or `percentage_of_vendor_cost`. New forms should submit both `commission_method` and `commission_value`; fixed and vendor-cost methods require `commission_value`, percentage methods constrain it to 0–100, and the fixed method accepts any non-negative currency amount. For compatibility, omitted `commission_method` means `percentage_of_discounted_subtotal`, and omitted `commission_value` falls back to `commission_percent` for that legacy percentage method (older records and callers therefore keep their current behavior). `commission_percent` is no longer required for new method-aware forms. `transaction_fee` remains a separate non-negative fixed fee assessed once per paid order; successful refunds reverse it proportionally.
+
+The global `system-settings` API exposes the admin-managed `commissionVolumeTiers` array:
+
+```json
+{
+  "commissionVolumeTiers": [
+    { "name": "Standard", "minimumNetSales": 0, "commissionPercent": 8 },
+    { "name": "Growth", "minimumNetSales": 50000, "commissionPercent": 6 }
+  ]
+}
+```
+
+Thresholds must be unique non-negative PHP amounts with at most two decimal places, and `commissionPercent` must be 0–100. The selected tier is the highest `minimumNetSales` not exceeding the vendor's net paid product sales in the rolling 30 days ending at payment time (inclusive). Sales include the current order's eligible product subtotal after product discounts, exclude delivery/fees and cancelled orders, and subtract recorded successful refund amounts directly up to zero. Tier rates are applied as `percentage_of_discounted_subtotal`. The qualifying tier name, threshold, rate, rolling sales total, and 30-day window are frozen in `commission_volume_tier_snapshot` on the ledger entry and order. A matching non-global commission rule takes precedence over a tier; a qualifying tier takes precedence over a global rule and legacy vendor/category/plan/default fallbacks.
+
+For `percentage_of_discounted_subtotal`, commission is the configured percentage of the order-item's order-subtotal share less its allocated product discounts. `percentage_of_pre_discount_subtotal` applies the percentage to the order item's recorded checkout subtotal before order discounts; this recorded `order-items.total_price` includes quantity and modifiers/options, but excludes delivery and discounts. `fixed_amount_per_unit` multiplies `commission_value` (PHP/unit) by the paid order-item quantity. `percentage_of_vendor_cost` applies the configured rate to the quantity-weighted sum of unit vendor costs recorded on the paid order items; fixed-unit and vendor-cost methods are not reduced by product discounts. `products.vendorCost` is admin/service-only and `order-items.vendor_cost_at_purchase` is an admin/service-only immutable snapshot populated by the CMS from the product at order-item creation; clients cannot provide or alter the snapshot. If a required paid-order item snapshot is absent, fixed-unit/vendor-cost accrual fails rather than guessing a quantity or cost. Monetary values are rounded to cents using the CMS `roundMoney` rule; commission is rounded per product group, then order totals are summed and rounded. The legacy transaction fee remains separately prorated over merchandise and capped at the applicable commission base; the vendor's net payout is floored at zero.
+
+Resolution (in `CommissionService`, not a hook): filter `is_active && payment time in [from,to] && scope matches`. Among matching non-global rules, choose by priority, scope specificity (product, product category, vendor, merchant category, plan), latest `effective_from`, then stable ID. Product/product-category rules are resolved against each `order-items.product`; vendor/category/plan rules are the scoped fallback. A matching non-global rule takes precedence over volume tiers; tiers are selected before global rules and legacy overrides/defaults. Global rules are then resolved by priority, latest effective start, and stable ID.
+
+On paid orders, `order-items.total_price` (the recorded pre-discount customer item subtotal including quantity/modifiers) is weighted to the order subtotal. Product-leg coupon discounts (`food_discount`) are allocated pro rata across merchandise lines; delivery discounts remain outside the commission base. Commission is calculated for each product's resolved method/rate and stored as the order-level aggregate plus `commission_product_breakdown` in both the immutable commission entry and order snapshot. Vendor-funded discounts still reduce vendor net (including delivery discount share). A rule's fixed transaction fee is weighted by merchandise composition and charged once for the paid order; refunds reverse the aggregate amounts proportionally.
 
 ### 2.5 `src/collections/VendorEntitlements.ts` — slug `vendor-entitlements`
 

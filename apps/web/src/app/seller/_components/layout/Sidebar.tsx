@@ -180,6 +180,7 @@ export function Sidebar({ isOpen, onToggle: _onToggle, mobileOpen = false, onClo
           <div className="space-y-1">
             <SidebarSectionLabel isOpen={expanded}>Finance</SidebarSectionLabel>
             <SidebarItem icon="payments" label="Transactions" active={dropdownActive(pathname, '/seller/payments/transactions')} collapsed={!expanded} href="/seller/payments/transactions" />
+            <SidebarItem icon="payments" label="Withdrawals" active={dropdownActive(pathname, '/seller/dashboard/withdrawals')} collapsed={!expanded} href="/seller/dashboard/withdrawals" />
 
             <SidebarDropdownGroup
               icon="billing"

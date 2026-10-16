@@ -1,0 +1,23 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+const CMS_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api').replace(/\/+$/, '')
+const AUTH_COOKIE = 'kuyacares-admin-token'
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get(AUTH_COOKIE)?.value
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const res = await fetch(`${CMS_BASE}/admin/finance/payments/account`, {
+      headers: { Authorization: `JWT ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(45000),
+    })
+    const data = await res.text()
+    return new NextResponse(data, {
+      status: res.status,
+      headers: { 'Content-Type': res.headers.get('content-type') || 'application/json' },
+    })
+  } catch {
+    return NextResponse.json({ error: 'Failed to reach CMS' }, { status: 502 })
+  }
+}

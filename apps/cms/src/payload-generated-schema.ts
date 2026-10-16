@@ -282,9 +282,12 @@ export const enum_orders_fulfillment_type = pgEnum('enum_orders_fulfillment_type
   'pickup',
 ])
 export const enum_orders_commission_source = pgEnum('enum_orders_commission_source', [
+  'product',
+  'product_category',
   'vendor',
   'category',
   'plan',
+  'volume_tier',
   'global',
 ])
 export const enum_orders_commission_status = pgEnum('enum_orders_commission_status', [
@@ -651,14 +654,29 @@ export const enum_commission_rules_scope = pgEnum('enum_commission_rules_scope',
   'plan',
   'category',
   'vendor',
+  'product',
+  'product_category',
 ])
+export const enum_commission_rules_commission_method = pgEnum(
+  'enum_commission_rules_commission_method',
+  [
+    'percentage_of_discounted_subtotal',
+    'percentage_of_pre_discount_subtotal',
+    'fixed_amount_per_unit',
+    'percentage_of_vendor_cost',
+  ],
+)
 export const enum_vendor_commission_entries_entry_type = pgEnum(
   'enum_vendor_commission_entries_entry_type',
   ['accrual', 'reversal', 'adjustment'],
 )
 export const enum_vendor_commission_entries_commission_source = pgEnum(
   'enum_vendor_commission_entries_commission_source',
-  ['vendor', 'category', 'plan', 'global'],
+  ['product', 'product_category', 'vendor', 'category', 'plan', 'volume_tier', 'global'],
+)
+export const enum_vendor_withdrawal_requests_status = pgEnum(
+  'enum_vendor_withdrawal_requests_status',
+  ['pending', 'approved', 'paid', 'rejected', 'cancelled'],
 )
 export const enum_vendor_entitlements_capabilities_support_sla = pgEnum(
   'enum_vendor_entitlements_capabilities_support_sla',
@@ -1714,7 +1732,7 @@ export const merchants = pgTable(
     id: serial('id').primaryKey(),
     vendor: integer('vendor_id')
       .notNull()
-      .references(() => vendors.id, {
+      .references((): AnyPgColumn => vendors.id, {
         onDelete: 'set null',
       }),
     outletName: varchar('outlet_name').notNull(),
@@ -2083,6 +2101,7 @@ export const products = pgTable(
     shortDescription: varchar('short_description'),
     sku: varchar('sku'),
     basePrice: numeric('base_price'),
+    vendorCost: numeric('vendor_cost'),
     compareAtPrice: numeric('compare_at_price'),
     media_primaryImage: integer('media_primary_image_id').references(() => media.id, {
       onDelete: 'set null',
@@ -2247,6 +2266,8 @@ export const orders = pgTable(
     commission_transaction_fee: numeric('commission_transaction_fee'),
     commission_vendor_net: numeric('commission_vendor_net'),
     commission_source: enum_orders_commission_source('commission_source'),
+    commission_volume_tier_snapshot: jsonb('commission_volume_tier_snapshot'),
+    commission_product_breakdown: jsonb('commission_product_breakdown'),
     commission_rule: integer('commission_rule_id').references(() => commission_rules.id, {
       onDelete: 'set null',
     }),
@@ -2303,6 +2324,7 @@ export const order_items = pgTable(
     }),
     product_name_snapshot: varchar('product_name_snapshot').notNull(),
     price_at_purchase: numeric('price_at_purchase').notNull(),
+    vendor_cost_at_purchase: numeric('vendor_cost_at_purchase'),
     quantity: numeric('quantity').notNull(),
     options_snapshot: jsonb('options_snapshot'),
     total_price: numeric('total_price').notNull(),
@@ -2395,6 +2417,10 @@ export const transactions = pgTable(
   (columns) => ({
     transactions_order_idx: index('transactions_order_idx').on(columns.order),
     transactions_payment_id_idx: index('transactions_payment_id_idx').on(columns.payment_id),
+    transactions_status_paid_at_idx: index('transactions_status_paid_at_idx').on(
+      columns.status,
+      columns.paid_at,
+    ),
     transactions_updated_at_idx: index('transactions_updated_at_idx').on(columns.updatedAt),
     transactions_created_at_idx: index('transactions_created_at_idx').on(columns.createdAt),
   }),
@@ -4401,7 +4427,7 @@ export const vendor_subscriptions = pgTable(
     id: serial('id').primaryKey(),
     vendor: integer('vendor_id')
       .notNull()
-      .references((): AnyPgColumn => vendors.id, {
+      .references(() => vendors.id, {
         onDelete: 'set null',
       }),
     plan: integer('plan_id')
@@ -4603,7 +4629,17 @@ export const commission_rules = pgTable(
     vendor: integer('vendor_id').references(() => vendors.id, {
       onDelete: 'set null',
     }),
-    commission_percent: numeric('commission_percent').notNull(),
+    product: integer('product_id').references(() => products.id, {
+      onDelete: 'set null',
+    }),
+    product_category: integer('product_category_id').references(() => prod_categories.id, {
+      onDelete: 'set null',
+    }),
+    commission_method: enum_commission_rules_commission_method('commission_method').default(
+      'percentage_of_discounted_subtotal',
+    ),
+    commission_value: numeric('commission_value'),
+    commission_percent: numeric('commission_percent').default('0'),
     transaction_fee: numeric('transaction_fee').default('0'),
     effective_from: timestamp('effective_from', {
       mode: 'string',
@@ -4623,10 +4659,15 @@ export const commission_rules = pgTable(
     commission_rules_plan_idx: index('commission_rules_plan_idx').on(columns.plan),
     commission_rules_category_idx: index('commission_rules_category_idx').on(columns.category),
     commission_rules_vendor_idx: index('commission_rules_vendor_idx').on(columns.vendor),
+    commission_rules_product_idx: index('commission_rules_product_idx').on(columns.product),
+    commission_rules_product_category_idx: index('commission_rules_product_category_idx').on(
+      columns.product_category,
+    ),
     commission_rules_updated_at_idx: index('commission_rules_updated_at_idx').on(columns.updatedAt),
     commission_rules_created_at_idx: index('commission_rules_created_at_idx').on(columns.createdAt),
     scope_is_active_idx: index('scope_is_active_idx').on(columns.scope, columns.is_active),
     priority_idx: index('priority_idx').on(columns.priority),
+    product_category_idx: index('product_category_idx').on(columns.product_category),
   }),
 )
 
@@ -4661,6 +4702,8 @@ export const vendor_commission_entries = pgTable(
     commission_rule: integer('commission_rule_id').references(() => commission_rules.id, {
       onDelete: 'set null',
     }),
+    commission_volume_tier_snapshot: jsonb('commission_volume_tier_snapshot'),
+    commission_product_breakdown: jsonb('commission_product_breakdown'),
     adjustment_reason: varchar('adjustment_reason'),
     adjustment_actor: integer('adjustment_actor_id').references(() => users.id, {
       onDelete: 'set null',
@@ -4710,6 +4753,85 @@ export const vendor_commission_entries = pgTable(
       columns.effective_at,
     ),
     order_entry_type_idx: index('order_entry_type_idx').on(columns.order, columns.entry_type),
+  }),
+)
+
+export const vendor_withdrawal_requests = pgTable(
+  'vendor_withdrawal_requests',
+  {
+    id: serial('id').primaryKey(),
+    vendor: integer('vendor_id')
+      .notNull()
+      .references(() => vendors.id, {
+        onDelete: 'set null',
+      }),
+    amount: numeric('amount').notNull(),
+    currency: varchar('currency').notNull().default('PHP'),
+    status: enum_vendor_withdrawal_requests_status('status').notNull().default('pending'),
+    payout_destination: varchar('payout_destination').notNull(),
+    payment_reference: varchar('payment_reference'),
+    reason: varchar('reason'),
+    idempotency_key: varchar('idempotency_key'),
+    requested_by: integer('requested_by_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'set null',
+      }),
+    requested_at: timestamp('requested_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    decided_by: integer('decided_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    decided_at: timestamp('decided_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    paid_by: integer('paid_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    paid_at: timestamp('paid_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    cancelled_by: integer('cancelled_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    cancelled_at: timestamp('cancelled_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => ({
+    vendor_withdrawal_requests_vendor_idx: index('vendor_withdrawal_requests_vendor_idx').on(
+      columns.vendor,
+    ),
+    vendor_withdrawal_requests_status_idx: index('vendor_withdrawal_requests_status_idx').on(
+      columns.status,
+    ),
+    vendor_withdrawal_requests_requested_by_idx: index(
+      'vendor_withdrawal_requests_requested_by_idx',
+    ).on(columns.requested_by),
+    vendor_withdrawal_requests_decided_by_idx: index(
+      'vendor_withdrawal_requests_decided_by_idx',
+    ).on(columns.decided_by),
+    vendor_withdrawal_requests_paid_by_idx: index('vendor_withdrawal_requests_paid_by_idx').on(
+      columns.paid_by,
+    ),
+    vendor_withdrawal_requests_cancelled_by_idx: index(
+      'vendor_withdrawal_requests_cancelled_by_idx',
+    ).on(columns.cancelled_by),
+    vendor_withdrawal_requests_updated_at_idx: index(
+      'vendor_withdrawal_requests_updated_at_idx',
+    ).on(columns.updatedAt),
+    vendor_withdrawal_requests_created_at_idx: index(
+      'vendor_withdrawal_requests_created_at_idx',
+    ).on(columns.createdAt),
+    vendor_createdAt_idx: index('vendor_createdAt_idx').on(columns.vendor, columns.createdAt),
+    vendor_idempotency_key_idx: uniqueIndex('vendor_idempotency_key_idx').on(
+      columns.vendor,
+      columns.idempotency_key,
+    ),
+    status_createdAt_idx: index('status_createdAt_idx').on(columns.status, columns.createdAt),
   }),
 )
 
@@ -4824,7 +4946,7 @@ export const membership_audit_log = pgTable(
     membership_audit_log_created_at_idx: index('membership_audit_log_created_at_idx').on(
       columns.createdAt,
     ),
-    vendor_createdAt_idx: index('vendor_createdAt_idx').on(columns.vendor, columns.createdAt),
+    vendor_createdAt_1_idx: index('vendor_createdAt_1_idx').on(columns.vendor, columns.createdAt),
     subscription_idx: index('subscription_idx').on(columns.subscription),
     eventId_idx: uniqueIndex('eventId_idx').on(columns.eventId),
   }),
@@ -5143,6 +5265,7 @@ export const payload_locked_documents_rels = pgTable(
     'subscription-invoicesID': integer('subscription_invoices_id'),
     'commission-rulesID': integer('commission_rules_id'),
     'vendor-commission-entriesID': integer('vendor_commission_entries_id'),
+    'vendor-withdrawal-requestsID': integer('vendor_withdrawal_requests_id'),
     'vendor-entitlementsID': integer('vendor_entitlements_id'),
     'membership-audit-logID': integer('membership_audit_log_id'),
     'member-invitesID': integer('member_invites_id'),
@@ -5367,6 +5490,9 @@ export const payload_locked_documents_rels = pgTable(
     payload_locked_documents_rels_vendor_commission_entries_id_idx: index(
       'payload_locked_documents_rels_vendor_commission_entries_id_idx',
     ).on(columns['vendor-commission-entriesID']),
+    payload_locked_documents_rels_vendor_withdrawal_requests_id_idx: index(
+      'payload_locked_documents_rels_vendor_withdrawal_requests_id_idx',
+    ).on(columns['vendor-withdrawal-requestsID']),
     payload_locked_documents_rels_vendor_entitlements_id_idx: index(
       'payload_locked_documents_rels_vendor_entitlements_id_idx',
     ).on(columns['vendor-entitlementsID']),
@@ -5745,6 +5871,11 @@ export const payload_locked_documents_rels = pgTable(
       foreignColumns: [vendor_commission_entries.id],
       name: 'payload_locked_documents_rels_vendor_commission_entries_fk',
     }).onDelete('cascade'),
+    'vendor-withdrawal-requestsIdFk': foreignKey({
+      columns: [columns['vendor-withdrawal-requestsID']],
+      foreignColumns: [vendor_withdrawal_requests.id],
+      name: 'payload_locked_documents_rels_vendor_withdrawal_requests_fk',
+    }).onDelete('cascade'),
     'vendor-entitlementsIdFk': foreignKey({
       columns: [columns['vendor-entitlementsID']],
       foreignColumns: [vendor_entitlements.id],
@@ -5851,6 +5982,29 @@ export const payload_migrations = pgTable(
     payload_migrations_created_at_idx: index('payload_migrations_created_at_idx').on(
       columns.createdAt,
     ),
+  }),
+)
+
+export const system_settings_commission_volume_tiers = pgTable(
+  'system_settings_commission_volume_tiers',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    name: varchar('name').notNull(),
+    minimumNetSales: numeric('minimum_net_sales').notNull(),
+    commissionPercent: numeric('commission_percent').notNull(),
+  },
+  (columns) => ({
+    _orderIdx: index('system_settings_commission_volume_tiers_order_idx').on(columns._order),
+    _parentIDIdx: index('system_settings_commission_volume_tiers_parent_id_idx').on(
+      columns._parentID,
+    ),
+    _parentIDFk: foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [system_settings.id],
+      name: 'system_settings_commission_volume_tiers_parent_id_fk',
+    }).onDelete('cascade'),
   }),
 )
 
@@ -7084,6 +7238,16 @@ export const relations_commission_rules = relations(commission_rules, ({ one }) 
     references: [vendors.id],
     relationName: 'vendor',
   }),
+  product: one(products, {
+    fields: [commission_rules.product],
+    references: [products.id],
+    relationName: 'product',
+  }),
+  product_category: one(prod_categories, {
+    fields: [commission_rules.product_category],
+    references: [prod_categories.id],
+    relationName: 'product_category',
+  }),
 }))
 export const relations_vendor_commission_entries = relations(
   vendor_commission_entries,
@@ -7112,6 +7276,36 @@ export const relations_vendor_commission_entries = relations(
       fields: [vendor_commission_entries.adjustment_actor],
       references: [users.id],
       relationName: 'adjustment_actor',
+    }),
+  }),
+)
+export const relations_vendor_withdrawal_requests = relations(
+  vendor_withdrawal_requests,
+  ({ one }) => ({
+    vendor: one(vendors, {
+      fields: [vendor_withdrawal_requests.vendor],
+      references: [vendors.id],
+      relationName: 'vendor',
+    }),
+    requested_by: one(users, {
+      fields: [vendor_withdrawal_requests.requested_by],
+      references: [users.id],
+      relationName: 'requested_by',
+    }),
+    decided_by: one(users, {
+      fields: [vendor_withdrawal_requests.decided_by],
+      references: [users.id],
+      relationName: 'decided_by',
+    }),
+    paid_by: one(users, {
+      fields: [vendor_withdrawal_requests.paid_by],
+      references: [users.id],
+      relationName: 'paid_by',
+    }),
+    cancelled_by: one(users, {
+      fields: [vendor_withdrawal_requests.cancelled_by],
+      references: [users.id],
+      relationName: 'cancelled_by',
     }),
   }),
 )
@@ -7602,6 +7796,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [vendor_commission_entries.id],
       relationName: 'vendor-commission-entries',
     }),
+    'vendor-withdrawal-requestsID': one(vendor_withdrawal_requests, {
+      fields: [payload_locked_documents_rels['vendor-withdrawal-requestsID']],
+      references: [vendor_withdrawal_requests.id],
+      relationName: 'vendor-withdrawal-requests',
+    }),
     'vendor-entitlementsID': one(vendor_entitlements, {
       fields: [payload_locked_documents_rels['vendor-entitlementsID']],
       references: [vendor_entitlements.id],
@@ -7663,7 +7862,21 @@ export const relations_payload_preferences = relations(payload_preferences, ({ m
   }),
 }))
 export const relations_payload_migrations = relations(payload_migrations, () => ({}))
-export const relations_system_settings = relations(system_settings, () => ({}))
+export const relations_system_settings_commission_volume_tiers = relations(
+  system_settings_commission_volume_tiers,
+  ({ one }) => ({
+    _parentID: one(system_settings, {
+      fields: [system_settings_commission_volume_tiers._parentID],
+      references: [system_settings.id],
+      relationName: 'commissionVolumeTiers',
+    }),
+  }),
+)
+export const relations_system_settings = relations(system_settings, ({ many }) => ({
+  commissionVolumeTiers: many(system_settings_commission_volume_tiers, {
+    relationName: 'commissionVolumeTiers',
+  }),
+}))
 
 type DatabaseSchema = {
   enum_users_gender: typeof enum_users_gender
@@ -7774,8 +7987,10 @@ type DatabaseSchema = {
   enum_subscription_invoices_billing_reason: typeof enum_subscription_invoices_billing_reason
   enum_subscription_invoices_payment_provider: typeof enum_subscription_invoices_payment_provider
   enum_commission_rules_scope: typeof enum_commission_rules_scope
+  enum_commission_rules_commission_method: typeof enum_commission_rules_commission_method
   enum_vendor_commission_entries_entry_type: typeof enum_vendor_commission_entries_entry_type
   enum_vendor_commission_entries_commission_source: typeof enum_vendor_commission_entries_commission_source
+  enum_vendor_withdrawal_requests_status: typeof enum_vendor_withdrawal_requests_status
   enum_vendor_entitlements_capabilities_support_sla: typeof enum_vendor_entitlements_capabilities_support_sla
   enum_membership_audit_log_action: typeof enum_membership_audit_log_action
   enum_member_invites_status: typeof enum_member_invites_status
@@ -7876,6 +8091,7 @@ type DatabaseSchema = {
   subscription_invoices: typeof subscription_invoices
   commission_rules: typeof commission_rules
   vendor_commission_entries: typeof vendor_commission_entries
+  vendor_withdrawal_requests: typeof vendor_withdrawal_requests
   vendor_entitlements: typeof vendor_entitlements
   membership_audit_log: typeof membership_audit_log
   member_invites: typeof member_invites
@@ -7888,6 +8104,7 @@ type DatabaseSchema = {
   payload_preferences: typeof payload_preferences
   payload_preferences_rels: typeof payload_preferences_rels
   payload_migrations: typeof payload_migrations
+  system_settings_commission_volume_tiers: typeof system_settings_commission_volume_tiers
   system_settings: typeof system_settings
   relations_users_reset_password_tokens: typeof relations_users_reset_password_tokens
   relations_users_email_change_tokens: typeof relations_users_email_change_tokens
@@ -7981,6 +8198,7 @@ type DatabaseSchema = {
   relations_subscription_invoices: typeof relations_subscription_invoices
   relations_commission_rules: typeof relations_commission_rules
   relations_vendor_commission_entries: typeof relations_vendor_commission_entries
+  relations_vendor_withdrawal_requests: typeof relations_vendor_withdrawal_requests
   relations_vendor_entitlements: typeof relations_vendor_entitlements
   relations_membership_audit_log: typeof relations_membership_audit_log
   relations_member_invites: typeof relations_member_invites
@@ -7993,6 +8211,7 @@ type DatabaseSchema = {
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels
   relations_payload_preferences: typeof relations_payload_preferences
   relations_payload_migrations: typeof relations_payload_migrations
+  relations_system_settings_commission_volume_tiers: typeof relations_system_settings_commission_volume_tiers
   relations_system_settings: typeof relations_system_settings
 }
 

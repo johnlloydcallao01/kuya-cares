@@ -87,6 +87,9 @@ import * as migration_20261013_111807 from './20261013_111807';
 import * as migration_20261013_112838 from './20261013_112838';
 import * as migration_20261013_113000_mark_historical_commissions from './20261013_113000_mark_historical_commissions';
 import * as migration_20261013_135802_commission_adjustments from './20261013_135802_commission_adjustments';
+import * as migration_20261016_014900_product_commission_rules from './20261016_014900_product_commission_rules';
+import * as migration_20261016_120000_vendor_withdrawal_requests from './20261016_120000_vendor_withdrawal_requests';
+import * as migration_20261016_125500_commission_volume_query_index from './20261016_125500_commission_volume_query_index';
 
 export const migrations = [
   {
@@ -533,5 +536,20 @@ export const migrations = [
     up: migration_20261013_135802_commission_adjustments.up,
     down: migration_20261013_135802_commission_adjustments.down,
     name: '20261013_135802_commission_adjustments'
+  },
+  {
+    up: migration_20261016_014900_product_commission_rules.up,
+    down: migration_20261016_014900_product_commission_rules.down,
+    name: '20261016_014900_product_commission_rules',
+  },
+  {
+    up: migration_20261016_120000_vendor_withdrawal_requests.up,
+    down: migration_20261016_120000_vendor_withdrawal_requests.down,
+    name: '20261016_120000_vendor_withdrawal_requests',
+  },
+  {
+    up: migration_20261016_125500_commission_volume_query_index.up,
+    down: migration_20261016_125500_commission_volume_query_index.down,
+    name: '20261016_125500_commission_volume_query_index',
   },
 ];

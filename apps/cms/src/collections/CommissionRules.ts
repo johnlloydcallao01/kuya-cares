@@ -15,12 +15,21 @@ function relationshipId(value: unknown): string | number | null {
 
 function auditSnapshot(doc: Record<string, unknown>) {
   const scope = String(doc.scope ?? '')
-  const targetField = scope === 'vendor' || scope === 'category' || scope === 'plan' ? scope : null
+  const targetField =
+    scope === 'vendor' ||
+    scope === 'category' ||
+    scope === 'plan' ||
+    scope === 'product' ||
+    scope === 'product_category'
+      ? scope
+      : null
   return {
     name: doc.name,
     scope: doc.scope,
     targetId: targetField ? relationshipId(doc[targetField]) : null,
     priority: doc.priority,
+    commission_method: doc.commission_method,
+    commission_value: doc.commission_value,
     commission_percent: doc.commission_percent,
     transaction_fee: doc.transaction_fee,
     effective_from: doc.effective_from,
@@ -33,9 +42,20 @@ export const CommissionRules: CollectionConfig = {
   slug: 'commission-rules',
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'scope', 'priority', 'commission_percent', 'is_active'],
+    defaultColumns: [
+      'name',
+      'scope',
+      'product',
+      'product_category',
+      'priority',
+      'commission_method',
+      'commission_value',
+      'commission_percent',
+      'is_active',
+    ],
     group: 'Finance',
-    description: 'Vendor commission rules. Higher priority wins; ties prefer the most specific scope.',
+    description:
+      'Commission rules. Higher priority wins; equal priorities prefer product, product category, vendor, merchant category, plan, then global.',
   },
   access: {
     read: ({ req: { user } }) => {
@@ -55,8 +75,10 @@ export const CommissionRules: CollectionConfig = {
       options: [
         { label: 'Global', value: 'global' },
         { label: 'Plan', value: 'plan' },
-        { label: 'Category', value: 'category' },
+        { label: 'Merchant Category', value: 'category' },
         { label: 'Vendor', value: 'vendor' },
+        { label: 'Product', value: 'product' },
+        { label: 'Product Category', value: 'product_category' },
       ],
     },
     {
@@ -64,7 +86,10 @@ export const CommissionRules: CollectionConfig = {
       type: 'number',
       required: true,
       defaultValue: 0,
-      admin: { description: 'Higher wins. Equal priorities prefer vendor, category, plan, then global.' },
+      admin: {
+        description:
+          'Higher wins. Equal priorities prefer product, product category, vendor, merchant category, plan, then global.',
+      },
     },
     {
       name: 'plan',
@@ -76,7 +101,7 @@ export const CommissionRules: CollectionConfig = {
       name: 'category',
       type: 'relationship',
       relationTo: 'merchant-categories',
-      admin: { description: "Only when scope === 'category'" },
+      admin: { description: "Only when scope === 'category'; targets a merchant category." },
     },
     {
       name: 'vendor',
@@ -84,7 +109,57 @@ export const CommissionRules: CollectionConfig = {
       relationTo: 'vendors',
       admin: { description: "Only when scope === 'vendor'" },
     },
-    { name: 'commission_percent', type: 'number', required: true, min: 0, max: 100 },
+    {
+      name: 'product',
+      type: 'relationship',
+      relationTo: 'products',
+      admin: { description: "Only when scope === 'product'; applies to order lines for this product." },
+    },
+    {
+      name: 'product_category',
+      type: 'relationship',
+      relationTo: 'product-categories',
+      admin: {
+        description:
+          "Only when scope === 'product_category'; applies to order lines whose product belongs to this catalog category.",
+      },
+    },
+    {
+      name: 'commission_method',
+      type: 'select',
+      defaultValue: 'percentage_of_discounted_subtotal',
+      options: [
+        { label: 'Percentage of discounted subtotal', value: 'percentage_of_discounted_subtotal' },
+        { label: 'Percentage of pre-discount item price', value: 'percentage_of_pre_discount_subtotal' },
+        { label: 'Fixed amount per unit', value: 'fixed_amount_per_unit' },
+        { label: 'Percentage of vendor cost', value: 'percentage_of_vendor_cost' },
+      ],
+      admin: {
+        description:
+          'Discounted percentage uses merchandise after product discounts; pre-discount percentage uses the customer item subtotal recorded at checkout (including options, before order discounts); fixed-per-unit is PHP per paid product unit; vendor-cost percentage uses the private cost snapshot.',
+      },
+    },
+    {
+      name: 'commission_value',
+      type: 'number',
+      min: 0,
+      admin: {
+        description:
+          'Rate (%) for percentage methods or PHP per unit for fixed amount per unit. Percentage methods are limited to 0–100%; fixed unit amounts must use at most two decimal places. If omitted, legacy commission_percent is used for percentage rules.',
+        step: 0.01,
+      },
+    },
+    {
+      name: 'commission_percent',
+      type: 'number',
+      min: 0,
+      max: 100,
+      defaultValue: 0,
+      admin: {
+        description:
+          'Legacy percentage value retained for API compatibility. New rules should set commission_method and commission_value.',
+      },
+    },
     {
       name: 'transaction_fee',
       type: 'number',
@@ -96,7 +171,11 @@ export const CommissionRules: CollectionConfig = {
     { name: 'effective_to', type: 'date' },
     { name: 'is_active', type: 'checkbox', defaultValue: true },
   ],
-  indexes: [{ fields: ['scope', 'is_active'] }, { fields: ['priority'] }],
+  indexes: [
+    { fields: ['scope', 'is_active'] },
+    { fields: ['priority'] },
+    { fields: ['product_category'] },
+  ],
   hooks: {
     beforeValidate: [
       ({ data, originalDoc }) => {
@@ -107,10 +186,12 @@ export const CommissionRules: CollectionConfig = {
           plan: rule.plan,
           category: rule.category,
           vendor: rule.vendor,
+          product: rule.product,
+          product_category: rule.product_category,
         }
         const targetScope = Object.entries(targets).find(([, value]) => value != null)?.[0]
         if (scope === 'global' && targetScope) {
-          throw new Error('Global commission rules must not target a plan, category, or vendor.')
+          throw new Error('Global commission rules must not target another scope relationship.')
         }
         if (scope && scope !== 'global' && !rule[scope]) {
           throw new Error(`${scope} commission rules require a matching ${scope} target.`)
@@ -120,9 +201,41 @@ export const CommissionRules: CollectionConfig = {
             throw new Error(`${scope} commission rules cannot target ${target}.`)
           }
         }
-        const pct = Number(rule.commission_percent)
-        if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        const method = rule.commission_method ?? 'percentage_of_discounted_subtotal'
+        const supportedMethods = [
+          'percentage_of_discounted_subtotal',
+          'percentage_of_pre_discount_subtotal',
+          'fixed_amount_per_unit',
+          'percentage_of_vendor_cost',
+        ]
+        if (!supportedMethods.includes(String(method))) {
+          throw new Error('Commission method is not supported.')
+        }
+        if (
+          method !== 'percentage_of_discounted_subtotal' &&
+          method !== 'percentage_of_pre_discount_subtotal' &&
+          (rule.commission_value === undefined || rule.commission_value === null || rule.commission_value === '')
+        ) {
+          throw new Error('Commission value is required for fixed-per-unit and vendor-cost methods.')
+        }
+        const value = rule.commission_value ?? rule.commission_percent ?? 0
+        const numericValue = Number(value)
+        if (!Number.isFinite(numericValue) || numericValue < 0) {
+          throw new Error('Commission value must be a non-negative amount or rate.')
+        }
+        if (
+          (method === 'percentage_of_discounted_subtotal' ||
+            method === 'percentage_of_pre_discount_subtotal' ||
+            method === 'percentage_of_vendor_cost') &&
+          numericValue > 100
+        ) {
           throw new Error('Commission percentage must be between 0 and 100.')
+        }
+        if (
+          method === 'fixed_amount_per_unit' &&
+          Math.abs(numericValue * 100 - Math.round(numericValue * 100)) > 0.000001
+        ) {
+          throw new Error('Fixed-per-unit commission must use no more than two decimal places.')
         }
         const fee = Number(rule.transaction_fee ?? 0)
         if (!Number.isFinite(fee) || fee < 0) {

@@ -203,4 +203,7 @@ export const Transactions: CollectionConfig = {
       },
     ],
   },
+  indexes: [
+    { fields: ['status', 'paid_at'] },
+  ],
 }

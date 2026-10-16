@@ -94,6 +94,25 @@ function sanitizeCustomerBrief(value: unknown): Record<string, any> | null {
   }
   return { id, email: str(c.email, user ? str((user as any).email, '') : ''), user }
 }
+function sanitizeCommissionRule(value: unknown): { id: number; name: string } | null {
+  if (value == null) return null
+  if (typeof value !== 'object') {
+    const id = Number(value)
+    return Number.isNaN(id) ? null : { id, name: '' }
+  }
+  const r = value as Record<string, any>
+  const id = Number(r.id)
+  if (Number.isNaN(id)) return null
+  return { id, name: str(r.name, '') }
+}
+function numOrNull(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
 function sanitizeOrderDoc(raw: Record<string, any>): Record<string, any> {
   const id = raw.id
   const orderNumber = `#${String(id).padStart(5, '0')}`
@@ -112,6 +131,18 @@ function sanitizeOrderDoc(raw: Record<string, any>): Record<string, any> {
     free_delivery_applied: !!raw.free_delivery_applied,
     placed_at: raw.placed_at ? String(raw.placed_at) : null,
     notes: optionalString(raw.notes),
+    commission: {
+      status: str(raw.commission_status, 'pending'),
+      percent: numOrNull(raw.commission_percent),
+      base_amount: numOrNull(raw.commission_base_amount),
+      vendor_discount: numOrNull(raw.commission_vendor_discount),
+      amount: numOrNull(raw.commission_amount),
+      transaction_fee: numOrNull(raw.commission_transaction_fee),
+      vendor_net: numOrNull(raw.commission_vendor_net),
+      source: optionalString(raw.commission_source),
+      rule: sanitizeCommissionRule(raw.commission_rule),
+      calculated_at: raw.commission_calculated_at ? String(raw.commission_calculated_at) : null,
+    },
     lalamove: {
       orderId: optionalString(raw.lalamove_order_id),
       serviceType: optionalString(raw.delivery_service_type) || 'MOTORCYCLE',

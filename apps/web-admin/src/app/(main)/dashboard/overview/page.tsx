@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@encreasl/client-services';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useCommissionEarnings } from '@/hooks/useCommissionEarnings';
 import { ClientOnly } from '@/components/ClientOnly';
 import {
   MetricCard,
@@ -13,7 +14,7 @@ import {
   RecentOrdersTable,
   TopVendorsTable,
 } from '@/components/dashboard';
-import { DollarSign, ShoppingCart, Store, RefreshCw, AlertCircle } from '@/components/ui/IconWrapper';
+import { DollarSign, ShoppingCart, Store, RefreshCw, AlertCircle, Coins } from '@/components/ui/IconWrapper';
 
 function DashboardError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -46,8 +47,8 @@ function DashboardSkeleton() {
         </div>
         <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded w-32 hidden sm:block flex-shrink-0" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-full md:[&>:last-child:nth-child(odd)]:col-span-1">
-        {Array.from({ length: 3 }).map((_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-white dark:bg-[var(--card-background)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-5 shadow-sm">
             <div className="space-y-3">
               <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-20" />
@@ -126,6 +127,7 @@ function DashboardPageContent() {
   const queryClient = useQueryClient();
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const { data, isLoading, isFetching, isError, error, refetch } = useDashboard();
+  const { data: earnings } = useCommissionEarnings('range=30d');
   const errorMessage = isError && !data && !hardRefreshing ? (error instanceof Error ? error.message : 'Failed to load dashboard') : null;
 
   const handleHardRefresh = () => {
@@ -181,7 +183,7 @@ function DashboardPageContent() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-full md:[&>:last-child:nth-child(odd)]:col-span-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <MetricCard
           title="Total Revenue"
           value={`₱${metrics.totalRevenue.toLocaleString()}`}
@@ -203,6 +205,15 @@ function DashboardPageContent() {
           icon={<Store className="w-5 h-5 text-white" />}
           iconBg="bg-purple-500"
         />
+        <a href="/finance/commission-earnings" className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-[#239459]/40">
+          <MetricCard
+            title="Commission Earnings"
+            value={earnings ? `₱${earnings.summary.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+            change={0}
+            icon={<Coins className="w-5 h-5 text-white" />}
+            iconBg="bg-emerald-600"
+          />
+        </a>
       </div>
 
       {/* Charts Row */}

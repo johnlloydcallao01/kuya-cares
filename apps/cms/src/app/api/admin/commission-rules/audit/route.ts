@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
       const metadata = entry.metadata
       if (!metadata || typeof metadata !== 'object') return false
       const kind = (metadata as Record<string, unknown>).kind
-      return kind === 'commission-rule' || kind === 'commission-override'
+      return kind === 'commission-rule' ||
+        kind === 'commission-override' ||
+        kind === 'commission-volume-tiers'
     })
     return NextResponse.json({ docs, totalDocs: docs.length })
   } catch (error) {
