@@ -10,6 +10,17 @@ export type VendorGroup = {
   totalProductsFiltered: number;
 };
 
+export type MerchantDirectoryRow = {
+  id: number;
+  outletName: string;
+  outletCode: string;
+  isActive: boolean;
+  isAcceptingOrders: boolean;
+  operationalStatus: string;
+  vendor: VendorGroup['vendor'] | null;
+  totalProducts: number;
+};
+
 export type MerchantProductPagination = {
   page: number;
   limit: number;
@@ -25,6 +36,7 @@ export type MerchantProductStats = {
   totalMerchantProducts: number;
   activeMerchants: number;
   filteredVendors: number;
+  filteredMerchants?: number;
   totalProducts: number;
 };
 
@@ -32,6 +44,7 @@ export type MerchantProductsResponse = {
   view?: 'merchant' | 'vendor' | 'all';
   selectedVendor?: VendorGroup['vendor'] | null;
   docs?: MerchantProductRow[];
+  merchants?: MerchantDirectoryRow[];
   allViewStats?: {
     totalAssignments: number;
     activeAssignments: number;

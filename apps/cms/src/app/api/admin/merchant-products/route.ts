@@ -1,7 +1,7 @@
 /**
  * @file apps/cms/src/app/api/admin/merchant-products/route.ts
- * @description BFF for /products page — vendor-encapsulated merchant products (FoodPanda style).
- * GET  /api/admin/merchant-products?view=merchant|all&page=1&limit=10&search=&vendor=&productType=&isActive=
+ * @description BFF for /products page — merchant and vendor-scoped product browsing.
+ * GET  /api/admin/merchant-products?view=merchant|vendor|all&page=1&limit=10&search=&vendor=&merchant=&productType=&isActive=
  * POST /api/admin/merchant-products — create merchant product (assign product to merchant)
  */
 
@@ -22,7 +22,15 @@ function sanitizeVendorBrief(v: unknown) {
   if (!v || typeof v !== 'object') return null
   const o = v as Record<string, any>
   const id = Number(o.id); if (Number.isNaN(id)) return null
-  return { id, businessName: String(o.businessName || ''), verificationStatus: String(o.verificationStatus || 'pending'), businessType: String(o.businessType || 'other') }
+  return {
+    id,
+    businessName: String(o.businessName || ''),
+    legalName: String(o.legalName || ''),
+    verificationStatus: String(o.verificationStatus || 'pending'),
+    businessType: String(o.businessType || 'other'),
+    isActive: o.isActive === true,
+    logo: sanitizeMediaRef(o.logo),
+  }
 }
 function badRequest(m: string, d?: unknown) { return NextResponse.json({ error: m, details: d }, { status: 400 }) }
 
@@ -52,15 +60,113 @@ export async function GET(request: NextRequest) {
     const isActiveParam = searchParams.get('isActive')
     const isActiveFilter = isActiveParam === 'true' ? true : isActiveParam === 'false' ? false : null
     const requestedView = searchParams.get('view')
-    const view = requestedView === 'all' || requestedView === 'vendor' ? requestedView : 'merchant'
+    const view = requestedView === 'all' || requestedView === 'vendor' || requestedView === 'merchant' ? requestedView : 'merchant'
 
-    if (view === 'all' || (view === 'vendor' && vendorFilter !== null)) {
+    if (view === 'merchant' && merchantFilter === null) {
+      const where = search
+        ? {
+            or: [
+              { outletName: { contains: search } },
+              { outletCode: { contains: search } },
+              { 'vendor.businessName': { contains: search } },
+              { 'vendor.legalName': { contains: search } },
+            ],
+          }
+        : undefined
+      const [merchantPage, totalVendors, totalMerchants, totalMerchantProducts, activeMerchants] = await Promise.all([
+        payload.find({
+          collection: 'merchants',
+          where,
+          page,
+          limit,
+          sort: 'outletName',
+          depth: 1,
+          overrideAccess: true,
+        } as any),
+        payload.find({ collection: 'vendors', limit: 1, depth: 0, overrideAccess: true } as any),
+        payload.find({ collection: 'merchants', limit: 1, depth: 0, overrideAccess: true } as any),
+        payload.find({ collection: 'merchant-products', limit: 1, depth: 0, overrideAccess: true } as any),
+        payload.find({ collection: 'merchants', where: { isActive: { equals: true } }, limit: 1, depth: 0, overrideAccess: true } as any),
+      ])
+      const pageVendorIds = Array.from(new Set((merchantPage.docs as any[])
+        .map((merchant) => {
+          const vendor = merchant.vendor
+          return vendor && typeof vendor === 'object' ? vendor.id : vendor
+        })
+        .filter((id) => id != null)
+        .map(Number)
+        .filter(Number.isSafeInteger)))
+      const pageVendors = pageVendorIds.length
+        ? await payload.find({
+            collection: 'vendors',
+            where: { id: { in: pageVendorIds } },
+            limit: pageVendorIds.length,
+            depth: 1,
+            overrideAccess: true,
+            pagination: false,
+          } as any)
+        : { docs: [] }
+      const vendorById = new Map((pageVendors.docs as any[]).map((vendor) => [String(vendor.id), vendor]))
+      const merchants = await Promise.all((merchantPage.docs as any[]).map(async (merchant) => {
+        const products = await payload.find({
+          collection: 'merchant-products',
+          where: { merchant_id: { equals: merchant.id } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+          context: { skipEffectiveModifierPreview: true },
+        } as any)
+        const rawVendor = merchant.vendor
+        const vendorId = rawVendor && typeof rawVendor === 'object' ? rawVendor.id : rawVendor
+        const vendor = vendorById.get(String(vendorId)) || rawVendor
+        return {
+          id: Number(merchant.id),
+          outletName: String(merchant.outletName || ''),
+          outletCode: String(merchant.outletCode || ''),
+          isActive: merchant.isActive === true,
+          isAcceptingOrders: merchant.isAcceptingOrders === true,
+          operationalStatus: String(merchant.operationalStatus || 'open'),
+          vendor: sanitizeVendorBrief(vendor),
+          totalProducts: products.totalDocs ?? 0,
+        }
+      }))
+      const responseBody = {
+        view,
+        merchants,
+        pagination: {
+          page: merchantPage.page || page,
+          limit: merchantPage.limit || limit,
+          totalDocs: merchantPage.totalDocs ?? merchants.length,
+          totalPages: merchantPage.totalPages ?? 1,
+          hasNextPage: merchantPage.hasNextPage ?? false,
+          hasPrevPage: merchantPage.hasPrevPage ?? false,
+        },
+        stats: {
+          totalVendors: totalVendors.totalDocs ?? 0,
+          totalMerchants: totalMerchants.totalDocs ?? 0,
+          totalMerchantProducts: totalMerchantProducts.totalDocs ?? 0,
+          activeMerchants: activeMerchants.totalDocs ?? 0,
+          filteredVendors: totalVendors.totalDocs ?? 0,
+          filteredMerchants: merchantPage.totalDocs ?? merchants.length,
+          totalProducts: totalMerchantProducts.totalDocs ?? 0,
+        },
+        meta: { generatedAt: new Date().toISOString(), search },
+      }
+      await setCached(cacheKey, responseBody, 20)
+      return NextResponse.json(responseBody, { headers: { 'X-MerchantProducts-Cache': 'MISS' } })
+    }
+
+    if (view === 'all' || (view === 'vendor' && vendorFilter !== null) || (view === 'merchant' && merchantFilter !== null)) {
       if (view === 'vendor' && (!Number.isSafeInteger(vendorFilter) || Number(vendorFilter) <= 0)) {
         return badRequest('A valid vendor ID is required for vendor-scoped products')
+      }
+      if (view === 'merchant' && (!Number.isSafeInteger(merchantFilter) || Number(merchantFilter) <= 0)) {
+        return badRequest('A valid merchant ID is required for merchant-scoped products')
       }
 
       const and: Record<string, unknown>[] = []
       if (view === 'vendor') and.push({ 'merchant_id.vendor': { equals: vendorFilter } })
+      if (view === 'merchant') and.push({ merchant_id: { equals: merchantFilter } })
       if (search) {
         and.push({
           or: [
@@ -81,7 +187,9 @@ export async function GET(request: NextRequest) {
       const scopeWhere = and.length ? { and } : undefined
       const baseScopeWhere = view === 'vendor'
         ? { 'merchant_id.vendor': { equals: vendorFilter } }
-        : undefined
+        : view === 'merchant'
+          ? { merchant_id: { equals: merchantFilter } }
+          : undefined
       const [assignments, allAssignments, activeAssignments, selectedVendor] = await Promise.all([
         payload.find({
           collection: 'merchant-products',
@@ -106,6 +214,7 @@ export async function GET(request: NextRequest) {
           where: {
             and: [
               ...(view === 'vendor' ? [{ 'merchant_id.vendor': { equals: vendorFilter } }] : []),
+              ...(view === 'merchant' ? [{ merchant_id: { equals: merchantFilter } }] : []),
               { is_active: { equals: true } },
               { is_available: { equals: true } },
             ],

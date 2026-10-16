@@ -28,7 +28,7 @@ function MerchantProductsListPageContent(){
   const params=useParams()
   const router=useRouter()
   const queryClient=useQueryClient()
-  const vendorId=params.vendorId as string
+  const vendorId=(params.vendorId as string | undefined) || ''
   const merchantId=params.merchantId as string
   const [merchant,setMerchant]=useState<any>(null)
   const [vendor,setVendor]=useState<any>(null)
@@ -46,7 +46,7 @@ function MerchantProductsListPageContent(){
     try{
       const [merchantRes, mpRes] = await Promise.all([
         fetch(`/api/merchants/${merchantId}`,{cache:'no-store'}).then(r=>r.json()),
-        fetch(`/api/merchant-products?merchant=${merchantId}&limit=100`,{cache:'no-store'}).then(r=>r.json()),
+        fetch(`/api/merchant-products?view=merchant&merchant=${merchantId}&limit=100`,{cache:'no-store'}).then(r=>r.json()),
       ])
       const mDoc = merchantRes.doc || merchantRes
       setMerchant(mDoc)
@@ -57,39 +57,17 @@ function MerchantProductsListPageContent(){
         if(vRes?.doc) setVendor(vRes.doc)
         else setVendor({ id: Number(vId), businessName: mDoc.vendor?.businessName || `Vendor #${vId}` })
       }
-      // merchant-products BFF returns vendors grouped, but when filtered by merchant, it will still be grouped; extract products for this merchant
       let mps: MerchantProduct[] = []
-      if(mpRes.vendors){
-        const vGroup = (mpRes.vendors as any[]).find((v:any)=> String(v.vendor.id)===String(vId))
-        const mGroup = vGroup?.merchants?.find((m:any)=> String(m.merchant.id)===String(merchantId))
-        mps = (mGroup?.products || []) as MerchantProduct[]
-        // fallback: if no grouping, try flat
-        if(mps.length===0 && mpRes.vendors.length){
-          // collect all products for this merchant across all vendors (should be just one)
-          for(const v of mpRes.vendors as any[]){
-            for(const m of v.merchants as any[]){
-              if(String(m.merchant.id)===String(merchantId)){
-                mps = m.products as MerchantProduct[]
-              }
-            }
-          }
-        }
-      } else if(mpRes.docs){
-        mps = (mpRes.docs as any[]).map((mp:any)=>({
-          merchantProductId: Number(mp.id),
-          merchantId: Number(merchantId),
-          product: mp.product_id ? { id: Number(mp.product_id), name: String(mp.product_id), slug: '', sku: null, productType: 'simple', approvalStatus: 'pending', basePrice: null, primaryImage: null } : null,
-          price_override: mp.price_override != null ? Number(mp.price_override) : null,
-          stock_quantity: mp.stock_quantity != null ? Number(mp.stock_quantity) : null,
-          is_active: !!mp.is_active,
-          is_available: !!mp.is_available,
+      if(Array.isArray(mpRes.docs)){
+        mps = mpRes.docs.map((row:any)=>({
+          merchantProductId: Number(row.merchantProductId ?? row.id),
+          merchantId: Number(row.merchant?.id ?? merchantId),
+          product: row.product || null,
+          price_override: row.priceOverride != null ? Number(row.priceOverride) : null,
+          stock_quantity: row.stockQuantity != null ? Number(row.stockQuantity) : null,
+          is_active: row.isActive === true,
+          is_available: row.isAvailable === true,
         }))
-      } else if(Array.isArray(mpRes)){
-        mps = mpRes as MerchantProduct[]
-      }
-      // Also try direct merchant-products docs if BFF returns flat
-      if(mps.length===0 && mpRes.merchantProducts){
-        mps = mpRes.merchantProducts as MerchantProduct[]
       }
       setProducts(mps)
     }catch(e:any){ setError(e.message||'Failed') } finally{ setLoading(false) }
@@ -98,8 +76,6 @@ function MerchantProductsListPageContent(){
   useEffect(()=>{void load()},[load])
   useEffect(()=>{ setPage(1) },[q])
 
-  // Also fetch merchant products via direct BFF that we know works: try fetching merchant-products with merchant filter via BFF that returns vendors grouped
-  // Our BFF handles merchant filter, so the above should work. If still empty, try fetching via direct merchant-products collection via BFF's flat handling
   const filtered = products.filter(p=>{
     if(!q) return true
     const hay = `${p.product?.name||''} ${p.product?.slug||''} ${p.product?.sku||''}`.toLowerCase()
@@ -126,7 +102,7 @@ function MerchantProductsListPageContent(){
 
   const handleBack = () => {
     if(typeof window!=='undefined' && window.history.length>1) router.back()
-    else router.push(`/products/vendors/${vendorId}`)
+    else router.push(vendorId ? `/products/vendors/${vendorId}` : '/products?view=merchant')
   }
 
   if(loading){
@@ -148,7 +124,7 @@ function MerchantProductsListPageContent(){
   return (
     <div className="space-y-6 py-5 px-2.5">
       <button onClick={handleBack} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">
-        <ArrowLeft className="w-4 h-4" /> Back to outlets
+      <ArrowLeft className="w-4 h-4" /> {vendorId ? 'Back to outlets' : 'Back to merchants'}
       </button>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -164,7 +140,7 @@ function MerchantProductsListPageContent(){
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{merchant?.outletName || `Outlet #${merchantId}`}</h1>
-            <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{merchant?.outletCode || ''} • {vendor?.businessName ? `Vendor: ${vendor.businessName}` : `Vendor #${vendorId}`} • {filtered.length} product{filtered.length!==1?'s':''}</p>
+            <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">{merchant?.outletCode || ''} • {vendor?.businessName ? `Vendor: ${vendor.businessName}` : vendorId ? `Vendor #${vendorId}` : 'Vendor unavailable'} • {filtered.length} product{filtered.length!==1?'s':''}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

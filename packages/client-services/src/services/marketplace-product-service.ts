@@ -224,13 +224,15 @@ export class MarketplaceProductService {
     ignoreLocation?: boolean;
     /** Include products only when their owning vendor is verified. */
     verifiedVendorsOnly?: boolean;
+    /** Include products only when their owning vendor is active. */
+    activeVendorsOnly?: boolean;
     /** Discovery ceiling applied AFTER the location gate + validity filters.
      *  Tap2go parity default is 40. Pass null for the full window (up to 500)
      *  — used by the /merchant-products listing page. */
     cap?: number | null;
   } = {}): Promise<MarketplaceProduct[]> {
-    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false, verifiedVendorsOnly = false, cap = 40 } = options;
-    const cacheKey = `marketplace-products-${limit}-cap${cap ?? 'all'}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}-${verifiedVendorsOnly ? 'verified-vendors' : 'all-vendors'}`;
+    const { limit = 48, productCategoryId = null, merchantCategoryId = null, search = null, customerId = null, ignoreLocation = false, verifiedVendorsOnly = false, activeVendorsOnly = false, cap = 40 } = options;
+    const cacheKey = `marketplace-products-${limit}-cap${cap ?? 'all'}-${productCategoryId ?? 'all'}-${merchantCategoryId ?? 'all'}-${(search ?? '').slice(0, 40)}-${customerId ?? 'guest'}-${ignoreLocation ? 'all' : 'nearby'}-${verifiedVendorsOnly ? 'verified-vendors' : 'all-vendors'}-${activeVendorsOnly ? 'active-vendors' : 'any-vendor-status'}`;
     const cached = dataCache.get<MarketplaceProduct[]>(cacheKey);
     if (cached) return cached;
     // Singleflight: homepage products + flash-deals + header search share one pool build.
@@ -283,6 +285,9 @@ export class MarketplaceProductService {
       if (verifiedVendorsOnly) {
         params.append('where[merchant_id.vendor.verificationStatus][equals]', 'verified');
       }
+      if (activeVendorsOnly) {
+        params.append('where[merchant_id.vendor.isActive][equals]', 'true');
+      }
 
       const res = await fetch(`${getApiBase()}/merchant-products?${params.toString()}`, {
         headers: getHeaders(),
@@ -299,6 +304,8 @@ export class MarketplaceProductService {
         const product = (mp.product_id as Record<string, unknown> | null) || null;
         const merchant = (mp.merchant_id as Record<string, unknown> | null) || null;
         if (!product || typeof product !== 'object') continue;
+        const vendor = merchant?.vendor as Record<string, unknown> | null;
+        if (activeVendorsOnly && vendor?.isActive !== true) continue;
 
         // Skip inactive / hidden catalogue items
         if (product.isActive === false) continue;

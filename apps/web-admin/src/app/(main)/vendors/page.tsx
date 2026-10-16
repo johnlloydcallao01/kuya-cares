@@ -10,7 +10,7 @@ import { ClientOnly } from '@/components/ClientOnly'
 import {
   Building, Search, X, SlidersHorizontal, ChevronDown, Plus, RefreshCw, AlertCircle,
   Store, Star, ShieldCheck, ShieldAlert, Clock, CheckCircle, Eye, Pencil, Trash2,
-  Mail, Phone, CalendarDays
+  Mail, Phone, CalendarDays, ToggleLeft, ToggleRight
 } from '@/components/ui/IconWrapper'
 
 const BUSINESS_OPTS: { value: string; label: string }[] = [
@@ -107,6 +107,7 @@ function VendorsPageContent() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [openVerificationVendorId, setOpenVerificationVendorId] = useState<number | null>(null)
   const [updatingVerificationVendorId, setUpdatingVerificationVendorId] = useState<number | null>(null)
+  const [updatingActiveVendorId, setUpdatingActiveVendorId] = useState<number | null>(null)
 
   useEffect(() => { const id = setTimeout(() => setDebouncedQ(q.trim()), 400); return () => clearTimeout(id) }, [q])
 
@@ -231,6 +232,27 @@ function VendorsPageContent() {
       alert(cause instanceof Error ? cause.message : 'Failed to update vendor verification')
     } finally {
       setUpdatingVerificationVendorId(null)
+    }
+  }
+
+  const toggleVendorActiveStatus = async (vendor: VendorDoc) => {
+    if (updatingActiveVendorId !== null) return
+    const nextIsActive = !vendor.isActive
+    setUpdatingActiveVendorId(vendor.id)
+    try {
+      const res = await fetch(`/api/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(result.error || 'Failed to update vendor active status')
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminVendors().slice(0, 2) })
+      await refetch()
+    } catch (cause) {
+      alert(cause instanceof Error ? cause.message : 'Failed to update vendor active status')
+    } finally {
+      setUpdatingActiveVendorId(null)
     }
   }
 
@@ -410,13 +432,9 @@ function VendorsPageContent() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={async () => {
-                          const next = !v.isActive
-                          const res = await fetch(`/api/vendors/${v.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: next }) })
-                          if (!res.ok) { const j = await res.json().catch(()=>({})); alert(j.error || 'Failed to toggle status') } else { void refetch() }
-                        }} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${v.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'}`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${v.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'}`}>
                           <span className={`h-2 w-2 rounded-full ${v.isActive ? 'bg-emerald-500' : 'bg-zinc-400'}`} /> {v.isActive ? 'Active' : 'Inactive'}
-                        </button>
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-full text-xs font-semibold text-gray-700 dark:text-white">
@@ -470,6 +488,24 @@ function VendorsPageContent() {
                               </div>
                             )}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => void toggleVendorActiveStatus(v)}
+                            disabled={updatingActiveVendorId !== null}
+                            aria-label={`${v.isActive ? 'Deactivate' : 'Activate'} ${v.businessName}`}
+                            title={`${v.isActive ? 'Deactivate' : 'Activate'} vendor`}
+                            className={`h-7 w-7 inline-flex items-center justify-center rounded-lg border disabled:cursor-wait disabled:opacity-50 ${
+                              v.isActive
+                                ? 'border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60'
+                                : 'border-zinc-200 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
+                            }`}
+                          >
+                            {updatingActiveVendorId === v.id
+                              ? <RefreshCw className="h-4 w-4 animate-spin" />
+                              : v.isActive
+                                ? <ToggleRight className="h-5 w-5" />
+                                : <ToggleLeft className="h-5 w-5" />}
+                          </button>
                           <Link href={`/vendors/${v.id}`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white" title="View"><Eye className="w-4 h-4" /></Link>
                           <Link href={`/vendors/${v.id}/edit`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-blue-600 dark:hover:text-blue-400" title="Edit"><Pencil className="w-4 h-4" /></Link>
                           <button onClick={() => setDeleting(v)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>

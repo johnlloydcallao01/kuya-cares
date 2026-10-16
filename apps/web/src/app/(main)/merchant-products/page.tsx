@@ -191,6 +191,7 @@ function MerchantProductsContent() {
         customerId: cid,
         ignoreLocation: scopeAll,
         verifiedVendorsOnly: true,
+        activeVendorsOnly: true,
         // Full window for the listing page (home passes the same; the
         // 40-item ceiling lives only in the home grid display).
         cap: 500,
