@@ -94,7 +94,6 @@ export function Header({
                   priority
                 />
               </div>
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">Kuya Cares</span>
             </div>
           </div>
 

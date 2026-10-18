@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useAddressChange } from '@/hooks/useAddressChange';
-import { clearAllLocationCaches } from '@/lib/clear-location-caches';
 import ImageWrapper from '@/components/ui/ImageWrapper';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from 'react-hot-toast';
@@ -21,7 +19,6 @@ import {
   clearPendingCheckoutSession,
   createPendingOrder,
   createPendingTransaction,
-  fetchDeliveryQuote,
   findActiveCartLinkedOrder,
   getCheckoutPaymentStatus,
   getPendingCheckoutSession,
@@ -121,14 +118,6 @@ export default function CheckoutPage() {
   const [activeAddressId, setActiveAddressId] = useState<string | null>(null);
   const [customerId, setCustomerId] = useState<string | null>(null);
 
-  const [deliveryAvailable, setDeliveryAvailable] = useState(false);
-  const [deliveryFee, setDeliveryFee] = useState(0);
-  const [priorityFee, setPriorityFee] = useState(0);
-  const [deliveryDistanceMeters, setDeliveryDistanceMeters] = useState<number | null>(null);
-  const [deliveryFeeLoading, setDeliveryFeeLoading] = useState(false);
-  const [deliveryFeeError, setDeliveryFeeError] = useState<string | null>(null);
-  const deliveryQuoteCacheKeyRef = useRef<string | null>(null);
-
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrIntentId, setQrIntentId] = useState<string | null>(null);
 
@@ -157,8 +146,7 @@ export default function CheckoutPage() {
   const merchantLogoUrl = merchantItems[0]?.merchantLogoUrl || null;
   const subtotal = merchantItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
   const isBelowPayMongoMinimum = subtotal < PAYMONGO_MINIMUM_AMOUNT_PHP;
-  // Total mirrors mobile orderTotal: fees apply only when Lalamove is active.
-  const orderTotal = subtotal + (deliveryAvailable ? deliveryFee + priorityFee : 0);
+  const orderTotal = subtotal;
 
   // ---- identity + active address (mobile useActiveAddress equivalent) ----
   useEffect(() => {
@@ -188,48 +176,6 @@ export default function CheckoutPage() {
       active = false;
     };
   }, [user]);
-
-  // ---- delivery quote (Lalamove, checkout-only like mobile) ----
-  const fetchQuote = useCallback(async () => {
-    if (!Number.isFinite(merchantId) || !activeAddressId || !customerId) return;
-    const cacheKey = `${merchantId}:${activeAddressId}`;
-    if (deliveryQuoteCacheKeyRef.current === cacheKey) return;
-    deliveryQuoteCacheKeyRef.current = cacheKey;
-    setDeliveryFeeLoading(true);
-    setDeliveryFeeError(null);
-    try {
-      const quote = await fetchDeliveryQuote({ merchantId, customerId });
-      if (!quote.available) {
-        setDeliveryAvailable(false);
-        setDeliveryFee(0);
-        setPriorityFee(0);
-        setDeliveryDistanceMeters(null);
-        return;
-      }
-      setDeliveryAvailable(true);
-      setDeliveryFee(quote.deliveryFee);
-      setPriorityFee(quote.priorityFee);
-      setDeliveryDistanceMeters(quote.distanceMeters);
-    } catch (err: any) {
-      deliveryQuoteCacheKeyRef.current = null;
-      setDeliveryFee(0);
-      setDeliveryDistanceMeters(null);
-      setDeliveryFeeError(err?.message || 'Could not estimate delivery fee');
-    } finally {
-      setDeliveryFeeLoading(false);
-    }
-  }, [merchantId, activeAddressId, customerId]);
-
-  useEffect(() => {
-    fetchQuote();
-  }, [fetchQuote]);
-
-  // Address change invalidates the quote (mobile handleAddressSelected parity).
-  useAddressChange(() => {
-    clearAllLocationCaches();
-    deliveryQuoteCacheKeyRef.current = null;
-    fetchQuote();
-  });
 
   const isFormValid = !!activeAddressId && !!paymentMethod;
 
@@ -430,14 +376,6 @@ export default function CheckoutPage() {
       toast.error('Please select a payment method');
       return;
     }
-    if (deliveryFeeLoading) {
-      toast.error('We are still calculating your delivery fee.');
-      return;
-    }
-    if (deliveryAvailable && deliveryFee <= 0) {
-      toast.error(deliveryFeeError || 'We could not calculate your delivery fee. Please try again.');
-      return;
-    }
     if (isBelowPayMongoMinimum) {
       toast.error('This checkout is below the PayMongo minimum of PHP 1.00. Please review your cart before paying.');
       return;
@@ -510,14 +448,13 @@ export default function CheckoutPage() {
         throw new Error('Missing intent/client_key from CMS response');
       }
 
-      // 3-5. Pending order + delivery snapshot + items/cart link, then tx.
+      // 3-5. Pending order + delivery address snapshot + items/cart link, then tx.
       const { orderId: createdOrderId } = await createPendingOrder({
         customerId,
         merchantId,
         activeAddressId,
         items: merchantItems,
         subtotal,
-        deliveryFee: deliveryAvailable ? deliveryFee : 0,
         orderTotal,
         customerName: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Customer',
         customerPhone: (user as any)?.phone || null,
@@ -644,9 +581,6 @@ export default function CheckoutPage() {
     );
   }
 
-  const distanceKm =
-    deliveryDistanceMeters != null ? deliveryDistanceMeters / 1000 : null;
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
       <div className="bg-white dark:bg-[#111111] shadow-sm">
@@ -729,38 +663,9 @@ export default function CheckoutPage() {
               <span>Subtotal</span>
               <span>{formatCurrency(subtotal)}</span>
             </div>
-            {deliveryFeeLoading ? (
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Delivery Fee</span>
-                <span className="inline-flex items-center gap-2">
-                  <i className="fas fa-spinner fa-spin" /> Calculating…
-                </span>
-              </div>
-            ) : deliveryAvailable ? (
-              <>
-                <div className="flex items-center justify-between text-gray-600">
-                  <span className="inline-flex items-center gap-1.5">
-                    Delivery Fee
-                    {priorityFee > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                        <i className="fas fa-bolt" /> Priority
-                      </span>
-                    )}
-                  </span>
-                  <span>{formatCurrency(deliveryFee + priorityFee)}</span>
-                </div>
-                {priorityFee > 0 && (
-                  <p className="text-[11px] text-gray-500">
-                    Priority Delivery — faster rider matching ({formatCurrency(priorityFee)} fee)
-                  </p>
-                )}
-                {distanceKm != null && deliveryFee > 0 && (
-                  <p className="text-[11px] text-gray-500">Delivery Distance ~{distanceKm.toFixed(1)} km</p>
-                )}
-              </>
-            ) : deliveryFeeError ? (
-              <p className="text-xs text-red-600">Delivery fee unavailable — {deliveryFeeError}</p>
-            ) : null}
+            <p className="text-xs text-gray-500">
+              Delivery is arranged by the seller. Any delivery fee and timing will be confirmed by them.
+            </p>
             <div className="flex items-center justify-between font-semibold text-gray-900">
               <span>Total</span>
               <span>{formatCurrency(orderTotal)}</span>
@@ -868,20 +773,14 @@ export default function CheckoutPage() {
             disabled={
               !isFormValid ||
               isPaying ||
-              isBelowPayMongoMinimum ||
-              deliveryFeeLoading ||
-              (deliveryAvailable && deliveryFee <= 0)
+              isBelowPayMongoMinimum
             }
             className="w-full text-white rounded-full py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#239459' }}
           >
             {isPaying
               ? 'Processing payment...'
-              : deliveryFeeLoading
-                ? 'Calculating delivery fee...'
-                : deliveryAvailable && deliveryFee <= 0
-                  ? 'Delivery fee unavailable'
-                  : `Pay ${formatCurrency(orderTotal)}`}
+              : `Pay ${formatCurrency(orderTotal)}`}
           </button>
           {qrImage && (
             <div className="mt-3 p-3 border border-gray-200 dark:border-[#3f3f46] rounded-lg bg-gray-50 dark:bg-[#1c1c1c]">

@@ -5,10 +5,10 @@
  * apps/mobile-customer/src/services/checkoutReturn.ts plus the order-creation
  * pipeline from CheckoutScreen, adapted from AsyncStorage to localStorage.
  *
- * Single-merchant checkout, mirrored step-for-step:
- *  delivery quote → order + delivery-location + order-items + cart link →
- *  pending transaction → PayMongo attach → return finalize (accept + ordered
- *  + Lalamove book with rollback) + pending-session recovery.
+ * Single-merchant checkout:
+ *  order + delivery address snapshot + order-items + cart link → pending
+ *  transaction → PayMongo attach → return finalize (accept + ordered) +
+ *  pending-session recovery.
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
@@ -78,45 +78,6 @@ export function isPendingSessionFresh(createdAt: string): boolean {
   return Date.now() - ts <= PENDING_SESSION_TTL_MS;
 }
 
-// ---------- delivery quote (Lalamove, checkout-only like mobile) ----------
-
-export type DeliveryQuote =
-  | { available: false }
-  | { available: true; deliveryFee: number; priorityFee: number; distanceMeters: number | null };
-
-export async function fetchDeliveryQuote(args: {
-  merchantId: number | string;
-  customerId: number | string;
-}): Promise<DeliveryQuote> {
-  const res = await fetch(`${API_BASE}/delivery/quote`, {
-    method: 'POST',
-    headers: cmsHeaders(),
-    body: JSON.stringify({
-      merchantId: Number(args.merchantId),
-      customerId: Number(args.customerId),
-    }),
-    cache: 'no-store',
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'Could not get delivery quote');
-  if (data?.data?.available === false) return { available: false };
-  const distance = data?.data?.distance as { value?: string | number; unit?: string } | null;
-  let distanceMeters: number | null = null;
-  if (distance && distance.value != null) {
-    const raw = Number(distance.value);
-    if (Number.isFinite(raw)) {
-      const unit = String(distance.unit || 'm').toLowerCase();
-      distanceMeters = unit === 'km' ? raw * 1000 : raw;
-    }
-  }
-  return {
-    available: true,
-    deliveryFee: Number(data?.data?.deliveryFee) || 0,
-    priorityFee: Number(data?.data?.priorityFee) || 0,
-    distanceMeters,
-  };
-}
-
 // ---------- order creation pipeline (mobile CheckoutScreen parity) ----------
 
 export type CheckoutCartItem = {
@@ -155,7 +116,6 @@ export async function createPendingOrder(args: {
   activeAddressId: string | number;
   items: CheckoutCartItem[];
   subtotal: number;
-  deliveryFee: number;
   orderTotal: number;
   customerName: string;
   customerPhone?: string | null;
@@ -173,7 +133,7 @@ export async function createPendingOrder(args: {
       fulfillment_type: 'delivery',
       total: args.orderTotal,
       subtotal: args.subtotal,
-      delivery_fee: args.deliveryFee,
+      delivery_fee: 0,
       platform_fee: 0,
       placed_at: new Date().toISOString(),
     }),
@@ -182,7 +142,7 @@ export async function createPendingOrder(args: {
   if (!orderRes.ok || !orderData?.doc?.id) throw new Error('Failed to create pending order');
   const createdOrderId = orderData.doc.id;
 
-  // Address snapshot for the delivery record (customer + merchant sides).
+  // Store the buyer's delivery address with the order for seller fulfillment.
   try {
     const addrRes = await fetch(`${API_BASE}/addresses/${args.activeAddressId}`, { headers });
     if (addrRes.ok) {
@@ -423,43 +383,6 @@ export async function finalizePaidOrder(orderId: string, paidAt?: string | null)
     );
   }
 
-  // Book the Lalamove delivery now that payment is confirmed.
-  try {
-    await bookLalamoveDelivery(orderId);
-  } catch {
-    // Roll back order status — admin must re-trigger delivery booking.
-    await fetch(`${API_BASE}/orders/${orderId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status: 'pending' }),
-    }).catch(() => undefined);
-  }
-}
-
-/** Books Lalamove delivery. Retries 3x with backoff; 409 (already booked) is success. */
-export async function bookLalamoveDelivery(
-  orderId: string,
-  retries = 3,
-  delayMs = 1000,
-): Promise<{ deliveryBookingId: number; lalamoveOrderId: string; shareLink: string; deliveryFee: number; status: string }> {
-  const headers = cmsHeaders();
-  for (let attempt = 1; attempt <= retries; attempt += 1) {
-    const response = await fetch(`${API_BASE}/delivery/book`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ orderId: Number(orderId) }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) return data?.data;
-    const message = data?.error || `Failed to book delivery (${response.status})`;
-    if (attempt < retries) {
-      await sleep(delayMs);
-      delayMs *= 2;
-      continue;
-    }
-    throw new Error(message);
-  }
-  throw new Error('Failed to book delivery after all retries');
 }
 
 export async function getCheckoutPaymentStatus(args: {

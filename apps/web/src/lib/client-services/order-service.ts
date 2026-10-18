@@ -290,18 +290,9 @@ export async function fetchOrderHead(orderId: string | number): Promise<any | nu
   });
 }
 
-/** Cancel is best-effort: Lalamove cancel first, then mark order cancelled. */
+/** Mark the order as cancelled. Delivery arrangements are managed by the seller. */
 export async function cancelOrder(orderId: string | number): Promise<void> {
   const h = headers();
-  try {
-    await fetch(`${API_URL}/delivery/cancel`, {
-      method: 'POST',
-      headers: h,
-      body: JSON.stringify({ orderId: String(orderId) }),
-    });
-  } catch {
-    /* delivery cancel is optional — order cancel still proceeds */
-  }
   const res = await fetch(`${API_URL}/orders/${orderId}`, {
     method: 'PATCH',
     headers: h,

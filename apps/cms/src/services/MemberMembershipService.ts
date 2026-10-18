@@ -48,6 +48,26 @@ function getPayMongoKeys() {
   return { secretKey, publicKey }
 }
 
+async function cancelPayMongoIntent(secretKey: string, paymentIntentId: string): Promise<void> {
+  const res = await fetch(`https://api.paymongo.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`,
+    },
+    signal: AbortSignal.timeout(20000),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    const detail = data?.errors?.[0]?.detail
+    throw new Error(
+      typeof detail === 'string'
+        ? `PAYMONGO_INTENT_CANCEL_FAILED:${detail}`
+        : `PAYMONGO_INTENT_CANCEL_FAILED:${res.status}`,
+    )
+  }
+}
+
 export async function createMemberMembershipPaymentIntent(
   payload: Payload,
   userId: number,
@@ -127,17 +147,27 @@ export async function createMemberMembershipPaymentIntent(
     pendingPayment?.providerClientKey &&
     relationshipId(pendingPayment.user) === userId
   ) {
-    return {
-      paymentId: pendingPayment.id,
-      amount: Number(pendingPayment.amount),
-      currency: 'PHP',
-      paymentIntentId: String(pendingPayment.providerReference),
-      clientKey: String(pendingPayment.providerClientKey),
-      publicKey,
-      paymentReference: String(pendingPayment.paymentReference),
-      status: 'pending',
-      term: 'lifetime',
+    const storedAmount = Number(pendingPayment.amount)
+    if (Math.abs(storedAmount - amount) < 0.01) {
+      return {
+        paymentId: pendingPayment.id,
+        amount: storedAmount,
+        currency: 'PHP',
+        paymentIntentId: String(pendingPayment.providerReference),
+        clientKey: String(pendingPayment.providerClientKey),
+        publicKey,
+        paymentReference: String(pendingPayment.paymentReference),
+        status: 'pending',
+        term: 'lifetime',
+      }
     }
+    await cancelPayMongoIntent(secretKey, String(pendingPayment.providerReference))
+    await payload.update({
+      collection: 'member-membership-payments',
+      id: pendingPayment.id,
+      data: { status: 'failed', failureReason: 'Superseded by updated membership fee' },
+      overrideAccess: true,
+    })
   }
 
   const paymentReference = `MEM-${String(userId)}-${crypto.randomUUID()}`

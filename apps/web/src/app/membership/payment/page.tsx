@@ -365,7 +365,7 @@ export default function MemberPaymentPage() {
   const paymentFailed = membership?.payment?.status === 'failed'
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 sm:py-12">
+    <main className="!mt-0 min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 sm:py-12">
       <section className="mx-auto w-full max-w-5xl">
         <header className="mb-6 flex items-center justify-between">
           <Link href="/" aria-label="Kuya Cares home" className="inline-flex items-center gap-3">

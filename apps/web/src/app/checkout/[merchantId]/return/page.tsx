@@ -17,7 +17,7 @@ import { LocationBasedMerchantService } from '@encreasl/client-services'
  *    the Tap2Go/Expo app untouched (this page's original job).
  * 2. otherwise (web-originated payment) → confirm the payment like mobile's
  *    CheckoutReturnScreen: waitForPaidTransaction → finalizePaidOrder
- *    (accept + ordered + Lalamove book) → clear session → reload cart →
+ *    (accept + ordered) → clear session → reload cart →
  *    replace to /order-success. Failures land on /orders with a message.
  */
 export default function CheckoutReturnPage() {
