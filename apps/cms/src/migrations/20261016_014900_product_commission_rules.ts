@@ -1,6 +1,144 @@
 import { MigrateDownArgs, MigrateUpArgs, sql } from '@payloadcms/db-postgres'
+import {
+  clearMigrationSchemaState,
+  migrationSchemaPreexisted,
+  reconcileMigrationSchema,
+  recordMigrationSchemaApplied,
+} from '../utils/migrationReconciliation'
+
+const migrationName = '20261016_014900_product_commission_rules'
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
+  const schemaPreexisted = await reconcileMigrationSchema(db, migrationName, async () => {
+    const { rows } = await db.execute(sql`
+      SELECT
+        bool_and("present") AS "complete",
+        bool_or("present") AS "partial"
+      FROM (VALUES
+        (EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_commission_rules_commission_method')),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_commission_rules_scope' AND e.enumlabel = 'product'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_commission_rules_scope' AND e.enumlabel = 'product_category'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_orders_commission_source' AND e.enumlabel = 'product'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_orders_commission_source' AND e.enumlabel = 'product_category'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_orders_commission_source' AND e.enumlabel = 'volume_tier'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_vendor_commission_entries_commission_source'
+            AND e.enumlabel = 'product'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_vendor_commission_entries_commission_source'
+            AND e.enumlabel = 'product_category'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_vendor_commission_entries_commission_source'
+            AND e.enumlabel = 'volume_tier'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'vendor_cost'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'vendor_cost_at_purchase'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'commission_rules' AND column_name = 'commission_method'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'commission_rules' AND column_name = 'commission_value'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'commission_rules' AND column_name = 'product_id'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'commission_rules_product_id_products_id_fk'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'commission_rules_product_idx'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'commission_rules' AND column_name = 'product_category_id'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'commission_rules_product_category_id_prod_categories_id_fk'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'commission_rules_product_category_idx'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'commission_product_breakdown'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vendor_commission_entries'
+            AND column_name = 'commission_product_breakdown'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'commission_volume_tier_snapshot'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vendor_commission_entries'
+            AND column_name = 'commission_volume_tier_snapshot'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'system_settings_commission_volume_tiers'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'system_settings_commission_volume_tiers_parent_id_fk'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes
+          WHERE schemaname = 'public' AND indexname = 'system_settings_commission_volume_tiers_order_idx'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes
+          WHERE schemaname = 'public' AND indexname = 'system_settings_commission_volume_tiers_parent_id_idx'
+        ))
+      ) AS expected("present")
+    `)
+    return {
+      complete: rows[0]?.complete === true,
+      partial: rows[0]?.partial === true,
+    }
+  })
+  if (schemaPreexisted) return
+
   await db.execute(sql`
     ALTER TYPE "public"."enum_commission_rules_scope" ADD VALUE 'product';
     ALTER TYPE "public"."enum_commission_rules_scope" ADD VALUE 'product_category';
@@ -61,9 +199,15 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     CREATE INDEX "system_settings_commission_volume_tiers_parent_id_idx"
       ON "system_settings_commission_volume_tiers" USING btree ("_parent_id");
   `)
+  await recordMigrationSchemaApplied(db, migrationName)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
+  if (await migrationSchemaPreexisted(db, migrationName)) {
+    await clearMigrationSchemaState(db, migrationName)
+    return
+  }
+
   await db.execute(sql`
     DO $$
     BEGIN
@@ -126,4 +270,5 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
       TYPE "public"."enum_vendor_commission_entries_commission_source"
       USING "commission_source"::"public"."enum_vendor_commission_entries_commission_source";
   `)
+  await clearMigrationSchemaState(db, migrationName)
 }

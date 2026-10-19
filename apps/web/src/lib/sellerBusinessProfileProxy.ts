@@ -19,14 +19,21 @@ export async function proxySellerBusinessProfile(request: NextRequest): Promise<
       return NextResponse.json({ error: 'Member access required' }, { status: 403 });
     }
 
-    const profileResponse = await fetch(
-      `${CMS_BASE}/vendor/profile?userId=${encodeURIComponent(String(user.id))}`,
-      {
-        headers: { Authorization: `JWT ${token}` },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(25000),
-      },
-    );
+    const isUpdate = request.method === 'PATCH';
+    const profileUrl = isUpdate
+      ? `${CMS_BASE}/vendor/business-profile`
+      : `${CMS_BASE}/vendor/profile?userId=${encodeURIComponent(String(user.id))}`;
+    const headers = new Headers({ Authorization: `JWT ${token}` });
+    const body = isUpdate ? await request.text() : undefined;
+    if (body !== undefined) headers.set('Content-Type', 'application/json');
+
+    const profileResponse = await fetch(profileUrl, {
+      method: request.method,
+      headers,
+      body,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(25000),
+    });
     const text = await profileResponse.text();
     let data: unknown;
     try {

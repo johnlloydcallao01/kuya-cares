@@ -94,6 +94,10 @@ function sanitizeOrderDoc(raw: Record<string, any>): Record<string, any> {
     discount_total: num(raw.discount_total, 0),
     coupon_code: optionalString(raw.coupon_code),
     free_delivery_applied: !!raw.free_delivery_applied,
+    sellerShipping: raw.seller_shipping_snapshot ?? null,
+    sellerCarrierName: optionalString(raw.seller_carrier_name),
+    sellerTrackingReference: optionalString(raw.seller_tracking_reference),
+    sellerTrackingUrl: optionalString(raw.seller_tracking_url),
     placed_at: raw.placed_at ? String(raw.placed_at) : null,
     notes: optionalString(raw.notes),
     lalamove: {

@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   FileText,
   Image as ImageIcon,
+  Pencil,
+  X,
+  Save,
 } from 'lucide-react';
 
 type MediaRef = { id: number; url: string | null; filename?: string } | null;
@@ -61,6 +64,51 @@ type MerchantSummary = {
   createdAt: string;
   updatedAt: string;
 };
+
+type BusinessProfileDraft = {
+  businessName: string;
+  legalName: string;
+  primaryContactEmail: string;
+  primaryContactPhone: string;
+  websiteUrl: string;
+  businessType: string;
+  cuisineTypes: string;
+  description: string;
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  socialWebsite: string;
+};
+
+const BUSINESS_TYPES = [
+  ['restaurant', 'Restaurant'],
+  ['fast_food', 'Fast Food'],
+  ['grocery', 'Grocery Store'],
+  ['pharmacy', 'Pharmacy'],
+  ['convenience', 'Convenience Store'],
+  ['bakery', 'Bakery'],
+  ['coffee_shop', 'Coffee Shop'],
+  ['other', 'Other'],
+];
+
+function toBusinessProfileDraft(vendor: Vendor): BusinessProfileDraft {
+  const socials = vendor.socialMediaLinks && typeof vendor.socialMediaLinks === 'object' ? vendor.socialMediaLinks : {};
+  const socialValue = (key: string) => typeof socials[key] === 'string' ? socials[key] as string : '';
+  return {
+    businessName: vendor.businessName || '',
+    legalName: vendor.legalName || '',
+    primaryContactEmail: vendor.primaryContactEmail || '',
+    primaryContactPhone: vendor.primaryContactPhone || '',
+    websiteUrl: vendor.websiteUrl || '',
+    businessType: vendor.businessType || 'other',
+    cuisineTypes: Array.isArray(vendor.cuisineTypes) ? vendor.cuisineTypes.map(String).join(', ') : '',
+    description: vendor.description || '',
+    facebook: socialValue('facebook'),
+    instagram: socialValue('instagram'),
+    twitter: socialValue('twitter'),
+    socialWebsite: socialValue('website'),
+  };
+}
 
 function verificationBadge(status: string) {
   const s = String(status).toLowerCase();
@@ -115,6 +163,10 @@ function BusinessProfileContent() {
   const [allOutletsCount, setOutletsCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<BusinessProfileDraft | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,6 +211,66 @@ function BusinessProfileContent() {
   const outlets = vendor?.merchants ?? allOutlets;
   const outletsCount = vendor?.merchantsCount ?? allOutletsCount;
 
+  function startEditing() {
+    if (!vendor) return;
+    setDraft(toBusinessProfileDraft(vendor));
+    setSaveError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setDraft(null);
+    setSaveError(null);
+  }
+
+  async function saveBusinessProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!vendor || !draft) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch('/api/seller-business/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendorId: vendor.id,
+          businessName: draft.businessName,
+          legalName: draft.legalName,
+          primaryContactEmail: draft.primaryContactEmail,
+          primaryContactPhone: draft.primaryContactPhone,
+          websiteUrl: draft.websiteUrl,
+          businessType: draft.businessType,
+          cuisineTypes: draft.cuisineTypes.split(',').map((value) => value.trim()).filter(Boolean),
+          description: draft.description,
+          socialMediaLinks: {
+            facebook: draft.facebook,
+            instagram: draft.instagram,
+            twitter: draft.twitter,
+            website: draft.socialWebsite,
+          },
+        }),
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update business profile');
+      if (!result.vendor || Number(result.vendor.id) !== vendor.id) {
+        throw new Error('The CMS returned an invalid business profile update.');
+      }
+
+      const updatedVendor = { ...vendor, ...result.vendor } as Vendor;
+      setVendor(updatedVendor);
+      setVendorProfiles((profiles) => profiles.map((profile) => profile.id === vendor.id ? { ...profile, ...result.vendor } : profile));
+      setIsEditing(false);
+      setDraft(null);
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : 'Failed to update business profile');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   if (error || !vendor) {
     return (
       <div className="space-y-6 py-5 px-2.5">
@@ -183,7 +295,7 @@ function BusinessProfileContent() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{vendor.businessName || 'Company Information'}</h1>
-            <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">Company information — read-only, managed by admin.</p>
+            <p className="text-sm text-gray-500 dark:text-[#a1a1aa]">Manage your business details and contact information.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -191,6 +303,7 @@ function BusinessProfileContent() {
             <select
               value={selectedVendorId}
               onChange={(event) => setSelectedVendorId(event.target.value)}
+              disabled={isEditing}
               aria-label="Select business profile"
               className="max-w-48 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] text-sm text-gray-700 dark:text-[#a1a1aa]"
             >
@@ -199,10 +312,77 @@ function BusinessProfileContent() {
               ))}
             </select>
           )}
+          {!isEditing && <button type="button" onClick={startEditing} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit profile</button>}
           <Link href="/seller/business/verification" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50"><ShieldCheck className="w-4 h-4" /> Verification</Link>
           <Link href="/seller/outlets" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Store className="w-4 h-4" /> Outlets</Link>
         </div>
       </div>
+
+      {isEditing && draft && (
+        <form onSubmit={saveBusinessProfile} className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-5 space-y-5">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Edit business profile</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-[#a1a1aa]">Registration numbers and submitted documents are managed separately. Profile changes do not change verification status.</p>
+          </div>
+          {saveError && <p role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">{saveError}</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Business name
+              <input required minLength={2} maxLength={160} value={draft.businessName} onChange={(event) => setDraft({ ...draft, businessName: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Legal name
+              <input required minLength={2} maxLength={160} value={draft.legalName} onChange={(event) => setDraft({ ...draft, legalName: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Business type
+              <select value={draft.businessType} onChange={(event) => setDraft({ ...draft, businessType: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm">
+                {BUSINESS_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Contact email
+              <input required type="email" value={draft.primaryContactEmail} onChange={(event) => setDraft({ ...draft, primaryContactEmail: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Contact phone
+              <input required type="tel" maxLength={40} value={draft.primaryContactPhone} onChange={(event) => setDraft({ ...draft, primaryContactPhone: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Website
+              <input type="url" placeholder="https://example.com" value={draft.websiteUrl} onChange={(event) => setDraft({ ...draft, websiteUrl: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Cuisine types
+              <input value={draft.cuisineTypes} onChange={(event) => setDraft({ ...draft, cuisineTypes: event.target.value })} placeholder="Filipino, Japanese" className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200 md:col-span-2">
+              Description
+              <textarea rows={3} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Social media</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {([
+                ['facebook', 'Facebook'],
+                ['instagram', 'Instagram'],
+                ['twitter', 'Twitter'],
+                ['socialWebsite', 'Other website link'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {label}
+                  <input value={draft[key]} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} className="w-full rounded-lg border border-gray-300 dark:border-[#3f3f46] bg-white dark:bg-[#111] px-3 py-2 text-sm" />
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={cancelEditing} disabled={isSaving} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-[#3f3f46] text-sm font-medium text-gray-700 dark:text-gray-200 disabled:opacity-50"><X className="w-4 h-4" /> Cancel</button>
+            <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#239459] hover:bg-[#215035] text-sm font-semibold text-white disabled:opacity-50"><Save className="w-4 h-4" /> {isSaving ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </form>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Verification</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${verificationBadge(vendor.verificationStatus)}`}>{vendor.verificationStatus}</p></div>

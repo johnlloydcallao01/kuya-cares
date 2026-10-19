@@ -1,6 +1,75 @@
 import { MigrateDownArgs, MigrateUpArgs, sql } from '@payloadcms/db-postgres'
+import {
+  clearMigrationSchemaState,
+  migrationSchemaPreexisted,
+  reconcileMigrationSchema,
+  recordMigrationSchemaApplied,
+} from '../utils/migrationReconciliation'
+
+const migrationName = '20261016_120000_vendor_withdrawal_requests'
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
+  const schemaPreexisted = await reconcileMigrationSchema(db, migrationName, async () => {
+    const { rows } = await db.execute(sql`
+      SELECT
+        bool_and("present") AS "complete",
+        bool_or("present") AS "partial"
+      FROM (VALUES
+        (EXISTS (
+          SELECT 1 FROM pg_type WHERE typname = 'enum_vendor_withdrawal_requests_status'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'vendor_withdrawal_requests'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vendor_withdrawal_requests'
+            AND column_name = 'vendor_id'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'vendor_withdrawal_requests'
+            AND column_name = 'requested_by_id'
+        )),
+        (EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'payload_locked_documents_rels'
+            AND column_name = 'vendor_withdrawal_requests_id'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'payload_locked_documents_rels_vendor_withdrawal_requests_fk'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+            AND indexname = 'vendor_createdAt_idx' AND tablename = 'vendor_withdrawal_requests'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+            AND indexname = 'vendor_createdAt_1_idx' AND tablename = 'membership_audit_log'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+            AND indexname = 'vendor_idempotency_key_idx' AND tablename = 'vendor_withdrawal_requests'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+            AND indexname = 'status_createdAt_idx' AND tablename = 'vendor_withdrawal_requests'
+        )),
+        (EXISTS (
+          SELECT 1 FROM pg_indexes WHERE schemaname = 'public'
+            AND indexname = 'payload_locked_documents_rels_vendor_withdrawal_requests_id_idx'
+        ))
+      ) AS expected("present")
+    `)
+    return {
+      complete: rows[0]?.complete === true,
+      partial: rows[0]?.partial === true,
+    }
+  })
+  if (schemaPreexisted) return
+
   await db.execute(sql`
     CREATE TYPE "public"."enum_vendor_withdrawal_requests_status"
       AS ENUM ('pending', 'approved', 'paid', 'rejected', 'cancelled');
@@ -55,6 +124,14 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       ON "vendor_withdrawal_requests" USING btree ("updated_at");
     CREATE INDEX "vendor_withdrawal_requests_created_at_idx"
       ON "vendor_withdrawal_requests" USING btree ("created_at");
+    DO $$
+    BEGIN
+      IF to_regclass('public.vendor_createdAt_1_idx') IS NULL
+        AND to_regclass('public.vendor_createdAt_idx') IS NOT NULL THEN
+        ALTER INDEX "vendor_createdAt_idx" RENAME TO "vendor_createdAt_1_idx";
+      END IF;
+    END
+    $$;
     CREATE INDEX "vendor_createdAt_idx"
       ON "vendor_withdrawal_requests" USING btree ("vendor_id", "created_at");
     CREATE INDEX "status_createdAt_idx"
@@ -69,9 +146,15 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     CREATE INDEX "payload_locked_documents_rels_vendor_withdrawal_requests_id_idx"
       ON "payload_locked_documents_rels" USING btree ("vendor_withdrawal_requests_id");
   `)
+  await recordMigrationSchemaApplied(db, migrationName)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
+  if (await migrationSchemaPreexisted(db, migrationName)) {
+    await clearMigrationSchemaState(db, migrationName)
+    return
+  }
+
   await db.execute(sql`
     DO $$
     BEGIN
@@ -86,5 +169,9 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
     ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "vendor_withdrawal_requests_id";
     DROP TABLE "vendor_withdrawal_requests";
     DROP TYPE "public"."enum_vendor_withdrawal_requests_status";
+    DROP INDEX IF EXISTS "vendor_createdAt_1_idx";
+    CREATE INDEX "vendor_createdAt_idx"
+      ON "membership_audit_log" USING btree ("vendor_id", "created_at");
   `)
+  await clearMigrationSchemaState(db, migrationName)
 }

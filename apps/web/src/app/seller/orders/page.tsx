@@ -20,6 +20,24 @@ type OrderDoc = {
   discount_total: number
   coupon_code: string | null
   free_delivery_applied: boolean
+  sellerShipping: {
+    type?: 'seller_delivery' | 'pickup' | string
+    optionName?: string | null
+    zoneName?: string | null
+    fee?: number | null
+    pickupInstructions?: string | null
+    address?: {
+      formattedAddress?: string | null
+      street?: string | null
+      locality?: string | null
+      province?: string | null
+      postalCode?: string | null
+      deliveryInstructions?: string | null
+    } | null
+  } | null
+  sellerCarrierName: string | null
+  sellerTrackingReference: string | null
+  sellerTrackingUrl: string | null
   placed_at: string | null
   notes: string | null
   lalamove: { orderId: string | null; serviceType: string; status: string; trackingLink: string | null }
@@ -79,6 +97,24 @@ function fulfillmentBadge(s: string) {
   if (v === 'delivery') return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
   if (v === 'pickup') return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800'
   return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-[#262626] dark:text-[#a1a1aa]'
+}
+
+function nextFulfillmentStatus(status: string, shippingType: string): string | null {
+  if (status === 'accepted') return 'preparing'
+  if (status === 'preparing') return 'ready_for_pickup'
+  if (status === 'ready_for_pickup') return shippingType === 'pickup' ? 'delivered' : 'on_delivery'
+  if (status === 'on_delivery' && shippingType === 'seller_delivery') return 'delivered'
+  return null
+}
+
+function fulfillmentActionLabel(status: string): string {
+  const labels: Record<string, string> = {
+    preparing: 'Start preparing',
+    ready_for_pickup: 'Ready for pickup',
+    on_delivery: 'Mark as on delivery',
+    delivered: 'Mark as delivered',
+  }
+  return labels[status] || status.replace(/_/g, ' ')
 }
 function deliveryBadge(s: string | null) {
   const v = (s || 'none').toLowerCase()
@@ -174,6 +210,14 @@ function OrdersContent() {
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null)
+  const [fulfillmentError, setFulfillmentError] = useState<string | null>(null)
+  const [savingFulfillment, setSavingFulfillment] = useState(false)
+  const [trackingDraft, setTrackingDraft] = useState({
+    carrierName: '',
+    trackingReference: '',
+    trackingUrl: '',
+  })
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q.trim()), 400)
@@ -223,6 +267,44 @@ function OrdersContent() {
     void load()
   }, [debouncedQ, statusFilter, fulfillFilter, deliveryFilter, discountFilter, sort, page])
 
+  const openFulfillment = (order: OrderDoc) => {
+    setFulfillmentError(null)
+    setTrackingDraft({
+      carrierName: order.sellerCarrierName || '',
+      trackingReference: order.sellerTrackingReference || '',
+      trackingUrl: order.sellerTrackingUrl || '',
+    })
+    setExpandedOrderId((current) => current === order.id ? null : order.id)
+  }
+
+  const updateFulfillment = async (
+    order: OrderDoc,
+    update: { status?: string; carrierName?: string; trackingReference?: string; trackingUrl?: string },
+  ) => {
+    setSavingFulfillment(true)
+    setFulfillmentError(null)
+    try {
+      const response = await fetch(`/api/seller-orders/${order.id}/fulfillment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Unable to update fulfillment.')
+      await load()
+      setExpandedOrderId(order.id)
+      setTrackingDraft({
+        carrierName: result.carrierName ?? trackingDraft.carrierName,
+        trackingReference: result.trackingReference ?? trackingDraft.trackingReference,
+        trackingUrl: result.trackingUrl ?? trackingDraft.trackingUrl,
+      })
+    } catch (cause) {
+      setFulfillmentError(cause instanceof Error ? cause.message : 'Unable to update fulfillment.')
+    } finally {
+      setSavingFulfillment(false)
+    }
+  }
+
   const toggleFilter = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (v: string) =>
     setter((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]))
 
@@ -264,7 +346,7 @@ function OrdersContent() {
             <span className="h-8 w-8 rounded-lg bg-[#239459] text-white flex items-center justify-center"><ShoppingBag className="w-4 h-4" /></span>
             All Orders
           </h1>
-          <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Orders placed across your outlets, with live status and verified revenue (read-only).</p>
+          <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mt-1">Orders across your outlets. Manage seller-arranged delivery and pickup after payment is confirmed.</p>
         </div>
         <button
           onClick={() => void load({ hard: true })}
@@ -294,7 +376,7 @@ function OrdersContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order #, coupon, Lalamove ID, notes…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order #, coupon, delivery reference, notes…" className="w-full pl-9 pr-9 py-2.5 text-sm bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#262626] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#239459]/20 focus:border-[#239459] text-gray-900 dark:text-white placeholder:text-gray-400" />
             {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#262626]"><X className="w-4 h-4 text-gray-400" /></button>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -365,9 +447,10 @@ function OrdersContent() {
                     <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">Outlet</th>
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Fulfillment</th>
                     <th className="text-left px-4 py-3 font-medium">Status</th>
-                    <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">Delivery</th>
+                    <th className="text-left px-4 py-3 font-medium hidden xl:table-cell">Shipping</th>
                     <th className="text-right px-4 py-3 font-medium">Total</th>
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Placed</th>
+                    <th className="text-right px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-[#262626]">
@@ -375,8 +458,12 @@ function OrdersContent() {
                     const fulfillment = o.fulfillment_type || 'delivery'
                     const placed = o.placed_at || o.createdAt
                     const total = o.total ?? 0
+                    const sellerManaged = !!o.sellerShipping
+                    const shippingType = o.sellerShipping?.type || (fulfillment === 'pickup' ? 'pickup' : 'seller_delivery')
+                    const nextStatus = sellerManaged ? nextFulfillmentStatus(o.status, shippingType) : null
                     return (
-                      <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
+                      <React.Fragment key={o.id}>
+                      <tr className="hover:bg-gray-50 dark:hover:bg-[#0a0a0a]/50 transition">
                         <td className="px-4 py-3">
                           <span className="font-semibold text-[#239459]">{o.orderNumber}</span>
                           {o.coupon_code && <div className="text-[11px] text-gray-400 mt-0.5">coupon: {o.coupon_code}</div>}
@@ -402,13 +489,119 @@ function OrdersContent() {
                           <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border capitalize ${statusBadge(o.status)}`}>{o.status.replace('_', ' ')}</span>
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border capitalize ${deliveryBadge(o.lalamove.status)}`}>
-                            <MapPin className="w-3 h-3" /> {o.lalamove.status.replace('_', ' ')}
-                          </span>
+                          {sellerManaged ? (
+                            <div className="space-y-1">
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border capitalize ${fulfillmentBadge(shippingType === 'pickup' ? 'pickup' : 'delivery')}`}>
+                                {shippingType === 'pickup' ? <Store className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
+                                {shippingType === 'pickup' ? 'Seller pickup' : (o.sellerShipping?.zoneName || o.sellerShipping?.optionName || 'Seller delivery')}
+                              </span>
+                              <div className="text-[11px] text-gray-500 dark:text-[#a1a1aa]">
+                                {shippingType === 'pickup' ? 'No delivery fee' : `Fee ${fmtPeso(o.sellerShipping?.fee ?? o.delivery_fee)}`}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border capitalize ${deliveryBadge(o.lalamove.status)}`}>
+                              <MapPin className="w-3 h-3" /> {o.lalamove.status.replace('_', ' ')} <span className="normal-case">(legacy)</span>
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">{fmtPeso(total)}</td>
                         <td className="px-4 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-[#a1a1aa]">{fmtDate(placed)}</td>
+                        <td className="px-4 py-3 text-right">
+                          {sellerManaged ? (
+                            <button
+                              type="button"
+                              onClick={() => openFulfillment(o)}
+                              aria-expanded={expandedOrderId === o.id}
+                              className="rounded-lg border border-[#239459]/40 px-3 py-1.5 text-xs font-semibold text-[#239459] hover:bg-[#239459]/5"
+                            >
+                              {expandedOrderId === o.id ? 'Close' : 'Manage'}
+                            </button>
+                          ) : <span className="text-xs text-gray-400">—</span>}
+                        </td>
                       </tr>
+                      {expandedOrderId === o.id && sellerManaged && (
+                        <tr className="border-t-0 bg-gray-50/70 dark:bg-[#0a0a0a]/60">
+                          <td colSpan={9} className="px-4 pb-5 pt-2">
+                            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-[#262626] dark:bg-[#171717]">
+                              <div className="grid gap-4 lg:grid-cols-2">
+                                <div className="space-y-2 text-sm">
+                                  <h3 className="font-semibold text-gray-900 dark:text-white">Shipping terms accepted at checkout</h3>
+                                  <p className="text-gray-600 dark:text-[#a1a1aa]">
+                                    {shippingType === 'pickup' ? 'Seller pickup' : `Seller-arranged delivery${o.sellerShipping?.zoneName ? ` · ${o.sellerShipping.zoneName}` : ''}`}
+                                    {' · '}{shippingType === 'pickup' ? 'No delivery fee' : fmtPeso(o.sellerShipping?.fee ?? o.delivery_fee)}
+                                  </p>
+                                  {shippingType === 'seller_delivery' && (
+                                    <>
+                                      <p className="text-gray-700 dark:text-gray-300">{o.sellerShipping?.address?.formattedAddress || [
+                                        o.sellerShipping?.address?.street,
+                                        o.sellerShipping?.address?.locality,
+                                        o.sellerShipping?.address?.province,
+                                        o.sellerShipping?.address?.postalCode,
+                                      ].filter(Boolean).join(', ') || 'Delivery address was not included in this order snapshot.'}</p>
+                                      {o.sellerShipping?.address?.deliveryInstructions && <p className="text-xs text-gray-500">Buyer instructions: {o.sellerShipping.address.deliveryInstructions}</p>}
+                                      <p className="text-xs text-gray-500">Carrier: {o.sellerCarrierName || 'Not specified'} · Tracking: {o.sellerTrackingReference || 'Not specified'}</p>
+                                      {o.sellerTrackingUrl && <a href={o.sellerTrackingUrl} target="_blank" rel="noreferrer" className="inline-block text-xs font-medium text-[#239459] underline">Open tracking link</a>}
+                                    </>
+                                  )}
+                                  {shippingType === 'pickup' && o.sellerShipping?.pickupInstructions && <p className="text-gray-700 dark:text-gray-300">Pickup instructions: {o.sellerShipping.pickupInstructions}</p>}
+                                </div>
+
+                                <div className="space-y-3">
+                                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Seller fulfillment</h3>
+                                  {nextStatus ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => void updateFulfillment(o, { status: nextStatus })}
+                                      disabled={savingFulfillment}
+                                      className="rounded-lg bg-[#239459] px-3 py-2 text-sm font-semibold text-white hover:bg-[#215035] disabled:opacity-50"
+                                    >
+                                      {savingFulfillment ? 'Updating…' : fulfillmentActionLabel(nextStatus)}
+                                    </button>
+                                  ) : (
+                                    <p className="text-xs text-gray-500">
+                                      {o.status === 'pending'
+                                        ? 'Order fulfillment becomes available after the payment flow confirms and advances the order.'
+                                        : `This order is ${o.status.replace(/_/g, ' ')}; no further fulfillment transition is available.`}
+                                    </p>
+                                  )}
+
+                                  {shippingType === 'seller_delivery' && !['pending', 'cancelled', 'delivered'].includes(o.status) && (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                        Carrier / delivery arrangement
+                                        <input value={trackingDraft.carrierName} onChange={(event) => setTrackingDraft((current) => ({ ...current, carrierName: event.target.value }))} maxLength={120} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-[#3f3f46] dark:bg-[#0a0a0a]" placeholder="Optional" />
+                                      </label>
+                                      <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                        Tracking reference
+                                        <input value={trackingDraft.trackingReference} onChange={(event) => setTrackingDraft((current) => ({ ...current, trackingReference: event.target.value }))} maxLength={200} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-[#3f3f46] dark:bg-[#0a0a0a]" placeholder="Optional" />
+                                      </label>
+                                      <label className="text-xs font-medium text-gray-600 dark:text-gray-300 sm:col-span-2">
+                                        HTTPS tracking URL
+                                        <input type="url" value={trackingDraft.trackingUrl} onChange={(event) => setTrackingDraft((current) => ({ ...current, trackingUrl: event.target.value }))} maxLength={2000} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-[#3f3f46] dark:bg-[#0a0a0a]" placeholder="https://" />
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => void updateFulfillment(o, {
+                                          carrierName: trackingDraft.carrierName,
+                                          trackingReference: trackingDraft.trackingReference,
+                                          trackingUrl: trackingDraft.trackingUrl,
+                                        })}
+                                        disabled={savingFulfillment}
+                                        className="justify-self-start rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-[#3f3f46] dark:text-gray-200 dark:hover:bg-[#262626]"
+                                      >
+                                        {savingFulfillment ? 'Saving…' : 'Save delivery details'}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {fulfillmentError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{fulfillmentError}</p>}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     )
                   })}
                 </tbody>
@@ -434,7 +627,7 @@ function OrdersContent() {
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4 text-xs text-gray-500 dark:text-[#a1a1aa]">
-        Revenue reflects <span className="font-semibold text-gray-700 dark:text-white">verified paid transactions</span> only, matching your dashboard analytics — never raw order totals. Fulfillment and delivery statuses update automatically as riders and outlets progress the order.
+        Revenue reflects <span className="font-semibold text-gray-700 dark:text-white">verified paid transactions</span> only, matching your dashboard analytics — never raw order totals. For seller-managed orders, use the fulfillment controls to update customer-facing order status and tracking details. Historical courier statuses remain visible for legacy orders.
       </div>
     </div>
   )

@@ -53,6 +53,7 @@ export const VendorCommissionEntries: CollectionConfig = {
     { name: 'commission_amount', type: 'number', required: true, admin: { description: 'Signed platform commission.' } },
     { name: 'commission_transaction_fee', type: 'number', required: true, admin: { description: 'Signed fixed fee charged once per paid order.' } },
     { name: 'commission_vendor_net', type: 'number', required: true, admin: { description: 'Signed amount payable to vendor.' } },
+    { name: 'seller_shipping_proceeds', type: 'number', required: true, defaultValue: 0, admin: { description: 'Signed seller-owned shipping proceeds; excluded from merchandise commission bases.' } },
     {
       name: 'commission_source',
       type: 'select',

@@ -1856,6 +1856,18 @@ export interface Merchant {
     maxDeliveryTimeMinutes?: number | null;
   };
   /**
+   * Seller-managed delivery zones, flat rates, free-delivery thresholds, and pickup settings. Configured by the vendor outlet API.
+   */
+  seller_shipping_settings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
    * Visual content for the merchant
    */
   media?: {
@@ -2357,6 +2369,38 @@ export interface Order {
    * Calculated delivery fee (0 for Pickup)
    */
   delivery_fee: number;
+  /**
+   * Immutable seller delivery or pickup method, rate, and terms accepted at checkout.
+   */
+  seller_shipping_snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Unique key preventing duplicate seller-managed checkout orders.
+   */
+  checkout_idempotency_key?: string | null;
+  /**
+   * Seller-owned shipping proceeds included in the payable vendor net; excluded from merchandise commission bases.
+   */
+  seller_shipping_proceeds?: number | null;
+  /**
+   * Optional delivery carrier entered by the seller.
+   */
+  seller_carrier_name?: string | null;
+  /**
+   * Optional carrier tracking reference entered by the seller.
+   */
+  seller_tracking_reference?: string | null;
+  /**
+   * Optional HTTPS tracking link entered by the seller.
+   */
+  seller_tracking_url?: string | null;
   /**
    * Service charge/App fee
    */
@@ -4271,6 +4315,10 @@ export interface VendorCommissionEntry {
    * Signed amount payable to vendor.
    */
   commission_vendor_net: number;
+  /**
+   * Signed seller-owned shipping proceeds; excluded from merchandise commission bases.
+   */
+  seller_shipping_proceeds: number;
   commission_source: 'product' | 'product_category' | 'vendor' | 'category' | 'plan' | 'volume_tier' | 'global';
   commission_rule?: (number | null) | CommissionRule;
   /**
@@ -5404,6 +5452,7 @@ export interface MerchantsSelect<T extends boolean = true> {
         estimatedDeliveryTimeMinutes?: T;
         maxDeliveryTimeMinutes?: T;
       };
+  seller_shipping_settings?: T;
   media?:
     | T
     | {
@@ -5611,6 +5660,12 @@ export interface OrdersSelect<T extends boolean = true> {
   total?: T;
   subtotal?: T;
   delivery_fee?: T;
+  seller_shipping_snapshot?: T;
+  checkout_idempotency_key?: T;
+  seller_shipping_proceeds?: T;
+  seller_carrier_name?: T;
+  seller_tracking_reference?: T;
+  seller_tracking_url?: T;
   platform_fee?: T;
   priority_fee?: T;
   discount_total?: T;
@@ -6572,6 +6627,7 @@ export interface VendorCommissionEntriesSelect<T extends boolean = true> {
   commission_amount?: T;
   commission_transaction_fee?: T;
   commission_vendor_net?: T;
+  seller_shipping_proceeds?: T;
   commission_source?: T;
   commission_rule?: T;
   commission_volume_tier_snapshot?: T;

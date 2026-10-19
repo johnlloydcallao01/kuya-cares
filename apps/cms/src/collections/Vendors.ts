@@ -418,9 +418,8 @@ export const Vendors: CollectionConfig = {
       ({ data }) => data ? validateStoreHoursFields(data as Record<string, unknown>) : data,
     ],
     beforeChange: [
-      ({ data }) => {
-        // Auto-generate onboarding date if not provided
-        if (!data.onboardingDate) {
+      ({ data, operation }) => {
+        if (operation === 'create' && !data.onboardingDate) {
           data.onboardingDate = new Date().toISOString()
         }
         return data

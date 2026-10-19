@@ -11,6 +11,10 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import { getStoreHoursStatus, validateStoreHoursFields } from '@/utils/storeHours'
+import {
+  emptySellerShippingSettings,
+  parseSellerShippingSettings,
+} from '@/services/SellerShippingService'
 
 export const dynamic = 'force-dynamic'
 
@@ -129,6 +133,8 @@ function sanitizeMerchant(m: Record<string, any>): Record<string, any> {
     nextAvailableSlot: m.next_available_slot ?? null,
     service_area: m.service_area ?? null,
     serviceArea: m.service_area ?? null,
+    sellerShippingSettings:
+      m.seller_shipping_settings ?? emptySellerShippingSettings(),
     priority_zones: m.priority_zones ?? null,
     restricted_areas: m.restricted_areas ?? null,
     delivery_zones: m.delivery_zones ?? null,
@@ -327,6 +333,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (d.deliveryFee !== undefined) patch.delivery_fee_base = toNum(d.deliveryFee, 0)
       if (d.deliveryFeePerKm !== undefined) patch.delivery_fee_per_km = toNum(d.deliveryFeePerKm, 0)
       if (d.freeDeliveryThreshold !== undefined) patch.free_delivery_threshold = toNum(d.freeDeliveryThreshold, 0)
+    }
+
+    if (body.sellerShippingSettings !== undefined) {
+      try {
+        patch.seller_shipping_settings =
+          body.sellerShippingSettings === null
+            ? emptySellerShippingSettings()
+            : parseSellerShippingSettings(body.sellerShippingSettings)
+      } catch (error) {
+        return badRequest(
+          error instanceof Error ? error.message : 'Invalid seller shipping settings',
+        )
+      }
     }
 
     if (body.operatingHours !== undefined) {
@@ -708,6 +727,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     // deliverySettings denormalized columns — verify via sanitized.deliverySettings which merges group + top-level
     if (patch.delivery_radius_meters !== undefined && sanitized.deliverySettings.deliveryRadiusMeters !== patch.delivery_radius_meters) mismatches.push({ field: 'deliverySettings.deliveryRadiusMeters', expected: patch.delivery_radius_meters, actual: sanitized.deliverySettings.deliveryRadiusMeters })
+    if (
+      patch.seller_shipping_settings !== undefined &&
+      JSON.stringify(sanitized.sellerShippingSettings) !== JSON.stringify(patch.seller_shipping_settings)
+    ) {
+      mismatches.push({
+        field: 'sellerShippingSettings',
+        expected: patch.seller_shipping_settings,
+        actual: sanitized.sellerShippingSettings,
+      })
+    }
     if (patch.delivery_fee_per_km !== undefined && sanitized.deliverySettings.deliveryFeePerKm !== patch.delivery_fee_per_km) mismatches.push({ field: 'deliverySettings.deliveryFeePerKm', expected: patch.delivery_fee_per_km, actual: sanitized.deliverySettings.deliveryFeePerKm })
     if (patch.timezone !== undefined && sanitized.timezone !== patch.timezone) mismatches.push({ field: 'timezone', expected: patch.timezone, actual: sanitized.timezone })
     if (patch.is_currently_delivering !== undefined && sanitized.is_currently_delivering !== patch.is_currently_delivering) mismatches.push({ field: 'is_currently_delivering', expected: patch.is_currently_delivering, actual: sanitized.is_currently_delivering })

@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
         commission_amount: commissionAmount,
         commission_transaction_fee: transactionFeeAmount,
         commission_vendor_net: vendorBalanceAmount,
+        seller_shipping_proceeds: 0,
         commission_source: 'vendor',
         adjustment_reason: reason,
         adjustment_actor: admin.id,

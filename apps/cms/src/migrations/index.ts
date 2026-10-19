@@ -90,6 +90,7 @@ import * as migration_20261013_135802_commission_adjustments from './20261013_13
 import * as migration_20261016_014900_product_commission_rules from './20261016_014900_product_commission_rules';
 import * as migration_20261016_120000_vendor_withdrawal_requests from './20261016_120000_vendor_withdrawal_requests';
 import * as migration_20261016_125500_commission_volume_query_index from './20261016_125500_commission_volume_query_index';
+import * as migration_20261019_032834 from './20261019_032834';
 
 export const migrations = [
   {
@@ -535,7 +536,7 @@ export const migrations = [
   {
     up: migration_20261013_135802_commission_adjustments.up,
     down: migration_20261013_135802_commission_adjustments.down,
-    name: '20261013_135802_commission_adjustments'
+    name: '20261013_135802_commission_adjustments',
   },
   {
     up: migration_20261016_014900_product_commission_rules.up,
@@ -551,5 +552,10 @@ export const migrations = [
     up: migration_20261016_125500_commission_volume_query_index.up,
     down: migration_20261016_125500_commission_volume_query_index.down,
     name: '20261016_125500_commission_volume_query_index',
+  },
+  {
+    up: migration_20261019_032834.up,
+    down: migration_20261019_032834.down,
+    name: '20261019_032834'
   },
 ];

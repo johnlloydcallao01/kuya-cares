@@ -128,6 +128,8 @@ When you need to change available choices:
 ### Dev Mode Conflicts ("data loss will occur" warning)
 **Problem:** PayloadCMS detects you've run in dev mode and warns about data loss
 
+**Schema push warning:** If Payload warns that a schema push will delete a table or records, cancel the push. Do not accept the warning to make the application start. This project uses migrations as the schema source of truth, so automatic schema push is disabled in `payload.config.ts`. Make schema changes through reviewed migration files instead.
+
 **Solution:**
 1. First check what migrations are pending: `pnpm payload migrate:status`
 2. If you're confident about the changes, use: `pnpm payload migrate --force`

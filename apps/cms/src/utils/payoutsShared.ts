@@ -284,9 +284,10 @@ export function buildVendorAgg(core: PayoutsCore): Map<string, VendorAggEntry> {
     agg.deliveryFees += ref.deliveryFee
     const rawSnapshotNet = ref.order.commission_vendor_net
     const snapshottedNet = rawSnapshotNet == null || rawSnapshotNet === '' ? Number.NaN : Number(rawSnapshotNet)
+    const deliveryDeduction = ref.order.seller_shipping_snapshot ? 0 : ref.deliveryFee
     agg.net += Number.isFinite(snapshottedNet)
       ? Math.max(0, snapshottedNet)
-      : Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee - getNum(ref.order.priority_fee))
+      : Math.max(0, ref.amount - ref.platformFee - deliveryDeduction - getNum(ref.order.priority_fee))
   }
   for (const t of core.refundedTxPeriod) {
     const ref = resolvePayoutVendor(core, t)
@@ -376,9 +377,10 @@ export function buildDaily(core: PayoutsCore): { date: string; gross: number; ne
       e.gross += ref.amount
       const rawSnapshotNet = ref.order.commission_vendor_net
       const snapshottedNet = rawSnapshotNet == null || rawSnapshotNet === '' ? Number.NaN : Number(rawSnapshotNet)
+      const deliveryDeduction = ref.order.seller_shipping_snapshot ? 0 : ref.deliveryFee
       e.net += Number.isFinite(snapshottedNet)
         ? Math.max(0, snapshottedNet)
-        : Math.max(0, ref.amount - ref.platformFee - ref.deliveryFee - getNum(ref.order.priority_fee))
+        : Math.max(0, ref.amount - ref.platformFee - deliveryDeduction - getNum(ref.order.priority_fee))
       e.orders += 1
       dailyMap.set(d, e)
     }

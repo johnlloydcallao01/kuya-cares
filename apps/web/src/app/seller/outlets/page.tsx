@@ -407,6 +407,7 @@ function OutletsPageContent() {
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1">
                           <Link href={`/seller/outlets/${o.id}`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white" title="View"><Eye className="w-4 h-4" /></Link>
+                          <Link href={`/seller/outlets/${o.id}/shipping`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-[#239459]" title="Shipping settings"><Truck className="w-4 h-4" /></Link>
                           <Link href={`/seller/outlets/${o.id}/edit`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-blue-600 dark:hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></Link>
                           <button onClick={() => setDeleting(o)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
                         </div>

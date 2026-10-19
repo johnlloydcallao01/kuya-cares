@@ -607,6 +607,12 @@ importers:
       react-hot-toast:
         specifier: ^2.6.0
         version: 2.6.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      terra-draw:
+        specifier: ^1.32.3
+        version: 1.32.3
+      terra-draw-google-maps-adapter:
+        specifier: ^1.6.1
+        version: 1.6.1(@googlemaps/js-api-loader@1.16.8)(terra-draw@1.32.3)
       zod:
         specifier: ^3.25.76
         version: 3.25.76

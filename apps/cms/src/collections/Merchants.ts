@@ -216,6 +216,16 @@ export const Merchants: CollectionConfig = {
       },
     },
 
+    {
+      name: 'seller_shipping_settings',
+      type: 'json',
+      defaultValue: { version: 1, pickup: { enabled: false, instructions: null }, zones: [] },
+      admin: {
+        description:
+          'Seller-managed delivery zones, flat rates, free-delivery thresholds, and pickup settings. Configured by the vendor outlet API.',
+      },
+    },
+
 
 
     // === MEDIA AND BRANDING ===
@@ -298,26 +308,44 @@ export const Merchants: CollectionConfig = {
       name: 'activeAddress',
       type: 'relationship',
       relationTo: 'addresses',
-      filterOptions: async ({ relationTo: _relationTo, data, user: _user, req }) => {
-        // If we have merchant data with a vendor relationship
-        if (data?.vendor) {
+      filterOptions: async ({ relationTo: _relationTo, data, id, user: _user, req }) => {
+        // Partial Local API updates may omit vendor from `data`. Resolve it from the
+        // existing merchant so unrelated edits still validate its active address.
+        let merchantVendor = data?.vendor
+        if (!merchantVendor && id != null) {
+          try {
+            const merchant = await req.payload.findByID({
+              collection: 'merchants',
+              id,
+              depth: 1,
+              overrideAccess: true,
+            })
+            merchantVendor = merchant?.vendor
+          } catch (error) {
+            console.error('Error resolving merchant vendor for activeAddress filterOptions:', error)
+            return false
+          }
+        }
+
+        // Resolve the address owner from the merchant's vendor relationship.
+        if (merchantVendor) {
           try {
             let vendorUserId;
 
             // If vendor is just an ID (string/number), we need to fetch the vendor to get the user
-            if (typeof data.vendor === 'string' || typeof data.vendor === 'number') {
+            if (typeof merchantVendor === 'string' || typeof merchantVendor === 'number') {
               const vendor = await req.payload.findByID({
                 collection: 'vendors',
-                id: data.vendor,
+                id: merchantVendor,
                 depth: 1, // This will populate the user relationship
               });
 
               if (vendor?.user) {
                 vendorUserId = typeof vendor.user === 'object' ? vendor.user.id : vendor.user;
               }
-            } else if (data.vendor?.user) {
+            } else if (merchantVendor?.user) {
               // If vendor is populated, get the user ID
-              vendorUserId = typeof data.vendor.user === 'object' ? data.vendor.user.id : data.vendor.user;
+              vendorUserId = typeof merchantVendor.user === 'object' ? merchantVendor.user.id : merchantVendor.user;
             }
 
             if (vendorUserId) {

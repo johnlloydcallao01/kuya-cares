@@ -736,6 +736,7 @@ const commissionLedgerAmountFields = [
   'commission_amount',
   'commission_transaction_fee',
   'commission_vendor_net',
+  'seller_shipping_proceeds',
 ] as const
 
 export function calculateRefundReversalDelta(
@@ -753,6 +754,7 @@ export function calculateRefundReversalDelta(
     commission_amount: 0,
     commission_transaction_fee: 0,
     commission_vendor_net: 0,
+    seller_shipping_proceeds: 0,
   }
   for (const field of commissionLedgerAmountFields) {
     const target = -roundMoney(finiteMoney(accrual[field]) * ratio)
@@ -810,6 +812,7 @@ function entryDataFromOrder(accrual: Doc, reversals: Doc[], fullyRefunded: boole
     commission_amount: fullyRefunded ? 0 : remaining('commission_amount'),
     commission_transaction_fee: fullyRefunded ? 0 : remaining('commission_transaction_fee'),
     commission_vendor_net: fullyRefunded ? 0 : remaining('commission_vendor_net'),
+    seller_shipping_proceeds: fullyRefunded ? 0 : remaining('seller_shipping_proceeds'),
     commission_source: accrual.commission_source,
     commission_rule: numId(accrual.commission_rule) || null,
     commission_volume_tier_snapshot: accrual.commission_volume_tier_snapshot ?? null,
@@ -1040,6 +1043,9 @@ export async function accruePaidOrderCommission(
     amounts = calculateCommissionAmounts(finiteMoney(order.subtotal), vendorDiscount, resolution, productDiscount)
   }
   const currency = typeof order.currency === 'string' ? order.currency : 'PHP'
+  const sellerShippingProceeds = order.seller_shipping_snapshot
+    ? Math.max(0, finiteMoney(order.delivery_fee))
+    : 0
 
   const entry = await payload.create({
     collection: 'vendor-commission-entries',
@@ -1055,7 +1061,8 @@ export async function accruePaidOrderCommission(
       commission_vendor_discount: amounts.vendorDiscount,
       commission_amount: amounts.commissionAmount,
       commission_transaction_fee: amounts.transactionFee,
-      commission_vendor_net: amounts.vendorNet,
+      commission_vendor_net: roundMoney(amounts.vendorNet + sellerShippingProceeds),
+      seller_shipping_proceeds: sellerShippingProceeds,
       commission_source: resolution.source,
       commission_rule: resolution.ruleId == null ? null : numId(resolution.ruleId),
       commission_volume_tier_snapshot: resolution.volumeTierSnapshot ?? null,
@@ -1138,6 +1145,7 @@ export async function recordOrderCommissionRefund(
       commission_amount: reversal.commission_amount,
       commission_transaction_fee: reversal.commission_transaction_fee,
       commission_vendor_net: reversal.commission_vendor_net,
+      seller_shipping_proceeds: reversal.seller_shipping_proceeds,
       commission_source: accrual.commission_source,
       commission_rule: numId(accrual.commission_rule) || null,
       effective_at: refundedAt.toISOString(),

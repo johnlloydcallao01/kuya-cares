@@ -6,3 +6,7 @@ export const dynamic = 'force-dynamic';
 export function GET(request: NextRequest) {
   return proxySellerBusinessProfile(request);
 }
+
+export function PATCH(request: NextRequest) {
+  return proxySellerBusinessProfile(request);
+}

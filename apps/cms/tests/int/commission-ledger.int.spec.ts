@@ -305,7 +305,14 @@ describe('marketplace commission calculation', () => {
     ]
     const payload = {
       findByID: async ({ collection, id }: { collection: string; id?: string | number }) => {
-        if (collection === 'orders') return { id: 100, merchant: 20, subtotal: 1000, currency: 'PHP' }
+        if (collection === 'orders') return {
+          id: 100,
+          merchant: 20,
+          subtotal: 1000,
+          delivery_fee: 75,
+          seller_shipping_snapshot: { type: 'seller_delivery' },
+          currency: 'PHP',
+        }
         if (collection === 'merchants') return { id: 20, vendor: 9, merchant_categories: [] }
         if (collection === 'vendors') return { id: 9 }
         if (collection === 'products') {
@@ -351,7 +358,8 @@ describe('marketplace commission calculation', () => {
       commission_base_amount: 900,
       commission_amount: 39.6,
       commission_transaction_fee: 3.6,
-      commission_vendor_net: 936.8,
+      commission_vendor_net: 1011.8,
+      seller_shipping_proceeds: 75,
       commission_source: 'product',
       commission_rule: null,
       commission_product_breakdown: [
@@ -853,6 +861,7 @@ describe('marketplace commission calculation', () => {
       commission_amount: 95,
       commission_transaction_fee: 5,
       commission_vendor_net: 850,
+      seller_shipping_proceeds: 200,
     }
     const first = calculateRefundReversalDelta(accrual, [], 250, 1000)
     expect(first).toEqual({
@@ -861,6 +870,7 @@ describe('marketplace commission calculation', () => {
       commission_amount: -23.75,
       commission_transaction_fee: -1.25,
       commission_vendor_net: -212.5,
+      seller_shipping_proceeds: -50,
     })
 
     const second = calculateRefundReversalDelta(accrual, [first], 600, 1000)
@@ -870,6 +880,7 @@ describe('marketplace commission calculation', () => {
       commission_amount: -33.25,
       commission_transaction_fee: -1.75,
       commission_vendor_net: -297.5,
+      seller_shipping_proceeds: -70,
     })
 
     const final = calculateRefundReversalDelta(accrual, [first, second], 1200, 1000)
@@ -879,6 +890,7 @@ describe('marketplace commission calculation', () => {
       commission_amount: -38,
       commission_transaction_fee: -2,
       commission_vendor_net: -340,
+      seller_shipping_proceeds: -80,
     })
 
   })

@@ -11,9 +11,7 @@ import {
   MapPin,
   Phone,
   Mail,
-  Clock,
   Truck,
-  DollarSign,
   AlertCircle,
   Globe,
   Tag,
@@ -43,6 +41,26 @@ type Outlet = {
     maxDeliveryRadiusMeters: number;
     deliveryFeePerKm: number;
   };
+  sellerShippingSettings?: {
+    pickup?: { enabled?: boolean; instructions?: string | null };
+    zones?: Array<{
+      id: string;
+      name: string;
+      enabled: boolean;
+      areas: Array<{
+        region?: string;
+        province?: string;
+        city?: string;
+        barangays: string[];
+        postalCodes: string[];
+      }>;
+      deliveryFee: number;
+      minimumOrderAmount: number;
+      freeDeliveryThreshold: number | null;
+      estimatedDeliveryMinMinutes: number;
+      estimatedDeliveryMaxMinutes: number;
+    }>;
+  } | null;
   address: { id?: string | number | null; formattedAddress: string; street: string; locality: string; province: string; postalCode: string; country: string; latitude: number; longitude: number } | null;
   activeAddress?: { id?: string | number | null; formattedAddress?: string } | null;
   activeAddressId?: string | number | null;
@@ -161,6 +179,7 @@ function OutletViewContent() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link href={`/seller/outlets/${doc.id}/shipping`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#262626] transition"><Truck className="w-4 h-4" /> Shipping</Link>
           <Link href={`/seller/outlets/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Edit className="w-4 h-4" /> Edit</Link>
           <Link href="/seller/outlets" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50">Close</Link>
         </div>
@@ -169,7 +188,7 @@ function OutletViewContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Operational Status</p><p className={`mt-2 inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${operationalBadge(doc.operationalStatus)}`}>{doc.operationalStatus.replace('_', ' ')}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Active</p><p className={`mt-2 font-semibold text-sm ${doc.isActive ? 'text-emerald-600' : 'text-zinc-500'}`}>{doc.isActive ? 'Active branch' : 'Inactive'}</p><p className="text-xs text-gray-500 mt-1">{doc.isAcceptingOrders ? 'Accepting orders' : 'Not accepting'}</p></div>
-        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Delivery Radius</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Truck className="w-5 h-5 text-[#239459]" /> {(doc.deliverySettings.deliveryRadiusMeters / 1000).toFixed(1)} km</p><p className="text-xs text-gray-500">Min ₱{doc.deliverySettings.minimumOrderAmount} • Fee ₱{doc.deliverySettings.deliveryFee}</p></div>
+        <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Seller shipping</p><p className="mt-2 font-bold flex items-center gap-1 text-lg"><Truck className="w-5 h-5 text-[#239459]" /> {(doc.sellerShippingSettings?.zones || []).filter((zone) => zone.enabled).length} active zones</p><p className="text-xs text-gray-500">{doc.sellerShippingSettings?.pickup?.enabled ? 'Pickup available' : 'Pickup not enabled'}</p></div>
         <div className="rounded-xl border border-gray-200 dark:border-[#262626] bg-white dark:bg-[#171717] p-4"><p className="text-xs text-gray-500">Location</p><p className="mt-2 font-semibold text-sm text-gray-900 dark:text-white truncate">{doc.address?.locality || '—'}</p><p className="text-xs text-gray-500 truncate">{doc.address?.province || doc.address?.formattedAddress || '—'}</p></div>
       </div>
 
@@ -199,13 +218,26 @@ function OutletViewContent() {
           </Section>
         </div>
         <div className="space-y-5">
-          <Section title="Delivery Settings">
-            <Row label="Min order" value={`₱${doc.deliverySettings.minimumOrderAmount}`} icon={<DollarSign className="w-3 h-3" />} />
-            <Row label="Base fee" value={`₱${doc.deliverySettings.deliveryFee}`} />
-            <Row label="Fee per km" value={`₱${doc.deliverySettings.deliveryFeePerKm}`} />
-            <Row label="Free delivery" value={doc.deliverySettings.freeDeliveryThreshold ? `₱${doc.deliverySettings.freeDeliveryThreshold}` : '—'} />
-            <Row label="Radius" value={`${(doc.deliverySettings.deliveryRadiusMeters / 1000).toFixed(1)} km (max ${(doc.deliverySettings.maxDeliveryRadiusMeters / 1000).toFixed(1)} km)`} icon={<Truck className="w-3 h-3" />} />
-            <Row label="Est. time" value={`${doc.deliverySettings.estimatedDeliveryTimeMinutes} – ${doc.deliverySettings.maxDeliveryTimeMinutes} min`} icon={<Clock className="w-3 h-3" />} />
+          <Section title="Seller-managed Shipping">
+            <Row label="Pickup" value={doc.sellerShippingSettings?.pickup?.enabled ? 'Enabled' : 'Not enabled'} icon={<Store className="w-3 h-3" />} />
+            {doc.sellerShippingSettings?.pickup?.instructions && <Row label="Pickup instructions" value={doc.sellerShippingSettings.pickup.instructions} />}
+            {(doc.sellerShippingSettings?.zones || []).map((zone) => (
+              <React.Fragment key={zone.id}>
+                <Row label={`${zone.name || 'Unnamed zone'}${zone.enabled ? '' : ' (disabled)'}`} value={`Fee ₱${zone.deliveryFee}${zone.freeDeliveryThreshold ? ` · Free from ₱${zone.freeDeliveryThreshold}` : ''}`} icon={<Truck className="w-3 h-3" />} />
+                <Row label="Coverage" value={zone.areas.map((area) => [
+                  area.barangays.join(', '),
+                  area.city,
+                  area.province,
+                  area.region,
+                  area.postalCodes.length ? `Postal: ${area.postalCodes.join(', ')}` : '',
+                ].filter(Boolean).join(', ')).join(' · ') || 'Not specified'} />
+                {zone.minimumOrderAmount > 0 && <Row label="Minimum order" value={`₱${zone.minimumOrderAmount}`} />}
+              </React.Fragment>
+            ))}
+            {!(doc.sellerShippingSettings?.zones || []).length && <Row label="Delivery zones" value="No zones configured" />}
+            <div className="px-4 py-3">
+              <Link href={`/seller/outlets/${doc.id}/shipping`} className="text-sm font-semibold text-[#239459] hover:underline">Manage shipping settings</Link>
+            </div>
           </Section>
           {doc.operatingHours && (
             <Section title="Operating Hours">

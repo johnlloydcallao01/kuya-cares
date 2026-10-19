@@ -54,3 +54,53 @@ export async function proxySellerOrders(request: NextRequest): Promise<NextRespo
     return NextResponse.json({ error: 'Failed to reach CMS' }, { status: 502 });
   }
 }
+
+export async function proxySellerOrderFulfillment(
+  request: NextRequest,
+  orderId: string,
+): Promise<NextResponse> {
+  const token = request.cookies.get('kuyacares-token')?.value;
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!/^\d+$/.test(orderId)) {
+    return NextResponse.json({ error: 'Invalid order id' }, { status: 400 });
+  }
+
+  try {
+    const userResponse = await fetch(`${CMS_BASE}/users/me?depth=0`, {
+      headers: { Authorization: `JWT ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!userResponse.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const user = (await userResponse.json())?.user;
+    if (!user || user.role !== 'member' || user.id == null) {
+      return NextResponse.json({ error: 'Member access required' }, { status: 403 });
+    }
+
+    const body = await request.text();
+    const response = await fetch(
+      `${CMS_BASE}/vendor/orders/${encodeURIComponent(orderId)}/fulfillment`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `JWT ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body,
+        cache: 'no-store',
+        signal: AbortSignal.timeout(30000),
+      },
+    );
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return NextResponse.json({ error: text || 'CMS returned an invalid fulfillment response' }, { status: 502 });
+    }
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json({ error: 'Failed to reach CMS' }, { status: 502 });
+  }
+}

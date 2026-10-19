@@ -187,11 +187,12 @@ export async function GET(request: NextRequest) {
       const amt = getNum(t.amount)
       const platformFee = getNum((order as any).platform_fee)
       const deliveryFee = getNum((order as any).delivery_fee)
+      const deliveryDeduction = (order as any).seller_shipping_snapshot ? 0 : deliveryFee
       const rawSnapshotNet = (order as any).commission_vendor_net
       const hasCommissionSnapshot = rawSnapshotNet !== null && rawSnapshotNet !== undefined && rawSnapshotNet !== ''
       const net = hasCommissionSnapshot
         ? Math.max(0, getNum(rawSnapshotNet))
-        : Math.max(0, amt - platformFee - deliveryFee - getNum((order as any).priority_fee))
+        : Math.max(0, amt - platformFee - deliveryDeduction - getNum((order as any).priority_fee))
       agg.orders += 1
       agg.gross += amt
       agg.platformFees += platformFee

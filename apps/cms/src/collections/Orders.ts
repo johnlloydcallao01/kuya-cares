@@ -45,6 +45,41 @@ export const Orders: CollectionConfig = {
         }
         return data
       }) as never,
+      ({ data, operation, req, originalDoc }) => {
+        const incoming = data as Record<string, unknown> | undefined
+        if (operation === 'create' && incoming?.seller_shipping_snapshot) {
+          if (req.context?.sellerShippingCheckout !== true) {
+            throw new APIError('Seller shipping orders must be created through the validated checkout endpoint.', 403)
+          }
+        }
+        if (
+          operation === 'update' &&
+          incoming?.seller_shipping_snapshot !== undefined &&
+          JSON.stringify(incoming.seller_shipping_snapshot) !== JSON.stringify(originalDoc?.seller_shipping_snapshot)
+        ) {
+          throw new APIError('The seller shipping terms recorded at checkout cannot be changed.', 409)
+        }
+        if (
+          operation === 'update' &&
+          incoming?.checkout_idempotency_key !== undefined &&
+          incoming.checkout_idempotency_key !== originalDoc?.checkout_idempotency_key
+        ) {
+          throw new APIError('The checkout idempotency key cannot be changed.', 409)
+        }
+        const sellerShippingOrder =
+          (originalDoc as Record<string, unknown> | undefined)?.seller_shipping_snapshot != null
+        if (
+          operation === 'update' &&
+          sellerShippingOrder &&
+          (incoming?.seller_carrier_name !== undefined ||
+            incoming?.seller_tracking_reference !== undefined ||
+            incoming?.seller_tracking_url !== undefined) &&
+          req.context?.sellerFulfillmentUpdate !== true
+        ) {
+          throw new APIError('Seller delivery details must be updated through the seller fulfillment endpoint.', 403)
+        }
+        return data
+      },
       ({ data, operation, req }) => {
         if (operation !== 'update' || req.context?.commissionSnapshot) return data
         const snapshotFields = [
@@ -54,6 +89,7 @@ export const Orders: CollectionConfig = {
           'commission_amount',
           'commission_transaction_fee',
           'commission_vendor_net',
+          'seller_shipping_proceeds',
           'commission_source',
           'commission_rule',
           'commission_volume_tier_snapshot',
@@ -316,6 +352,50 @@ export const Orders: CollectionConfig = {
       admin: {
         description: 'Calculated delivery fee (0 for Pickup)',
       },
+    },
+    {
+      name: 'seller_shipping_snapshot',
+      type: 'json',
+      admin: {
+        readOnly: true,
+        description: 'Immutable seller delivery or pickup method, rate, and terms accepted at checkout.',
+      },
+    },
+    {
+      name: 'checkout_idempotency_key',
+      type: 'text',
+      unique: true,
+      admin: {
+        hidden: true,
+        description: 'Unique key preventing duplicate seller-managed checkout orders.',
+      },
+    },
+    {
+      name: 'seller_shipping_proceeds',
+      type: 'number',
+      min: 0,
+      admin: {
+        readOnly: true,
+        description: 'Seller-owned shipping proceeds included in the payable vendor net; excluded from merchandise commission bases.',
+      },
+    },
+    {
+      name: 'seller_carrier_name',
+      type: 'text',
+      maxLength: 120,
+      admin: { description: 'Optional delivery carrier entered by the seller.' },
+    },
+    {
+      name: 'seller_tracking_reference',
+      type: 'text',
+      maxLength: 200,
+      admin: { description: 'Optional carrier tracking reference entered by the seller.' },
+    },
+    {
+      name: 'seller_tracking_url',
+      type: 'text',
+      maxLength: 2000,
+      admin: { description: 'Optional HTTPS tracking link entered by the seller.' },
     },
     {
       name: 'platform_fee',
