@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from 'react-hot-toast';
 import { CheckoutAddressSection } from '@/components/checkout/CheckoutAddressSection';
 import { AddressService, LocationBasedMerchantService } from '@encreasl/client-services';
+import { useAddressChange } from '@/hooks/useAddressChange';
+import { API_BASE_URL, getStoredToken } from '@/lib/auth';
 import { getPaymentOptions, type PaymentOption } from '@/app/actions/payments';
 import {
   FALLBACK_PAYMENT_METHODS,
@@ -16,10 +18,11 @@ import {
 } from '@/lib/payments/catalog';
 import {
   PAYMONGO_MINIMUM_AMOUNT_PHP,
+  clearCheckoutIdempotencyKey,
   clearPendingCheckoutSession,
-  createPendingOrder,
   createPendingTransaction,
   findActiveCartLinkedOrder,
+  getCheckoutIdempotencyKey,
   getCheckoutPaymentStatus,
   getPendingCheckoutSession,
   isPendingSessionFresh,
@@ -34,6 +37,50 @@ type PaymentMethod =
   | 'dob'
   | 'brankas'
   | 'qrph';
+
+type ShippingOptionQuote = {
+  id: string;
+  type: 'seller_delivery' | 'pickup';
+  name: string;
+  fee: number;
+  zoneId: string | null;
+  zoneName: string | null;
+  estimatedDeliveryMinMinutes: number | null;
+  estimatedDeliveryMaxMinutes: number | null;
+  pickupInstructions: string | null;
+  quoteToken: string;
+};
+
+type ShippingQuote = {
+  cartSubtotal: number;
+  pickupLocation: string | null;
+  items: Array<{
+    cartItemId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  options: ShippingOptionQuote[];
+};
+
+type PreparedCheckout = {
+  orderId: string;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  shippingOptionId: string;
+  shippingOptionName: string;
+  shippingType: 'seller_delivery' | 'pickup';
+  estimatedDeliveryMinMinutes: number | null;
+  estimatedDeliveryMaxMinutes: number | null;
+  pickupInstructions: string | null;
+  addressId: string | null;
+  addressLabel: string | null;
+  pickupLocation: string | null;
+};
+
+const CHECKOUT_API_BASE = API_BASE_URL;
 
 const getPayMongoErrorMessage = (error: any) => {
   const code = error?.code;
@@ -88,7 +135,8 @@ export default function CheckoutPage() {
   const merchantId = merchantIdParam ? Number(merchantIdParam) : NaN;
   const router = useRouter();
   const { items, isLoading } = useCart();
-  const { user } = useAuthContext();
+  const { user, token: authToken } = useAuthContext();
+  const accessToken = authToken || getStoredToken();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   // API-driven options (GET /api/payments/options via server action).
   // `card` is excluded client-side, mirroring mobile's methodLogos filter.
@@ -117,6 +165,12 @@ export default function CheckoutPage() {
   const [hasPendingRecovery, setHasPendingRecovery] = useState(false);
   const [activeAddressId, setActiveAddressId] = useState<string | null>(null);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [isAddressReady, setIsAddressReady] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
+  const [selectedShippingOptionId, setSelectedShippingOptionId] = useState('');
+  const [shippingQuoteLoading, setShippingQuoteLoading] = useState(false);
+  const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
+  const [preparedCheckout, setPreparedCheckout] = useState<PreparedCheckout | null>(null);
 
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrIntentId, setQrIntentId] = useState<string | null>(null);
@@ -125,6 +179,7 @@ export default function CheckoutPage() {
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasNavigatedToReturnRef = useRef(false);
   const payGuardRef = useRef(false);
+  const checkoutIdempotencyKeyRef = useRef<string | null>(null);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-PH', {
@@ -145,12 +200,33 @@ export default function CheckoutPage() {
   const merchantName = merchantItems[0]?.merchantName || 'Merchant';
   const merchantLogoUrl = merchantItems[0]?.merchantLogoUrl || null;
   const subtotal = merchantItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-  const isBelowPayMongoMinimum = subtotal < PAYMONGO_MINIMUM_AMOUNT_PHP;
-  const orderTotal = subtotal;
+  const cartQuoteKey = merchantItems
+    .map((item) => `${item.id}:${item.quantity}:${item.subtotal}`)
+    .join('|');
+
+  const refreshActiveAddress = useCallback(async () => {
+    const userId = (user as any)?.id;
+    if (!userId) {
+      setActiveAddressId(null);
+      return;
+    }
+    try {
+      const response = await AddressService.getActiveAddress(userId, undefined, true);
+      setActiveAddressId(response.success && response.address ? String((response.address as any).id) : null);
+    } catch (error) {
+      console.error('Unable to refresh checkout address:', error);
+      setActiveAddressId(null);
+    }
+  }, [user]);
+
+  useAddressChange(() => {
+    void refreshActiveAddress();
+  });
 
   // ---- identity + active address (mobile useActiveAddress equivalent) ----
   useEffect(() => {
     let active = true;
+    setIsAddressReady(false);
     (async () => {
       try {
         const cid = await LocationBasedMerchantService.getCurrentCustomerId().catch(() => null);
@@ -158,11 +234,13 @@ export default function CheckoutPage() {
         setCustomerId(cid);
         if (!cid) {
           setActiveAddressId(null);
+          setIsAddressReady(true);
           return;
         }
         const userId = (user as any)?.id;
         if (!userId) {
           setActiveAddressId(null);
+          setIsAddressReady(true);
           return;
         }
         const res = await AddressService.getActiveAddress(userId, undefined, true);
@@ -170,6 +248,8 @@ export default function CheckoutPage() {
         setActiveAddressId(res.success && res.address ? String((res.address as any).id) : null);
       } catch {
         if (active) setActiveAddressId(null);
+      } finally {
+        if (active) setIsAddressReady(true);
       }
     })();
     return () => {
@@ -177,7 +257,87 @@ export default function CheckoutPage() {
     };
   }, [user]);
 
-  const isFormValid = !!activeAddressId && !!paymentMethod;
+  useEffect(() => {
+    if (!isAddressReady || isLoading || !merchantItems.length) {
+      setShippingQuote(null);
+      setSelectedShippingOptionId('');
+      setShippingQuoteError(null);
+      setShippingQuoteLoading(false);
+      return;
+    }
+    if (!customerId || !accessToken) {
+      setShippingQuote(null);
+      setSelectedShippingOptionId('');
+      setShippingQuoteError(
+        !customerId
+          ? 'Your customer account could not be verified. Please sign in again.'
+          : 'Your sign-in session could not be verified. Please sign in again.',
+      );
+      setShippingQuoteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    setShippingQuote(null);
+    setShippingQuoteError(null);
+    setShippingQuoteLoading(true);
+
+    void (async () => {
+      try {
+        const response = await fetch(`${CHECKOUT_API_BASE}/customer/checkout/shipping/quote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `JWT ${accessToken}`,
+          },
+          body: JSON.stringify({ merchantId, addressId: activeAddressId }),
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result?.error || 'Unable to calculate shipping for this address.');
+        }
+        const nextQuote = result as ShippingQuote;
+        if (!Array.isArray(nextQuote.options) || !nextQuote.options.length) {
+          throw new Error('No delivery or pickup options are available for this address.');
+        }
+        if (!active) return;
+        setShippingQuote(nextQuote);
+        setSelectedShippingOptionId((current) =>
+          nextQuote.options.some((option) => option.id === current) ? current : nextQuote.options[0].id,
+        );
+      } catch (error) {
+        if (!active || (error instanceof DOMException && error.name === 'AbortError')) return;
+        setShippingQuoteError(error instanceof Error ? error.message : 'Unable to calculate shipping for this address.');
+      } finally {
+        if (active) setShippingQuoteLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [activeAddressId, accessToken, cartQuoteKey, customerId, isAddressReady, isLoading, merchantId, merchantItems.length, subtotal]);
+
+  const selectedShippingOption = shippingQuote?.options.find((option) => option.id === selectedShippingOptionId) ?? null;
+  const shippingSubtotal = preparedCheckout?.subtotal ?? shippingQuote?.cartSubtotal ?? subtotal;
+  const displayedDeliveryFee = preparedCheckout?.deliveryFee ?? selectedShippingOption?.fee ?? 0;
+  const displayedShippingType = preparedCheckout?.shippingType ?? selectedShippingOption?.type;
+  const displayedShippingName = preparedCheckout?.shippingOptionName ?? selectedShippingOption?.name;
+  const displayedAddressId = preparedCheckout?.addressId ?? activeAddressId;
+  const orderTotal = preparedCheckout?.total ??
+    Math.round((shippingSubtotal + displayedDeliveryFee + Number.EPSILON) * 100) / 100;
+  const isBelowPayMongoMinimum = orderTotal < PAYMONGO_MINIMUM_AMOUNT_PHP;
+  const isFormValid =
+    !!customerId &&
+    !!paymentMethod &&
+    (!!preparedCheckout || !!selectedShippingOption) &&
+    ((preparedCheckout?.shippingType ?? selectedShippingOption?.type) === 'pickup' || !!displayedAddressId) &&
+    !shippingQuoteLoading &&
+    (!shippingQuoteError || !!preparedCheckout);
 
   const redirectToReturn = useCallback(
     (paymentIntentId: string, orderId: string) => {
@@ -368,8 +528,20 @@ export default function CheckoutPage() {
 
   const handlePayNow = async () => {
     if (payGuardRef.current) return;
-    if (!customerId || !activeAddressId) {
-      toast.error('Please select a delivery address');
+    if (!customerId || !accessToken) {
+      toast.error('Your sign-in session could not be verified. Please sign in again.');
+      return;
+    }
+    if (!preparedCheckout && !selectedShippingOption) {
+      toast.error(shippingQuoteError || 'Select an available delivery or pickup option before paying.');
+      return;
+    }
+    if (
+      !preparedCheckout &&
+      selectedShippingOption?.type === 'seller_delivery' &&
+      !activeAddressId
+    ) {
+      toast.error('Please select a delivery address.');
       return;
     }
     if (!paymentMethod) {
@@ -389,12 +561,10 @@ export default function CheckoutPage() {
       if (!pk) {
         throw new Error('Missing PayMongo public key');
       }
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
-      const apiKey = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (apiKey) {
-        headers.Authorization = `users API-Key ${apiKey}`;
-      }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `JWT ${accessToken}`,
+      };
 
       // 1. Payment method via PayMongo.
       const pmId = await (async () => {
@@ -420,18 +590,120 @@ export default function CheckoutPage() {
       })();
       if (!pmId) return;
 
-      // 2. Payment intent via CMS (centavos + metadata like mobile).
-      const intentResponse = await fetch(`${API_BASE}/create-payment-intent`, {
+      // 2. Create the validated order so the payment intent can be checked against its total.
+      let checkout = preparedCheckout;
+      if (!checkout) {
+        const option = selectedShippingOption;
+        if (!option) throw new Error('Shipping options are no longer available. Refresh checkout and try again.');
+        const idempotencyKey = checkoutIdempotencyKeyRef.current ??
+          getCheckoutIdempotencyKey(String(customerId), String(merchantId));
+        checkoutIdempotencyKeyRef.current = idempotencyKey;
+
+        const checkoutResponse = await fetch(`${CHECKOUT_API_BASE}/customer/checkout`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            idempotencyKey,
+            quoteToken: option.quoteToken,
+          }),
+        });
+        const checkoutResult = await checkoutResponse.json().catch(() => ({}));
+        if (!checkoutResponse.ok) {
+          throw new Error(checkoutResult?.error || 'Unable to prepare your order. Refresh checkout and try again.');
+        }
+        if (checkoutResult?.status === 'cancelled') {
+          clearCheckoutIdempotencyKey(String(customerId), String(merchantId));
+          checkoutIdempotencyKeyRef.current = null;
+          throw new Error('Your previous checkout was cancelled. Refresh shipping options to start a new order.');
+        }
+        if (checkoutResult?.status !== 'pending') {
+          throw new Error('This order is no longer awaiting payment. Please check your orders before trying again.');
+        }
+
+        const persistedShipping = checkoutResult?.sellerShipping;
+        const orderId = checkoutResult?.orderId == null ? '' : String(checkoutResult.orderId);
+        const persistedSubtotal = Number(checkoutResult?.subtotal);
+        const persistedFee = Number(checkoutResult?.deliveryFee);
+        const persistedShippingFee = Number(persistedShipping?.fee);
+        const persistedTotal = Number(checkoutResult?.total);
+        const persistedOptionId = typeof persistedShipping?.optionId === 'string'
+          ? persistedShipping.optionId.trim()
+          : '';
+        if (
+          !orderId ||
+          !persistedShipping ||
+          !persistedOptionId ||
+          !Number.isFinite(persistedSubtotal) ||
+          !Number.isFinite(persistedFee) ||
+          !Number.isFinite(persistedShippingFee) ||
+          Math.round(persistedShippingFee * 100) !== Math.round(persistedFee * 100) ||
+          !Number.isFinite(persistedTotal) ||
+          !['seller_delivery', 'pickup'].includes(persistedShipping.type)
+        ) {
+          throw new Error('The server returned incomplete checkout totals. Please refresh checkout before paying.');
+        }
+
+        checkout = {
+          orderId,
+          subtotal: persistedSubtotal,
+          deliveryFee: persistedFee,
+          total: persistedTotal,
+          shippingOptionId: persistedOptionId,
+          shippingOptionName: String(persistedShipping.optionName || 'Seller delivery'),
+          shippingType: persistedShipping.type,
+          estimatedDeliveryMinMinutes: persistedShipping.estimatedDeliveryMinMinutes == null
+            ? null
+            : Number(persistedShipping.estimatedDeliveryMinMinutes),
+          estimatedDeliveryMaxMinutes: persistedShipping.estimatedDeliveryMaxMinutes == null
+            ? null
+            : Number(persistedShipping.estimatedDeliveryMaxMinutes),
+          pickupInstructions: persistedShipping.pickupInstructions == null
+            ? null
+            : String(persistedShipping.pickupInstructions),
+          addressId: persistedShipping.addressId == null ? null : String(persistedShipping.addressId),
+          addressLabel: persistedShipping.address?.formattedAddress
+            ? String(persistedShipping.address.formattedAddress)
+            : null,
+          pickupLocation: persistedShipping.pickupLocation
+            ? String(persistedShipping.pickupLocation)
+            : null,
+        };
+        setPreparedCheckout(checkout);
+
+        const quoteDoesNotMatchPreparedOrder =
+          checkout.shippingOptionId !== option.id ||
+          checkout.shippingType !== option.type ||
+          checkout.shippingOptionName !== option.name ||
+          Math.round(checkout.deliveryFee * 100) !== Math.round(option.fee * 100) ||
+          checkout.estimatedDeliveryMinMinutes !== option.estimatedDeliveryMinMinutes ||
+          checkout.estimatedDeliveryMaxMinutes !== option.estimatedDeliveryMaxMinutes ||
+          checkout.pickupInstructions !== option.pickupInstructions ||
+          checkout.addressId !== activeAddressId ||
+          (option.type === 'pickup' && checkout.pickupLocation !== shippingQuote?.pickupLocation) ||
+          Math.round(checkout.total * 100) !== Math.round(orderTotal * 100);
+        if (quoteDoesNotMatchPreparedOrder) {
+          throw new Error('Your shipping details or total changed. Review the updated order summary, then press Pay again to continue.');
+        }
+      }
+
+      const paymentAmount = Math.round(checkout.total * 100);
+      if (paymentAmount < PAYMONGO_MINIMUM_AMOUNT_PHP * 100) {
+        throw new Error('Checkout total is below the PayMongo minimum of PHP 1.00.');
+      }
+
+      // 3. Payment intent: CMS verifies the centavo amount against the saved order.
+      const intentResponse = await fetch(`${CHECKOUT_API_BASE}/create-payment-intent`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          amount: Math.round(orderTotal * 100),
+          amount: paymentAmount,
           currency: 'PHP',
+          orderId: checkout.orderId,
           description: `Order from ${merchantName}`,
           metadata: {
             userId: (user as any)?.id,
             merchantId,
-            addressId: activeAddressId,
+            addressId: checkout.addressId,
           },
         }),
       });
@@ -448,35 +720,25 @@ export default function CheckoutPage() {
         throw new Error('Missing intent/client_key from CMS response');
       }
 
-      // 3-5. Pending order + delivery address snapshot + items/cart link, then tx.
-      const { orderId: createdOrderId } = await createPendingOrder({
-        customerId,
-        merchantId,
-        activeAddressId,
-        items: merchantItems,
-        subtotal,
-        orderTotal,
-        customerName: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Customer',
-        customerPhone: (user as any)?.phone || null,
-      });
+      // 4. Record the transaction and pending-payment recovery state.
       await createPendingTransaction({
-        orderId: createdOrderId,
+        orderId: checkout.orderId,
         paymentIntentId: intentId,
         paymentMethod: paymentMethod as string,
-        amount: orderTotal,
+        amount: checkout.total,
       });
       await savePendingCheckoutSession({
         customerId: String(customerId),
         merchantId: String(merchantId),
-        orderId: String(createdOrderId),
+        orderId: checkout.orderId,
         paymentIntentId: intentId,
         createdAt: new Date().toISOString(),
       });
 
-      // 6. Attach → redirect / QR / success.
+      // 5. Attach → redirect / QR / success.
       const returnUrl =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/checkout/${merchantId}/return?payment_intent_id=${encodeURIComponent(intentId)}&order_id=${encodeURIComponent(String(createdOrderId))}`
+          ? `${window.location.origin}/checkout/${merchantId}/return?payment_intent_id=${encodeURIComponent(intentId)}&order_id=${encodeURIComponent(checkout.orderId)}`
           : `https://app.kuyacares.com/checkout/${merchantId}/return`;
       const attachResponse = await fetch(
         `https://api.paymongo.com/v1/payment_intents/${intentId}/attach`,
@@ -516,15 +778,12 @@ export default function CheckoutPage() {
         }
       }
       if (status === 'succeeded') {
-        redirectToReturn(intentId, String(createdOrderId));
+        redirectToReturn(intentId, checkout.orderId);
         return;
       }
       throw new Error(`Unexpected payment status: ${status}`);
     } catch (error: any) {
       toast.error(error?.message || 'Checkout failed');
-      if (customerId && Number.isFinite(merchantId)) {
-        await clearPendingCheckoutSession(String(customerId), String(merchantId));
-      }
     } finally {
       payGuardRef.current = false;
       setIsPaying(false);
@@ -617,7 +876,121 @@ export default function CheckoutPage() {
       </div>
 
       <div className="px-3 py-4 space-y-4">
-        <CheckoutAddressSection className="h-full" />
+        <CheckoutAddressSection className="h-full" disabled={!!preparedCheckout || isPaying} />
+
+        <section
+          aria-labelledby="shipping-options-heading"
+          className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3"
+        >
+          <div>
+            <h2 id="shipping-options-heading" className="text-sm font-semibold text-gray-900 dark:text-white">
+              Delivery or pickup
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-[#a1a1aa]">
+              Options and fees are based on this seller, your address, and current cart.
+            </p>
+          </div>
+
+          {shippingQuoteLoading && (
+            <p role="status" className="text-sm text-gray-500">Checking seller delivery coverage and fees…</p>
+          )}
+          {shippingQuoteError && (
+            <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              {shippingQuoteError}
+            </div>
+          )}
+
+          {preparedCheckout ? (
+            <div className="rounded-xl border border-[#239459]/30 bg-[#239459]/5 p-3 text-sm">
+              <p className="font-semibold text-gray-900 dark:text-white">
+                {preparedCheckout.shippingType === 'pickup' ? 'Seller pickup' : preparedCheckout.shippingOptionName}
+                {' · '}{formatCurrency(preparedCheckout.deliveryFee)}
+              </p>
+              {preparedCheckout.shippingType === 'seller_delivery' && preparedCheckout.addressLabel && (
+                <p className="mt-1 text-xs text-gray-600 dark:text-[#a1a1aa]">
+                  Delivery address: {preparedCheckout.addressLabel}
+                </p>
+              )}
+              {preparedCheckout.shippingType === 'pickup' && preparedCheckout.pickupLocation && (
+                <p className="mt-1 text-xs text-gray-600 dark:text-[#a1a1aa]">
+                  Pickup from: {preparedCheckout.pickupLocation}
+                </p>
+              )}
+              {preparedCheckout.shippingType === 'seller_delivery' &&
+                preparedCheckout.estimatedDeliveryMinMinutes != null &&
+                preparedCheckout.estimatedDeliveryMaxMinutes != null && (
+                  <p className="mt-1 text-xs text-gray-600 dark:text-[#a1a1aa]">
+                    {preparedCheckout.estimatedDeliveryMinMinutes}–{preparedCheckout.estimatedDeliveryMaxMinutes} min estimate
+                  </p>
+                )}
+              {preparedCheckout.shippingType === 'pickup' && preparedCheckout.pickupInstructions && (
+                <p className="mt-1 text-xs text-gray-600 dark:text-[#a1a1aa]">
+                  {preparedCheckout.pickupInstructions}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-[#a1a1aa]">
+                This shipping choice is locked to the pending order.
+              </p>
+            </div>
+          ) : shippingQuote?.options.map((option) => {
+            const selected = option.id === selectedShippingOptionId;
+            const deliveryEstimate = option.estimatedDeliveryMinMinutes && option.estimatedDeliveryMaxMinutes
+              ? `${option.estimatedDeliveryMinMinutes}–${option.estimatedDeliveryMaxMinutes} min estimate`
+              : null;
+            return (
+              <label
+                key={option.id}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${
+                  selected
+                    ? 'border-[#239459] bg-[#239459]/5'
+                    : 'border-gray-200 hover:border-gray-300 dark:border-[#3f3f46] dark:hover:border-[#52525b]'
+                } ${shippingQuoteLoading ? 'opacity-60' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="seller-shipping-option"
+                  value={option.id}
+                  checked={selected}
+                  disabled={shippingQuoteLoading}
+                  onChange={() => setSelectedShippingOptionId(option.id)}
+                  className="mt-1 accent-[#239459]"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {option.type === 'pickup' ? 'Seller pickup' : option.name}
+                    </span>
+                    <span className="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
+                      {formatCurrency(option.fee)}
+                    </span>
+                  </span>
+                  {deliveryEstimate && (
+                    <span className="mt-1 block text-xs text-gray-500 dark:text-[#a1a1aa]">{deliveryEstimate}</span>
+                  )}
+                  {option.type === 'pickup' && option.pickupInstructions && (
+                    <span className="mt-1 block text-xs text-gray-500 dark:text-[#a1a1aa]">
+                      {option.pickupInstructions}
+                    </span>
+                  )}
+                  {option.type === 'pickup' && shippingQuote?.pickupLocation && (
+                    <span className="mt-1 block text-xs text-gray-500 dark:text-[#a1a1aa]">
+                      Pickup from: {shippingQuote.pickupLocation}
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+
+          {!isAddressReady && <p role="status" className="text-sm text-gray-500">Loading address and shipping choices…</p>}
+          {!shippingQuoteLoading && !shippingQuoteError && !shippingQuote?.options.length && isAddressReady && !isLoading && merchantItems.length > 0 && (
+            <p className="text-sm text-gray-500">
+              {activeAddressId
+                ? 'No seller delivery or pickup option is available for the selected address.'
+                : 'Select an address for delivery, or continue with pickup if the seller offers it.'}
+            </p>
+          )}
+        </section>
 
         <div className="bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3 h-full">
           <div className="flex items-center justify-between">
@@ -627,7 +1000,9 @@ export default function CheckoutPage() {
             </span>
           </div>
           <div className="space-y-2">
-            {merchantItems.map((item) => (
+            {merchantItems.map((item) => {
+              const pricedLine = shippingQuote?.items.find((line) => line.cartItemId === String(item.id));
+              return (
               <div key={item.id} className="flex items-start gap-3 text-sm">
                 <div className="h-16 w-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden border border-gray-200">
                   {item.imageUrl ? (
@@ -647,25 +1022,32 @@ export default function CheckoutPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between">
                     <div className="font-medium text-gray-900 line-clamp-2">
-                      {item.quantity}x {item.productName || 'Product'}
+                      {(pricedLine?.quantity ?? item.quantity)}x {pricedLine?.productName || item.productName || 'Product'}
                     </div>
                     <div className="text-gray-900 font-semibold ml-2">
-                      {formatCurrency(item.subtotal || 0)}
+                      {formatCurrency(pricedLine?.totalPrice ?? item.subtotal ?? 0)}
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Qty {item.quantity}</div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
             <div className="flex items-center justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
+              <span>{formatCurrency(shippingSubtotal)}</span>
             </div>
-            <p className="text-xs text-gray-500">
-              Delivery is arranged by the seller. Any delivery fee and timing will be confirmed by them.
-            </p>
+            <div className="flex items-center justify-between text-gray-600">
+              <span>{displayedShippingType === 'pickup' ? 'Pickup fee' : 'Delivery fee'}</span>
+              <span>{selectedShippingOption || preparedCheckout ? formatCurrency(displayedDeliveryFee) : '—'}</span>
+            </div>
+            {displayedShippingType === 'seller_delivery' && displayedShippingName && (
+              <p className="text-xs text-gray-500">
+                Seller-arranged delivery · {displayedShippingName}
+              </p>
+            )}
             <div className="flex items-center justify-between font-semibold text-gray-900">
               <span>Total</span>
               <span>{formatCurrency(orderTotal)}</span>

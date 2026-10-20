@@ -40,7 +40,10 @@ type TransactionDoc = {
   status?: string;
   paid_at?: string | null;
   payment_intent_id?: string | null;
-  order?: string | number | { id?: string | number } | null;
+  order?: string | number | {
+    id?: string | number;
+    seller_shipping_snapshot?: unknown;
+  } | null;
 };
 
 type OrderDoc = {
@@ -62,6 +65,36 @@ export type CheckoutPaymentStatus =
 
 const pendingCheckoutKey = (customerId: string, merchantId: string) =>
   `kuyacares:pending-checkout:${customerId}:${merchantId}`;
+const checkoutAttemptKey = (customerId: string, merchantId: string) =>
+  `kuyacares:checkout-attempt:${customerId}:${merchantId}`;
+
+export function getCheckoutIdempotencyKey(customerId: string, merchantId: string): string {
+  const key = checkoutAttemptKey(customerId, merchantId);
+  try {
+    const existing = window.sessionStorage.getItem(key);
+    if (existing && /^[A-Za-z0-9_-]{8,128}$/.test(existing)) return existing;
+  } catch {
+    // Session storage can be unavailable in privacy-restricted browsers.
+  }
+
+  const generated = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().replace(/-/g, '')
+    : `checkout_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  try {
+    window.sessionStorage.setItem(key, generated);
+  } catch {
+    // The in-memory caller still retains this key for same-page retries.
+  }
+  return generated;
+}
+
+export function clearCheckoutIdempotencyKey(customerId: string, merchantId: string): void {
+  try {
+    window.sessionStorage.removeItem(checkoutAttemptKey(customerId, merchantId));
+  } catch {
+    // A missing session-storage entry needs no cleanup.
+  }
+}
 
 function storage(): Storage | null {
   try {
@@ -329,7 +362,7 @@ export async function waitForPaidTransaction(
   fallbackOrderId?: string,
   attempts = 20,
   intervalMs = 1500,
-): Promise<{ transaction: TransactionDoc; orderId: string }> {
+): Promise<{ transaction: TransactionDoc; orderId: string; sellerManaged: boolean }> {
   const headers = cmsHeaders();
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(
@@ -343,7 +376,14 @@ export async function waitForPaidTransaction(
         const status = String(transaction.status || '').toLowerCase();
         const resolvedOrderId = resolveOrderId(transaction.order, fallbackOrderId);
         if (status === 'paid' && resolvedOrderId) {
-          return { transaction, orderId: resolvedOrderId };
+          const linkedOrder = transaction.order && typeof transaction.order === 'object'
+            ? transaction.order
+            : null;
+          return {
+            transaction,
+            orderId: resolvedOrderId,
+            sellerManaged: !!linkedOrder?.seller_shipping_snapshot,
+          };
         }
         if (status === 'failed') {
           throw new Error('Your payment was not completed.');
@@ -355,15 +395,36 @@ export async function waitForPaidTransaction(
   throw new Error('Payment confirmation is still processing. Please check your Orders shortly.');
 }
 
-export async function finalizePaidOrder(orderId: string, paidAt?: string | null): Promise<void> {
+export async function finalizePaidOrder(
+  orderId: string,
+  paidAt?: string | null,
+  sellerManaged = false,
+): Promise<void> {
   const headers = cmsHeaders();
   const orderedAt = paidAt || new Date().toISOString();
 
-  await fetch(`${API_BASE}/orders/${orderId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({ status: 'accepted' }),
-  }).catch(() => undefined);
+  if (!sellerManaged) {
+    const orderResponse = await fetch(`${API_BASE}/orders/${orderId}?depth=0`, {
+      headers,
+      cache: 'no-store',
+    });
+    if (orderResponse.ok) {
+      const orderResult = await orderResponse.json().catch(() => ({}));
+      if (!orderResult?.seller_shipping_snapshot) {
+        await fetch(`${API_BASE}/orders/${orderId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ status: 'accepted' }),
+        }).catch(() => undefined);
+      }
+    } else {
+      await fetch(`${API_BASE}/orders/${orderId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'accepted' }),
+      }).catch(() => undefined);
+    }
+  }
 
   const cartItemsResponse = await fetch(
     `${API_BASE}/cart-items?where[order_id][equals]=${orderId}&limit=200&depth=0`,

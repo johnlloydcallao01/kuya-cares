@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto'
+import type { Payload } from 'payload'
 import { z } from 'zod'
 
 const locationField = z.string().trim().min(1).max(120)
@@ -310,6 +311,106 @@ export function parseSellerShippingSettings(value: unknown): SellerShippingSetti
 
 export function emptySellerShippingSettings(): SellerShippingSettings {
   return sellerShippingSettingsSchema.parse({})
+}
+
+export async function loadSellerShippingSettings(
+  payload: Payload,
+  merchant: Record<string, unknown>,
+): Promise<SellerShippingSettings> {
+  const result = await payload.find({
+    collection: 'seller-shipping-zones',
+    where: { merchant: { equals: merchant.id } },
+    limit: 1000,
+    pagination: false,
+    sort: 'displayOrder',
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  return parseSellerShippingSettings({
+    pickup: {
+      enabled: merchant.seller_pickup_enabled === true,
+      instructions:
+        typeof merchant.seller_pickup_instructions === 'string'
+          ? merchant.seller_pickup_instructions
+          : null,
+    },
+    zones: [...result.docs]
+      .sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0))
+      .map((doc) => ({
+        id: doc.zoneId,
+        name: doc.name ?? '',
+        enabled: doc.enabled,
+        areas: doc.areas,
+        geometry: doc.geometry ?? null,
+        deliveryFee: doc.deliveryFee,
+        minimumOrderAmount: doc.minimumOrderAmount,
+        freeDeliveryThreshold: doc.freeDeliveryThreshold ?? null,
+        estimatedDeliveryMinMinutes: doc.estimatedDeliveryMinMinutes,
+        estimatedDeliveryMaxMinutes: doc.estimatedDeliveryMaxMinutes,
+      }))
+  })
+}
+
+export async function replaceSellerShippingZones(
+  payload: Payload,
+  merchantId: number,
+  settings: SellerShippingSettings,
+): Promise<void> {
+  const existingResult = await payload.find({
+    collection: 'seller-shipping-zones',
+    where: { merchant: { equals: merchantId } },
+    limit: 1000,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const existingByZoneId = new Map(
+    existingResult.docs.map((doc) => [String(doc.zoneId), doc]),
+  )
+  const submittedIds = new Set(settings.zones.map((zone) => zone.id))
+
+  for (const [displayOrder, zone] of settings.zones.entries()) {
+    const data = {
+      merchant: merchantId,
+      zoneId: zone.id,
+      name: zone.name,
+      enabled: zone.enabled,
+      displayOrder,
+      areas: zone.areas,
+      geometry: zone.geometry,
+      deliveryFee: zone.deliveryFee,
+      minimumOrderAmount: zone.minimumOrderAmount,
+      freeDeliveryThreshold: zone.freeDeliveryThreshold,
+      estimatedDeliveryMinMinutes: zone.estimatedDeliveryMinMinutes,
+      estimatedDeliveryMaxMinutes: zone.estimatedDeliveryMaxMinutes,
+    }
+    const existing = existingByZoneId.get(zone.id)
+    if (existing) {
+      await payload.update({
+        collection: 'seller-shipping-zones',
+        id: existing.id,
+        data,
+        overrideAccess: true,
+      })
+    } else {
+      await payload.create({
+        collection: 'seller-shipping-zones',
+        data,
+        overrideAccess: true,
+      })
+    }
+  }
+
+  for (const doc of existingResult.docs) {
+    if (!submittedIds.has(String(doc.zoneId))) {
+      await payload.delete({
+        collection: 'seller-shipping-zones',
+        id: doc.id,
+        overrideAccess: true,
+      })
+    }
+  }
 }
 
 export function normalizeLocation(value: unknown): string {

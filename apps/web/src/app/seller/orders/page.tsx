@@ -11,6 +11,7 @@ type OrderDoc = {
   id: number
   orderNumber: string
   status: string
+  paymentConfirmed: boolean
   fulfillment_type: string
   total: number
   subtotal: number
@@ -100,6 +101,7 @@ function fulfillmentBadge(s: string) {
 }
 
 function nextFulfillmentStatus(status: string, shippingType: string): string | null {
+  if (status === 'pending') return 'accepted'
   if (status === 'accepted') return 'preparing'
   if (status === 'preparing') return 'ready_for_pickup'
   if (status === 'ready_for_pickup') return shippingType === 'pickup' ? 'delivered' : 'on_delivery'
@@ -109,6 +111,7 @@ function nextFulfillmentStatus(status: string, shippingType: string): string | n
 
 function fulfillmentActionLabel(status: string): string {
   const labels: Record<string, string> = {
+    accepted: 'Accept order',
     preparing: 'Start preparing',
     ready_for_pickup: 'Ready for pickup',
     on_delivery: 'Mark as on delivery',
@@ -279,7 +282,7 @@ function OrdersContent() {
 
   const updateFulfillment = async (
     order: OrderDoc,
-    update: { status?: string; carrierName?: string; trackingReference?: string; trackingUrl?: string },
+    update: { status?: string; action?: string; carrierName?: string; trackingReference?: string; trackingUrl?: string },
   ) => {
     setSavingFulfillment(true)
     setFulfillmentError(null)
@@ -553,17 +556,47 @@ function OrdersContent() {
                                     <button
                                       type="button"
                                       onClick={() => void updateFulfillment(o, { status: nextStatus })}
-                                      disabled={savingFulfillment}
+                                      disabled={savingFulfillment || (o.status === 'pending' && !o.paymentConfirmed)}
                                       className="rounded-lg bg-[#239459] px-3 py-2 text-sm font-semibold text-white hover:bg-[#215035] disabled:opacity-50"
                                     >
-                                      {savingFulfillment ? 'Updating…' : fulfillmentActionLabel(nextStatus)}
+                                      {savingFulfillment
+                                        ? 'Updating…'
+                                        : o.status === 'pending' && !o.paymentConfirmed
+                                          ? 'Waiting for payment'
+                                          : fulfillmentActionLabel(nextStatus)}
                                     </button>
                                   ) : (
                                     <p className="text-xs text-gray-500">
                                       {o.status === 'pending'
-                                        ? 'Order fulfillment becomes available after the payment flow confirms and advances the order.'
+                                        ? 'Accept or decline this order after payment is confirmed.'
                                         : `This order is ${o.status.replace(/_/g, ' ')}; no further fulfillment transition is available.`}
                                     </p>
+                                  )}
+
+                                  {!['cancelled', 'delivered'].includes(o.status) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm('Cancel this order? Any captured payment will be fully refunded.')) {
+                                          void updateFulfillment(o, { status: 'cancelled' })
+                                        }
+                                      }}
+                                      disabled={savingFulfillment}
+                                      className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30"
+                                    >
+                                      Decline / cancel and refund
+                                    </button>
+                                  )}
+
+                                  {shippingType === 'pickup' && o.status === 'ready_for_pickup' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => void updateFulfillment(o, { action: 'pickup_no_show' })}
+                                      disabled={savingFulfillment}
+                                      className="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/30"
+                                    >
+                                      Record pickup no-show
+                                    </button>
                                   )}
 
                                   {shippingType === 'seller_delivery' && !['pending', 'cancelled', 'delivered'].includes(o.status) && (

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCart } from '@/contexts/CartContext'
 import {
+  clearCheckoutIdempotencyKey,
   clearPendingCheckoutSession,
   finalizePaidOrder,
   waitForPaidTransaction,
@@ -146,15 +147,16 @@ function ReturnContent() {
 
     ;(async () => {
       try {
-        const { transaction, orderId: resolvedOrderId } = await waitForPaidTransaction(
+        const { transaction, orderId: resolvedOrderId, sellerManaged } = await waitForPaidTransaction(
           paymentIntentId,
           orderId || undefined,
         );
-        await finalizePaidOrder(resolvedOrderId, (transaction as any)?.paid_at || null);
+        await finalizePaidOrder(resolvedOrderId, (transaction as any)?.paid_at || null, sellerManaged);
         try {
           const customerId = await LocationBasedMerchantService.getCurrentCustomerId().catch(() => null);
           if (customerId) {
             await clearPendingCheckoutSession(String(customerId), String(merchantId || ''));
+            clearCheckoutIdempotencyKey(String(customerId), String(merchantId || ''));
           }
         } catch {
           /* session cleanup best-effort */

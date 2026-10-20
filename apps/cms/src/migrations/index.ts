@@ -91,6 +91,8 @@ import * as migration_20261016_014900_product_commission_rules from './20261016_
 import * as migration_20261016_120000_vendor_withdrawal_requests from './20261016_120000_vendor_withdrawal_requests';
 import * as migration_20261016_125500_commission_volume_query_index from './20261016_125500_commission_volume_query_index';
 import * as migration_20261019_032834 from './20261019_032834';
+import * as migration_20261020_100000_seller_shipping_zones from './20261020_100000_seller_shipping_zones';
+import * as migration_20261020_101000_add_seller_shipping_zones_locked_document_relation from './20261020_101000_add_seller_shipping_zones_locked_document_relation';
 
 export const migrations = [
   {
@@ -557,5 +559,15 @@ export const migrations = [
     up: migration_20261019_032834.up,
     down: migration_20261019_032834.down,
     name: '20261019_032834'
+  },
+  {
+    up: migration_20261020_100000_seller_shipping_zones.up,
+    down: migration_20261020_100000_seller_shipping_zones.down,
+    name: '20261020_100000_seller_shipping_zones'
+  },
+  {
+    up: migration_20261020_101000_add_seller_shipping_zones_locked_document_relation.up,
+    down: migration_20261020_101000_add_seller_shipping_zones_locked_document_relation.down,
+    name: '20261020_101000_add_seller_shipping_zones_locked_document_relation'
   },
 ];

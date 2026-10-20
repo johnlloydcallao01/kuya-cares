@@ -8,6 +8,7 @@ import {
   type OrderUI,
 } from '@/types/order';
 import { dataCache, CACHE_TTL } from '@encreasl/client-services';
+import { getStoredToken } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cms.kuyacares.com/api';
 const API_KEY = process.env.NEXT_PUBLIC_PAYLOAD_API_KEY || '';
@@ -290,8 +291,28 @@ export async function fetchOrderHead(orderId: string | number): Promise<any | nu
   });
 }
 
-/** Mark the order as cancelled. Delivery arrangements are managed by the seller. */
-export async function cancelOrder(orderId: string | number): Promise<void> {
+export async function cancelOrder(
+  orderId: string | number,
+): Promise<{ reviewRequired: boolean; refundPending: boolean }> {
+  const token = getStoredToken();
+  if (!token) throw new Error('Your sign-in session could not be verified. Please sign in again.');
+  const shippingResponse = await fetch(`${API_URL}/customer/orders/${encodeURIComponent(String(orderId))}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `JWT ${token}` },
+    body: JSON.stringify({}),
+  });
+  const result = await shippingResponse.json().catch(() => ({}));
+  if (shippingResponse.ok) {
+    return {
+      reviewRequired: result.reviewRequired === true,
+      refundPending: result.refundPending === true,
+    };
+  }
+  if (result.code !== 'SELLER_SHIPPING_NOT_MANAGED') {
+    throw new Error(result.error || `Cancel failed (${shippingResponse.status})`);
+  }
+
+  // Legacy orders retain their existing cancellation behavior.
   const h = headers();
   const res = await fetch(`${API_URL}/orders/${orderId}`, {
     method: 'PATCH',
@@ -302,6 +323,7 @@ export async function cancelOrder(orderId: string | number): Promise<void> {
     const text = await res.text().catch(() => '');
     throw new Error(text || `Cancel failed (${res.status})`);
   }
+  return { reviewRequired: false, refundPending: false };
 }
 
 export async function submitOrderReview(input: {

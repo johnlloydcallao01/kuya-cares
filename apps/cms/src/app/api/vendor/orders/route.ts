@@ -95,6 +95,7 @@ function sanitizeOrderDoc(raw: Record<string, any>): Record<string, any> {
     coupon_code: optionalString(raw.coupon_code),
     free_delivery_applied: !!raw.free_delivery_applied,
     sellerShipping: raw.seller_shipping_snapshot ?? null,
+    paymentConfirmed: raw.paymentConfirmed === true,
     sellerCarrierName: optionalString(raw.seller_carrier_name),
     sellerTrackingReference: optionalString(raw.seller_tracking_reference),
     sellerTrackingUrl: optionalString(raw.seller_tracking_url),
@@ -231,7 +232,30 @@ export async function GET(request: NextRequest) {
       } as any),
     ])
 
-    const docs = (paginated.docs as unknown as Record<string, any>[]).map((d) => sanitizeOrderDoc(d))
+    const paginatedDocs = paginated.docs as unknown as Record<string, any>[]
+    const paginatedOrderIds = paginatedDocs.map((order) => Number(order.id)).filter(Number.isFinite)
+    const paidTransactions = paginatedOrderIds.length
+      ? await payload.find({
+          collection: 'transactions',
+          where: {
+            and: [
+              { order: { in: paginatedOrderIds } },
+              { status: { in: ['paid', 'partially_refunded'] } },
+            ],
+          } as any,
+          limit: 1000,
+          depth: 0,
+          overrideAccess: true,
+        })
+      : { docs: [] }
+    const paidOrderIds = new Set(
+      (paidTransactions.docs as unknown as Record<string, any>[])
+        .map((transaction) => Number(transaction.order?.id ?? transaction.order))
+        .filter(Number.isFinite),
+    )
+    const docs = paginatedDocs.map((doc) =>
+      sanitizeOrderDoc({ ...doc, paymentConfirmed: paidOrderIds.has(Number(doc.id)) }),
+    )
     const statsDocs = ((statsAll as any).docs as Record<string, any>[]) ?? []
     const totalAll = typeof (statsAll as any).totalDocs === 'number' ? (statsAll as any).totalDocs : statsDocs.length
 

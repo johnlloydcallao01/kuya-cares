@@ -85,6 +85,7 @@ export interface Config {
     'business-zones': BusinessZone;
     vendors: Vendor;
     merchants: Merchant;
+    'seller-shipping-zones': SellerShippingZone;
     drivers: Driver;
     'merchant-categories': MerchantCategory;
     'product-categories': ProductCategory;
@@ -169,6 +170,7 @@ export interface Config {
     'business-zones': BusinessZonesSelect<false> | BusinessZonesSelect<true>;
     vendors: VendorsSelect<false> | VendorsSelect<true>;
     merchants: MerchantsSelect<false> | MerchantsSelect<true>;
+    'seller-shipping-zones': SellerShippingZonesSelect<false> | SellerShippingZonesSelect<true>;
     drivers: DriversSelect<false> | DriversSelect<true>;
     'merchant-categories': MerchantCategoriesSelect<false> | MerchantCategoriesSelect<true>;
     'product-categories': ProductCategoriesSelect<false> | ProductCategoriesSelect<true>;
@@ -1856,17 +1858,13 @@ export interface Merchant {
     maxDeliveryTimeMinutes?: number | null;
   };
   /**
-   * Seller-managed delivery zones, flat rates, free-delivery thresholds, and pickup settings. Configured by the vendor outlet API.
+   * Allow customers to pick up orders from this outlet.
    */
-  seller_shipping_settings?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  seller_pickup_enabled?: boolean | null;
+  /**
+   * Instructions shown to customers choosing seller pickup.
+   */
+  seller_pickup_instructions?: string | null;
   /**
    * Visual content for the merchant
    */
@@ -2121,6 +2119,45 @@ export interface Merchant {
    */
   isFeatured?: boolean | null;
   listingBoost?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Seller-managed delivery coverage and rates for each outlet.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seller-shipping-zones".
+ */
+export interface SellerShippingZone {
+  id: number;
+  merchant: number | Merchant;
+  zoneId: string;
+  name?: string | null;
+  enabled: boolean;
+  displayOrder: number;
+  areas:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  geometry?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  deliveryFee: number;
+  minimumOrderAmount: number;
+  freeDeliveryThreshold?: number | null;
+  estimatedDeliveryMinMinutes: number;
+  estimatedDeliveryMaxMinutes: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -4729,6 +4766,10 @@ export interface PayloadLockedDocument {
         value: number | Merchant;
       } | null)
     | ({
+        relationTo: 'seller-shipping-zones';
+        value: number | SellerShippingZone;
+      } | null)
+    | ({
         relationTo: 'drivers';
         value: number | Driver;
       } | null)
@@ -5452,7 +5493,8 @@ export interface MerchantsSelect<T extends boolean = true> {
         estimatedDeliveryTimeMinutes?: T;
         maxDeliveryTimeMinutes?: T;
       };
-  seller_shipping_settings?: T;
+  seller_pickup_enabled?: T;
+  seller_pickup_instructions?: T;
   media?:
     | T
     | {
@@ -5494,6 +5536,26 @@ export interface MerchantsSelect<T extends boolean = true> {
   timezone?: T;
   isFeatured?: T;
   listingBoost?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seller-shipping-zones_select".
+ */
+export interface SellerShippingZonesSelect<T extends boolean = true> {
+  merchant?: T;
+  zoneId?: T;
+  name?: T;
+  enabled?: T;
+  displayOrder?: T;
+  areas?: T;
+  geometry?: T;
+  deliveryFee?: T;
+  minimumOrderAmount?: T;
+  freeDeliveryThreshold?: T;
+  estimatedDeliveryMinMinutes?: T;
+  estimatedDeliveryMaxMinutes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

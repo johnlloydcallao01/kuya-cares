@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import {
-  emptySellerShippingSettings,
   getSellerShippingOptions,
   getSellerShippingSettingsDigest,
+  loadSellerShippingSettings,
   signShippingQuote,
-  parseSellerShippingSettings,
   type ShippingAddress,
 } from '@/services/SellerShippingService'
 import {
   loadActiveMerchantCart,
   loadCustomerAddress,
+  relationId,
   repriceActiveMerchantCart,
   resolveAuthenticatedCustomer,
 } from '@/services/sellerShippingCheckout'
@@ -66,17 +66,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'The selected address does not belong to this account.' }, { status: 403 })
     }
 
-    const settings = merchant.seller_shipping_settings == null
-      ? emptySellerShippingSettings()
-      : parseSellerShippingSettings(merchant.seller_shipping_settings)
-    const { subtotal } = await repriceActiveMerchantCart(payload, items, merchantId)
+    const settings = await loadSellerShippingSettings(payload, merchant)
+    const merchantAddressId = relationId(merchant.activeAddress)
+    const merchantAddress = merchantAddressId
+      ? await payload.findByID({
+          collection: 'addresses',
+          id: Number(merchantAddressId) as never,
+          depth: 0,
+          overrideAccess: true,
+        }) as unknown as Record<string, unknown>
+      : null
+    const pickupLocation = typeof merchantAddress?.formatted_address === 'string'
+      ? merchantAddress.formatted_address
+      : null
+    const { lines, subtotal } = await repriceActiveMerchantCart(payload, items, merchantId)
     const options = getSellerShippingOptions({
       settings,
       address: address as ShippingAddress | null,
       cartSubtotal: subtotal,
-    })
+    }).filter((option) => option.type !== 'pickup' || !!pickupLocation)
     if (options.length === 0) {
-      return NextResponse.json({ error: 'This seller does not deliver to the selected address and pickup is unavailable.' }, { status: 422 })
+      return NextResponse.json({
+        error: settings.pickup.enabled && !pickupLocation
+          ? 'Pickup is enabled, but the seller has not configured a pickup address.'
+          : 'This seller does not deliver to the selected address and pickup is unavailable.',
+      }, { status: 422 })
     }
 
     const secret = process.env.PAYLOAD_SECRET
@@ -100,6 +114,14 @@ export async function POST(request: NextRequest) {
       merchantId,
       addressId,
       cartSubtotal: subtotal,
+      pickupLocation,
+      items: lines.map((line) => ({
+        cartItemId: String(line.cartItem.id),
+        productName: line.productName,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        totalPrice: line.totalPrice,
+      })),
       options: quotedOptions,
     })
   } catch (error) {

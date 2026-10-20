@@ -3,12 +3,19 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import { relationId } from '@/services/sellerShippingCheckout'
+import {
+  prepareSellerShippingCancellation,
+  recordSellerShippingOrderEvent,
+  SellerShippingCancellationError,
+} from '@/services/sellerShippingCancellation'
+import { createAdminNotificationFanout } from '@/utils/notificationFanout'
 
 export const dynamic = 'force-dynamic'
 
 type JsonRecord = Record<string, unknown>
 
 const allowedTransitions: Record<string, string[]> = {
+  pending: ['accepted'],
   accepted: ['preparing'],
   preparing: ['ready_for_pickup'],
   ready_for_pickup: ['on_delivery', 'delivered'],
@@ -89,6 +96,94 @@ export async function PATCH(
     if (!order.seller_shipping_snapshot) {
       return NextResponse.json({ error: 'This order does not use seller-managed shipping.' }, { status: 409 })
     }
+
+    const currentStatus = String(order.status ?? '')
+    const shippingType = String((order.seller_shipping_snapshot as JsonRecord).type ?? '')
+    if (body.action === 'pickup_no_show') {
+      if (shippingType !== 'pickup' || currentStatus !== 'ready_for_pickup') {
+        return NextResponse.json({ error: 'A pickup no-show can only be recorded for an order ready for pickup.' }, { status: 409 })
+      }
+      const existingNoShow = await payload.find({
+        collection: 'order-tracking',
+        where: {
+          and: [
+            { order: { equals: order.id } },
+            { description: { contains: 'Seller recorded a missed pickup.' } },
+          ],
+        } as never,
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (existingNoShow.docs.length) {
+        return NextResponse.json({
+          orderId: String(order.id),
+          status: currentStatus,
+          reviewRequired: true,
+          message: 'This pickup no-show is already recorded for manual review.',
+        })
+      }
+      await recordSellerShippingOrderEvent({
+        payload,
+        order,
+        actorId: user.id,
+        status: currentStatus,
+        description: 'Seller recorded a missed pickup. Refund or cancellation requires manual review.',
+      })
+      try {
+        await createAdminNotificationFanout(payload, {
+          typeKey: 'seller_shipping.pickup_no_show_review',
+          domain: 'order',
+          priority: 'warning',
+          title: 'Pickup no-show requires review',
+          body: `Seller recorded a missed pickup for order #${id}. Review before refunding or cancelling it.`,
+          sourceEntityType: 'order',
+          sourceEntityId: id,
+          metadata: { orderId: id, status: currentStatus },
+        })
+      } catch (notificationError) {
+        console.error('[vendor/orders/fulfillment] pickup no-show notification error:', notificationError)
+      }
+      return NextResponse.json({
+        orderId: String(order.id),
+        status: currentStatus,
+        reviewRequired: true,
+        message: 'Pickup no-show recorded for manual review. The order and payment have not been cancelled or refunded.',
+      })
+    }
+
+    if (body.status === 'cancelled') {
+      if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
+        return NextResponse.json({ error: 'Completed or cancelled orders cannot be cancelled again.' }, { status: 409 })
+      }
+      const { refundRequested, pendingPaymentCancelled } = await prepareSellerShippingCancellation(payload, order.id as string | number)
+      const cancelled = await payload.update({
+        collection: 'orders',
+        id: order.id as never,
+        data: { status: 'cancelled' } as never,
+        overrideAccess: true,
+        context: { sellerFulfillmentUpdate: true },
+      })
+      await recordSellerShippingOrderEvent({
+        payload,
+        order,
+        actorId: user.id,
+        status: 'cancelled',
+        description: refundRequested > 0
+          ? `Seller cancelled the order. Full refund of PHP ${refundRequested.toFixed(2)} requested from PayMongo.`
+          : pendingPaymentCancelled
+            ? 'Seller cancelled the order. Pending payment intent cancelled.'
+            : 'Seller cancelled the order before payment.',
+      })
+      return NextResponse.json({
+        orderId: String(cancelled.id),
+        status: 'cancelled',
+        refundRequested,
+        refundPending: refundRequested > 0,
+        pendingPaymentCancelled,
+      })
+    }
+
     const paidTransactions = await payload.find({
       collection: 'transactions',
       where: {
@@ -105,10 +200,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Sellers can fulfill an order only after payment is confirmed.' }, { status: 409 })
     }
 
-    const currentStatus = String(order.status ?? '')
-    if (currentStatus === 'pending') {
-      return NextResponse.json({ error: 'The order is not ready for seller fulfillment.' }, { status: 409 })
-    }
     if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
       return NextResponse.json({ error: 'Fulfillment details cannot be changed for a completed or cancelled order.' }, { status: 409 })
     }
@@ -136,12 +227,15 @@ export async function PATCH(
     ) {
       return NextResponse.json({ error: 'Tracking details apply only to seller-delivery orders.' }, { status: 409 })
     }
-    if (nextStatus === 'on_delivery' && (order.seller_shipping_snapshot as JsonRecord).type !== 'seller_delivery') {
+    if (nextStatus === 'on_delivery' && shippingType !== 'seller_delivery') {
       return NextResponse.json({ error: 'Pickup orders cannot enter delivery status.' }, { status: 409 })
+    }
+    if (nextStatus === 'accepted' && currentStatus !== 'pending') {
+      return NextResponse.json({ error: 'Only orders awaiting seller acceptance can be accepted.' }, { status: 409 })
     }
     if (
       nextStatus === 'delivered' &&
-      (order.seller_shipping_snapshot as JsonRecord).type === 'seller_delivery' &&
+      shippingType === 'seller_delivery' &&
       currentStatus !== 'on_delivery'
     ) {
       return NextResponse.json({ error: 'Mark delivery as in transit before completing it.' }, { status: 409 })
@@ -190,7 +284,7 @@ export async function PATCH(
     console.error('[vendor/orders/fulfillment] PATCH error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unable to update order fulfillment.' },
-      { status: 500 },
+      { status: error instanceof SellerShippingCancellationError ? error.status : 500 },
     )
   }
 }

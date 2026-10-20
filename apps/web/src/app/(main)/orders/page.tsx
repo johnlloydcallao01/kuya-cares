@@ -250,8 +250,14 @@ export default function OrdersPage() {
     if (!cancelTarget) return;
     setCancellingId(cancelTarget.orderId);
     try {
-      await cancelOrder(cancelTarget.orderId);
-      toast.success('Order cancelled');
+      const result = await cancelOrder(cancelTarget.orderId);
+      toast.success(
+        result.reviewRequired
+          ? 'Cancellation request sent for review'
+          : result.refundPending
+            ? 'Order cancelled. Your full refund is being processed.'
+            : 'Order cancelled',
+      );
       setCancelTarget(null);
       await load({ silent: true });
     } catch (e: any) {
@@ -569,6 +575,9 @@ export default function OrdersPage() {
             <h3 className="text-base font-extrabold text-gray-900 dark:text-white mb-1">Cancel this order?</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               {cancelTarget.orderNumber} • {cancelTarget.restaurant} • {formatPHP(cancelTarget.total)}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
+              For seller delivery or pickup, cancellation before seller acceptance cancels the order and requests a full refund for any completed payment. After acceptance, your request is sent for manual review and the order remains active until reviewed.
             </p>
             <div className="flex gap-2">
               <button

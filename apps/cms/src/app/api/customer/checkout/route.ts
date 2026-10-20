@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import {
-  emptySellerShippingSettings,
   getSellerShippingOptions,
   getSellerShippingSettingsDigest,
   verifyShippingQuote,
-  parseSellerShippingSettings,
+  loadSellerShippingSettings,
   type ShippingAddress,
 } from '@/services/SellerShippingService'
 import {
@@ -85,7 +84,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         orderId: String(order.id),
         status: order.status,
+        subtotal: order.subtotal,
+        deliveryFee: order.delivery_fee,
         total: order.total,
+        sellerShipping: order.seller_shipping_snapshot ?? null,
         reused: true,
       })
     }
@@ -128,9 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { lines, subtotal } = await repriceActiveMerchantCart(payload, items, quote.merchantId)
-    const settings = merchant.seller_shipping_settings == null
-      ? emptySellerShippingSettings()
-      : parseSellerShippingSettings(merchant.seller_shipping_settings)
+    const settings = await loadSellerShippingSettings(payload, merchant)
     if (
       subtotal !== quote.cartSubtotal ||
       getSellerShippingSettingsDigest(settings) !== quote.settingsDigest
@@ -145,6 +145,27 @@ export async function POST(request: NextRequest) {
     const selectedOption = options.find((option) => option.id === quote.selectedOption.id)
     if (!selectedOption || JSON.stringify(selectedOption) !== JSON.stringify(quote.selectedOption)) {
       return NextResponse.json({ error: 'The selected shipping option is no longer available. Please refresh checkout.' }, { status: 409 })
+    }
+    if (selectedOption.type === 'seller_delivery' && !address) {
+      return NextResponse.json({ error: 'A delivery address is required for seller delivery.' }, { status: 422 })
+    }
+
+    const merchantAddressId = relationId(merchant.activeAddress)
+    const merchantAddress = merchantAddressId
+      ? await payload.findByID({
+          collection: 'addresses',
+          id: Number(merchantAddressId) as never,
+          depth: 0,
+          overrideAccess: true,
+        }) as unknown as JsonRecord
+      : null
+    const pickupLocation = typeof merchantAddress?.formatted_address === 'string'
+      ? merchantAddress.formatted_address
+      : null
+    if (selectedOption.type === 'pickup' && !pickupLocation) {
+      return NextResponse.json({
+        error: 'The seller pickup address changed. Refresh checkout to see current options.',
+      }, { status: 409 })
     }
 
     const total = Math.round((subtotal + selectedOption.fee + Number.EPSILON) * 100) / 100
@@ -173,6 +194,8 @@ export async function POST(request: NextRequest) {
           zoneId: selectedOption.zoneId,
           zoneName: selectedOption.zoneName,
           fee: selectedOption.fee,
+          addressId: quote.addressId,
+          pickupLocation: selectedOption.type === 'pickup' ? pickupLocation : null,
           estimatedDeliveryMinMinutes: selectedOption.estimatedDeliveryMinMinutes,
           estimatedDeliveryMaxMinutes: selectedOption.estimatedDeliveryMaxMinutes,
           pickupInstructions: selectedOption.pickupInstructions,
@@ -186,6 +209,7 @@ export async function POST(request: NextRequest) {
     })
 
     const createdItemIds: Array<string | number> = []
+    let createdDeliveryLocationId: string | number | null = null
     const originalOrderLinks = new Map(
       items.map((item) => {
         const linkedOrderId = relationId(item.order_id)
@@ -193,6 +217,46 @@ export async function POST(request: NextRequest) {
       }),
     )
     try {
+      if (selectedOption.type === 'seller_delivery' && address) {
+        const merchantLatitude = Number(merchantAddress?.latitude)
+        const merchantLongitude = Number(merchantAddress?.longitude)
+        const deliveryLocation = await payload.create({
+          collection: 'delivery-locations',
+          data: {
+            order: order.id,
+            formatted_address: address.formatted_address ||
+              [address.street_number, address.route, address.barangay, address.locality, address.country]
+                .filter(Boolean)
+                .join(', ') ||
+              'Unknown Address',
+            coordinates: {
+              lat: address.latitude ?? null,
+              lng: address.longitude ?? null,
+            },
+            street: address.street ?? address.route ?? null,
+            floor_unit_room: address.floor_unit_room ?? null,
+            delivery_instructions: address.delivery_instructions ?? null,
+            notes: address.notes ?? address.accessibility_notes ?? null,
+            contact_name: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Customer',
+            contact_phone: user.phone ?? null,
+            label: ['home', 'work', 'office'].includes(String(address.label ?? address.address_type).toLowerCase())
+              ? (String(address.label ?? address.address_type).toLowerCase() === 'work' ? 'office' : String(address.label ?? address.address_type).toLowerCase())
+              : 'other',
+            merchant_formatted_address: merchantAddress?.formatted_address ?? null,
+            merchant_coordinates:
+              Number.isFinite(merchantLatitude) && Number.isFinite(merchantLongitude)
+                ? { lat: merchantLatitude, lng: merchantLongitude }
+                : null,
+            merchant_street: merchantAddress?.street ?? merchantAddress?.route ?? null,
+            merchant_floor_unit_room: merchantAddress?.floor_unit_room ?? null,
+            merchant_delivery_instructions: merchantAddress?.delivery_instructions ?? null,
+            merchant_label: merchantAddress?.label ?? merchantAddress?.address_type ?? null,
+          } as never,
+          overrideAccess: true,
+        })
+        createdDeliveryLocationId = deliveryLocation.id
+      }
+
       for (const line of lines) {
         const createdItem = await payload.create({
           collection: 'order-items',
@@ -251,6 +315,17 @@ export async function POST(request: NextRequest) {
           console.error('[customer/checkout] order-item rollback error:', cleanupError)
         }
       }
+      if (createdDeliveryLocationId !== null) {
+        try {
+          await payload.delete({
+            collection: 'delivery-locations',
+            id: createdDeliveryLocationId as never,
+            overrideAccess: true,
+          })
+        } catch (cleanupError) {
+          console.error('[customer/checkout] delivery-location rollback error:', cleanupError)
+        }
+      }
       try {
         await payload.delete({
           collection: 'orders',
@@ -269,6 +344,19 @@ export async function POST(request: NextRequest) {
       subtotal,
       deliveryFee: selectedOption.fee,
       total,
+      sellerShipping: {
+        type: selectedOption.type,
+        optionId: selectedOption.id,
+        optionName: selectedOption.name,
+        zoneId: selectedOption.zoneId,
+        zoneName: selectedOption.zoneName,
+        fee: selectedOption.fee,
+        addressId: quote.addressId,
+        pickupLocation: selectedOption.type === 'pickup' ? pickupLocation : null,
+        estimatedDeliveryMinMinutes: selectedOption.estimatedDeliveryMinMinutes,
+        estimatedDeliveryMaxMinutes: selectedOption.estimatedDeliveryMaxMinutes,
+        pickupInstructions: selectedOption.pickupInstructions,
+      },
       reused: false,
     }, { status: 201 })
   } catch (error) {

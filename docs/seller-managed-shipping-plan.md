@@ -2,7 +2,7 @@
 
 > **Purpose:** A WooCommerce-inspired guide for letting marketplace sellers define delivery terms and fulfill orders themselves, without the marketplace operating or booking a delivery service.
 >
-> **Status:** CMS seller-shipping backend and migration `20261019_032834` are implemented and applied to the shared database. Seller outlet shipping configuration and fulfillment/tracking controls are now wired in the web `/seller` experience. Buyer checkout quote/order/payment integration and customer-facing seller tracking remain follow-up work.
+> **Status:** Seller outlet shipping configuration and fulfillment/tracking controls are wired in the web `/seller` experience. Buyer web checkout requests authenticated, server-calculated shipping quotes, presents delivery and pickup choices with the full total, and creates the order from the signed quote before creating a payment intent whose amount is checked against that order. Delivery address and pickup terms are saved for customer tracking; the customer tracking page shows accepted terms, seller status updates, and any HTTPS tracking link. Seller acceptance is explicit. Before acceptance, buyer cancellation or seller cancellation requests a full PayMongo refund for captured funds; after acceptance, buyer cancellation is routed for manual review. Sellers can record pickup no-shows for admin review without automatic cancellation or refund. Live GPS and deployed end-to-end payment-provider verification remain follow-up work.
 
 ## Executive Summary
 
@@ -19,11 +19,13 @@ WooCommerce core is configured at the store level. It is an inspiration for ship
 ## Current Backend Implementation
 
 - Sellers configure ordered Philippine locality/postal-code zones and optional drawn map boundaries, with flat delivery rates, minimum order amounts, free-delivery thresholds, estimates, and pickup through the authenticated vendor outlet API. A zone matches when its textual area rules match or the saved Philippine address coordinates fall inside its GeoJSON boundary.
-- Customer quote and checkout APIs authenticate the customer, verify address ownership, load the merchant's active cart, reprice current catalog items, and sign short-lived quote tokens. Checkout revalidates the cart and settings and creates order/item snapshots without accepting client-supplied prices or totals.
+- Customer quote and checkout APIs authenticate the customer, verify address ownership, load the merchant's active cart, reprice current catalog items, and sign short-lived quote tokens. Web checkout displays authoritative line prices and shipping options, then checkout revalidates the cart and settings and creates order/item, seller-shipping, and delivery-location snapshots without accepting client-supplied prices or totals.
 - Orders keep the seller's method, delivery address, rate, and terms as a snapshot. Seller-owned delivery proceeds are added to vendor net after payment, while merchandise commission bases and volume-tier sales remain merchandise-only; refund reversals include the shipping proceeds.
 - Sellers can update seller-managed fulfillment status and optional HTTPS tracking details through an ownership-checked API. Status changes are written to the order-tracking audit collection, and the vendor orders API returns the shipping snapshot and tracking details.
+- A paid seller-managed order remains pending until the seller accepts it. Seller cancellation and customer cancellation before acceptance cancel pending payment intents and request full refunds for captured amounts; the PayMongo webhook remains authoritative for local refund status. Buyer cancellation after seller acceptance stays active and is sent to the seller/admin for manual review. A pickup no-show is an audit event with an admin review notification; it does not automatically cancel or refund the order.
 - The web seller portal now has an outlet-specific shipping settings page for ordered zones, Google Maps polygon boundaries, multiple textual coverage areas, delivery rates, minimum/free-delivery thresholds, estimates, pickup instructions, and saving with server read-back verification. Sellers can search Philippine locations, draw/adjust a zone boundary, and assign the zone's delivery fee and terms. Outlet lists and details link to these settings.
-- Polygon boundaries are stored inside the existing seller-shipping JSONB settings; this addition does not require a relational schema migration. Polygon matching runs server-side against coordinates on the buyer's saved address. If an address has no usable coordinates, polygon coverage does not match; existing textual area matching and pickup remain available.
+- Delivery zones are stored in the `seller_shipping_zones` table, related to their outlet/merchant, and ordered by `displayOrder`. Pickup settings remain in dedicated merchant columns. The seller API assembles these records into the existing settings shape for the editor and quote calculation. Migration `20261020_100000_seller_shipping_zones` backfilled the old JSONB settings before dropping that field.
+- Polygon matching runs server-side against coordinates on the buyer's saved address. If an address has no usable coordinates, polygon coverage does not match; existing textual area matching and pickup remain available.
 - The map uses the web app's `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` or `NEXT_PUBLIC_MAPS_BACKEND_KEY` and Google Places autocomplete. Configure a restricted Google Maps key with the required Maps JavaScript and Places APIs and billing. No Google Maps result is trusted for shipping price calculation; the CMS validates geometry and determines coverage.
 - The web seller orders page displays accepted shipping terms and provides fulfillment transitions plus optional carrier/reference/HTTPS tracking updates through an authenticated web proxy to the CMS ownership-checked endpoint. Legacy Lalamove fields remain visible only for historical orders.
 - Legacy Lalamove fields remain for historical orders. This CMS backend does not book or cancel a courier.
@@ -34,8 +36,8 @@ The backend routes are [shipping quote](../apps/cms/src/app/api/customer/checkou
 ## Current Application Context
 
 - Web checkout is scoped to one merchant's cart, which is a useful starting point for seller-specific shipping.
-- Checkout still requires a buyer delivery address; the CMS shipping quote and order-creation APIs are not yet wired into the web checkout.
-- Until that frontend integration is complete, the web checkout does not assess the new seller shipping rates. Do not launch paid delivery orders relying on the CMS quote API alone.
+- Web checkout now offers delivery when the buyer's saved address matches an enabled zone and pickup when the seller enables it. Pickup can be selected without a delivery address.
+- The existing CMS integration tests cover matching, quote signing, repricing, and geometry. Add/run a full deployed end-to-end check of quote → order → payment intent → transaction → payment confirmation before relying on paid seller-delivery orders in production.
 - Map-drawn delivery zones require valid latitude and longitude on the buyer's saved address. Keep textual areas configured as a fallback for addresses without coordinates.
 - The CMS retains older merchant delivery fields; seller shipping settings are now the separate authoritative configuration for the new quote API. Keep the older values clearly distinguished and avoid using them to calculate the new seller shipping quote.
 - Orders currently have `fulfillment_type`, `delivery_fee`, `priority_fee`, and Lalamove-specific fields. New seller-managed orders must not be coupled to courier bookings. Existing courier data must remain readable for historical orders.
@@ -213,10 +215,10 @@ Map these to existing order-level statuses only where that mapping is unambiguou
 
 - [x] Implement server-side eligible-method and fee calculation for a seller/address/cart.
 - [x] Return a signed short-lived quote and revalidate it at order creation.
-- [ ] Show methods and a full price breakdown before payment.
+- [x] Show methods and a full price breakdown before payment.
 - [x] Apply zone minimums and free-delivery thresholds; retain the existing order-coupon path for applicable discounts.
 - [x] Save the method, address, rate, and terms snapshot on the order.
-- [ ] Make the payment intent amount, transaction amount, and order total agree exactly.
+- [x] Make the payment intent amount, transaction amount, and order total agree exactly using server-created order totals.
 - [ ] Provide an address-not-served state and a seller-quote-required fallback only if explicitly approved; do not invent a fee.
 
 **Exit condition:** Tests prove the displayed total equals the persisted order and payment amounts for delivery, free shipping, pickup, discount, and threshold cases.
@@ -226,9 +228,9 @@ Map these to existing order-level statuses only where that mapping is unambiguou
 - [x] Return the selected method and fulfillment details in the vendor orders API.
 - [x] Add seller status updates and optional HTTPS tracking fields.
 - [x] Persist status changes with actor and timestamp in the order-tracking collection.
-- [ ] Update buyer order detail/tracking screens to use seller-managed status and label manual information accurately.
-- [ ] Notify buyers about acceptance, dispatch/ready-for-pickup, delivery completion, delays, and failed handoff.
-- [ ] Define seller decline/cancel, customer cancellation, refund, late dispatch, no-show pickup, and failed-delivery paths.
+- [x] Update buyer tracking to distinguish seller-managed fulfillment from live courier GPS and display seller status/tracking information.
+- [x] Notify customers of order status changes; route post-acceptance cancellation requests and pickup no-shows to seller/admin review.
+- [x] Define seller decline/cancel, customer cancellation, refund, and pickup no-show paths. Late dispatch and failed-delivery resolution remain operational policy follow-up.
 
 **Exit condition:** A seller can fulfill an order end-to-end without a platform driver, and the buyer sees truthful progress.
 
@@ -257,11 +259,10 @@ Map these to existing order-level statuses only where that mapping is unambiguou
 
 ## Remaining Decisions and Integration
 
-1. Integrate the web checkout with the CMS quote and order-creation endpoints, then ensure payment intent and transaction totals follow coupon adjustments.
-2. Build seller configuration UI and buyer checkout/tracking UI for the implemented API contracts.
-3. Confirm the initial locality data source and seller-facing location search; the backend currently matches normalized text on saved Philippine addresses and does not geocode.
-4. Define cancellation/refund rules after the seller has independently arranged delivery.
-5. Decide whether untracked seller deliveries are allowed and what evidence is required for a “delivered” status or dispute.
+1. Verify the integrated web quote → order → payment intent → transaction → payment/refund webhook flow in the deployed PayMongo environment, including retries and interrupted payment attempts.
+2. Confirm the initial locality data source and seller-facing location search; the backend currently matches normalized text on saved Philippine addresses and does not geocode.
+3. Decide whether untracked seller deliveries are allowed and what evidence is required for a “delivered” status or dispute.
+4. Define late-dispatch and failed-delivery resolution, including evidence and customer-contact expectations.
 
 ## WooCommerce References
 

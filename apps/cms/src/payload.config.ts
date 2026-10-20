@@ -64,6 +64,7 @@ import { UserNotifications } from './collections/UserNotifications'
 import { BusinessZones } from './collections/BusinessZones'
 import { Vendors } from './collections/Vendors'
 import { Merchants } from './collections/Merchants'
+import { SellerShippingZones } from './collections/SellerShippingZones'
 import { MerchantCategories } from './collections/MerchantCategories'
 import { ProductCategories } from './collections/ProductCategories'
 import { Products } from './collections/Products'
@@ -166,6 +167,7 @@ export default buildConfig({
     BusinessZones,
     Vendors,
     Merchants,
+    SellerShippingZones,
     Drivers,
     MerchantCategories,
     ProductCategories,
@@ -1267,8 +1269,41 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
           // When coupon details are given without an order yet, the food subtotal +
           // food discount are recomputed server-side from active cart items.
           if (orderId !== undefined && orderId !== null && String(orderId) !== '') {
+            if (!['customer', 'member'].includes(String(req.user.role))) {
+              return Response.json({ error: 'Only a customer can pay for an order.' }, { status: 403 });
+            }
             try {
-              const order = await req.payload.findByID({ collection: 'orders', id: orderId as number, depth: 0 });
+              const customerResult = await req.payload.find({
+                collection: 'customers',
+                where: { user: { equals: req.user.id } },
+                limit: 1,
+                depth: 0,
+                overrideAccess: true,
+              });
+              const customer = customerResult.docs[0] as { id?: string | number } | undefined;
+              if (!customer?.id) {
+                return Response.json({ error: 'Customer account not found.' }, { status: 404 });
+              }
+
+              const order = await req.payload.findByID({
+                collection: 'orders',
+                id: orderId as number,
+                depth: 0,
+                overrideAccess: true,
+              }) as unknown as {
+                customer?: string | number | { id?: string | number };
+                status?: string;
+                total?: number;
+              };
+              const orderCustomerId = order.customer && typeof order.customer === 'object'
+                ? order.customer.id
+                : order.customer;
+              if (String(orderCustomerId) !== String(customer.id)) {
+                return Response.json({ error: 'This order does not belong to your account.' }, { status: 403 });
+              }
+              if (order.status !== 'pending') {
+                return Response.json({ error: 'Only pending orders can start a payment.' }, { status: 409 });
+              }
               const expected = Math.round(Number((order as any)?.total || 0) * 100);
               if (!Number.isFinite(expected) || expected !== normalizedAmount) {
                 return Response.json(

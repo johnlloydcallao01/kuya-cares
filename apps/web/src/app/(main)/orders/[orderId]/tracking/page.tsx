@@ -80,6 +80,23 @@ interface DeliveryLocation {
   merchantLabel?: string;
 }
 
+interface SellerShippingSnapshot {
+  type: 'seller_delivery' | 'pickup';
+  optionName: string;
+  zoneName?: string | null;
+  fee: number;
+  estimatedDeliveryMinMinutes?: number | null;
+  estimatedDeliveryMaxMinutes?: number | null;
+  pickupLocation?: string | null;
+  pickupInstructions?: string | null;
+}
+
+interface SellerTrackingDetails {
+  carrierName: string | null;
+  reference: string | null;
+  url: string | null;
+}
+
 interface TrackingData {
   orderId: string;
   orderNumber: string;
@@ -90,6 +107,8 @@ interface TrackingData {
   events: TrackingEvent[];
   driver?: DriverInfo;
   deliveryLocation?: DeliveryLocation;
+  sellerShipping?: SellerShippingSnapshot;
+  sellerTracking?: SellerTrackingDetails;
   estimatedArrival?: string; // Mock or calculated
 }
 
@@ -249,6 +268,14 @@ export default function OrderTrackingPage({ params }: PageProps) {
             events,
             driver,
             deliveryLocation,
+            sellerShipping: order.seller_shipping_snapshot ?? undefined,
+            sellerTracking: order.seller_shipping_snapshot
+              ? {
+                  carrierName: order.seller_carrier_name ?? null,
+                  reference: order.seller_tracking_reference ?? null,
+                  url: order.seller_tracking_url ?? null,
+                }
+              : undefined,
           });
           if (isActive()) setLoadError(null);
         }
@@ -341,7 +368,17 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
       {/* Immersive Map Background (Top 50-60%) */}
       <div className="h-[60vh] w-full relative bg-gray-200 dark:bg-[#252525]">
-        {isLoaded ? (
+        {data.sellerShipping ? (
+          <div className="flex h-full flex-col items-center justify-center px-8 text-center text-gray-600 dark:text-gray-300">
+            <i className="fas fa-store text-3xl text-[#239459]" />
+            <p className="mt-3 text-base font-semibold text-gray-900 dark:text-white">
+              {data.sellerShipping.type === 'pickup' ? 'Seller pickup' : 'Seller-arranged delivery'}
+            </p>
+            <p className="mt-1 max-w-sm text-sm">
+              Live GPS tracking is not available for this shipping option. Check the tracking history below for seller updates.
+            </p>
+          </div>
+        ) : isLoaded ? (
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
             center={mapCenter}
@@ -398,6 +435,51 @@ export default function OrderTrackingPage({ params }: PageProps) {
       {/* Bottom Content Area — live timeline, driver & addresses.
           Previously a placeholder while C2–C4 hydrated for zero pixels. */}
       <div className="flex-1 bg-white dark:bg-[#111111] p-4 space-y-4 pb-24">
+        {data.sellerShipping && (
+          <div className="rounded-2xl border border-[#239459]/20 bg-[#239459]/5 p-3.5 space-y-1">
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
+              {data.sellerShipping.type === 'pickup'
+                ? 'Seller pickup'
+                : data.sellerShipping.zoneName || data.sellerShipping.optionName || 'Seller delivery'}
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-300">
+              {data.sellerShipping.type === 'pickup' ? 'Pickup fee' : 'Delivery fee'}: ₱{Number(data.sellerShipping.fee || 0).toFixed(2)}
+              {data.sellerShipping.estimatedDeliveryMinMinutes && data.sellerShipping.estimatedDeliveryMaxMinutes
+                ? ` · ${data.sellerShipping.estimatedDeliveryMinMinutes}–${data.sellerShipping.estimatedDeliveryMaxMinutes} min estimate`
+                : ''}
+            </p>
+            {data.sellerShipping.type === 'pickup' && data.sellerShipping.pickupLocation && (
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                Pickup from: {data.sellerShipping.pickupLocation}
+              </p>
+            )}
+            {data.sellerShipping.type === 'pickup' && data.sellerShipping.pickupInstructions && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {data.sellerShipping.pickupInstructions}
+              </p>
+            )}
+            {data.sellerTracking && (
+              <div className="pt-2">
+                {(data.sellerTracking.carrierName || data.sellerTracking.reference) && (
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    {[data.sellerTracking.carrierName, data.sellerTracking.reference].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                {data.sellerTracking.url && isSecureTrackingUrl(data.sellerTracking.url) && (
+                  <a
+                    href={data.sellerTracking.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex text-xs font-semibold text-[#239459] underline"
+                  >
+                    View seller tracking
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {data.driver && (
           <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#1c1c1c] border border-gray-100 dark:border-[#292929] rounded-2xl p-3.5">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-[#333333] flex-shrink-0 flex items-center justify-center">
@@ -493,4 +575,12 @@ export default function OrderTrackingPage({ params }: PageProps) {
       </div>
     </div>
   );
+}
+
+function isSecureTrackingUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
 }

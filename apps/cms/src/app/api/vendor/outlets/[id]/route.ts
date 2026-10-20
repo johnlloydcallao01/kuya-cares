@@ -13,7 +13,9 @@ import { authenticateVendorOrMember } from '@/utils/mediaLibrary'
 import { getStoreHoursStatus, validateStoreHoursFields } from '@/utils/storeHours'
 import {
   emptySellerShippingSettings,
+  loadSellerShippingSettings,
   parseSellerShippingSettings,
+  replaceSellerShippingZones,
 } from '@/services/SellerShippingService'
 
 export const dynamic = 'force-dynamic'
@@ -77,7 +79,10 @@ function sanitizeMedia(mediaObj: unknown): Record<string, any> | null {
   }
 }
 
-function sanitizeMerchant(m: Record<string, any>): Record<string, any> {
+function sanitizeMerchant(
+  m: Record<string, any>,
+  sellerShippingSettings = emptySellerShippingSettings(),
+): Record<string, any> {
   const contactInfo = m.contactInfo && typeof m.contactInfo === 'object' ? m.contactInfo : {}
   const delSettings = m.deliverySettings && typeof m.deliverySettings === 'object' ? m.deliverySettings : {}
   const media = m.media && typeof m.media === 'object' ? m.media : {}
@@ -133,8 +138,11 @@ function sanitizeMerchant(m: Record<string, any>): Record<string, any> {
     nextAvailableSlot: m.next_available_slot ?? null,
     service_area: m.service_area ?? null,
     serviceArea: m.service_area ?? null,
-    sellerShippingSettings:
-      m.seller_shipping_settings ?? emptySellerShippingSettings(),
+    sellerShippingSettings,
+    sellerPickupSettings: {
+      enabled: m.seller_pickup_enabled === true,
+      instructions: m.seller_pickup_instructions ?? null,
+    },
     priority_zones: m.priority_zones ?? null,
     restricted_areas: m.restricted_areas ?? null,
     delivery_zones: m.delivery_zones ?? null,
@@ -216,7 +224,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { merchant, error, status } = await verifyVendorOutletOwnership(payload, authUser.id, id)
     if (error || !merchant) return NextResponse.json({ error }, { status })
 
-    const sanitized = sanitizeMerchant(merchant as Record<string, any>)
+    const shippingSettings = await loadSellerShippingSettings(
+      payload,
+      merchant as unknown as Record<string, unknown>,
+    )
+    const sanitized = sanitizeMerchant(
+      merchant as Record<string, any>,
+      shippingSettings,
+    )
     return NextResponse.json({ outlet: sanitized, doc: sanitized })
   } catch (err: any) {
     console.error('[vendor/outlets/[id]] GET error:', err)
@@ -335,9 +350,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (d.freeDeliveryThreshold !== undefined) patch.free_delivery_threshold = toNum(d.freeDeliveryThreshold, 0)
     }
 
+    let submittedShippingSettings:
+      | ReturnType<typeof parseSellerShippingSettings>
+      | undefined
     if (body.sellerShippingSettings !== undefined) {
       try {
-        patch.seller_shipping_settings =
+        submittedShippingSettings =
           body.sellerShippingSettings === null
             ? emptySellerShippingSettings()
             : parseSellerShippingSettings(body.sellerShippingSettings)
@@ -345,6 +363,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         return badRequest(
           error instanceof Error ? error.message : 'Invalid seller shipping settings',
         )
+      }
+      if (
+        merchant.seller_pickup_enabled !== submittedShippingSettings.pickup.enabled
+      ) {
+        patch.seller_pickup_enabled = submittedShippingSettings.pickup.enabled
+      }
+      const currentPickupInstructions =
+        typeof merchant.seller_pickup_instructions === 'string'
+          ? merchant.seller_pickup_instructions
+          : null
+      if (
+        currentPickupInstructions !==
+        submittedShippingSettings.pickup.instructions
+      ) {
+        patch.seller_pickup_instructions =
+          submittedShippingSettings.pickup.instructions
       }
     }
 
@@ -683,25 +717,42 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
-    if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Nothing to update — no valid fields provided' }, { status: 400 })
+    if (Object.keys(patch).length === 0 && !submittedShippingSettings) {
+      return NextResponse.json({ error: 'Nothing to update — no valid fields provided' }, { status: 400 })
+    }
 
     console.log(`[vendor/outlets/[id]] PATCH:${requestId} patch`, JSON.stringify(patch).slice(0, 3000))
 
     let updated: Record<string, unknown>
-    try {
-      updated = (await payload.update({ collection: 'merchants', id: merchant.id as number, data: patch as never, overrideAccess: true, depth: 0 })) as unknown as Record<string, unknown>
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      const lower = msg.toLowerCase()
-      console.error(`[vendor/outlets/[id]] PATCH:${requestId} payload.update failed`, msg, (e as { data?: unknown })?.data)
-      if (lower.includes('unique') || lower.includes('duplicate') || lower.includes('already exists')) {
-        return NextResponse.json({ error: 'Outlet code already exists — must be unique' }, { status: 409 })
+    if (Object.keys(patch).length === 0) {
+      updated = merchant as unknown as Record<string, unknown>
+    } else {
+      try {
+        updated = (await payload.update({ collection: 'merchants', id: merchant.id as number, data: patch as never, overrideAccess: true, depth: 0 })) as unknown as Record<string, unknown>
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        const lower = msg.toLowerCase()
+        console.error(`[vendor/outlets/[id]] PATCH:${requestId} payload.update failed`, msg, (e as { data?: unknown })?.data)
+        if (lower.includes('unique') || lower.includes('duplicate') || lower.includes('already exists')) {
+          return NextResponse.json({ error: 'Outlet code already exists — must be unique' }, { status: 409 })
+        }
+        return NextResponse.json({ error: msg }, { status: 400 })
       }
-      return NextResponse.json({ error: msg }, { status: 400 })
+    }
+
+    if (submittedShippingSettings) {
+      await replaceSellerShippingZones(payload, merchant.id, submittedShippingSettings)
     }
 
     const populated = await payload.findByID({ collection: 'merchants', id: updated.id as number, depth: 2, overrideAccess: true })
-    const sanitized = sanitizeMerchant(populated as Record<string, any>)
+    const persistedShippingSettings = await loadSellerShippingSettings(
+      payload,
+      populated as unknown as Record<string, unknown>,
+    )
+    const sanitized = sanitizeMerchant(
+      populated as Record<string, any>,
+      persistedShippingSettings,
+    )
 
     // Enterprise verification — mirror web-admin vendors pattern: verify every patched key
     // to prevent "fake success" where payload.update returns 200 but DB still holds stale values
@@ -728,12 +779,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // deliverySettings denormalized columns — verify via sanitized.deliverySettings which merges group + top-level
     if (patch.delivery_radius_meters !== undefined && sanitized.deliverySettings.deliveryRadiusMeters !== patch.delivery_radius_meters) mismatches.push({ field: 'deliverySettings.deliveryRadiusMeters', expected: patch.delivery_radius_meters, actual: sanitized.deliverySettings.deliveryRadiusMeters })
     if (
-      patch.seller_shipping_settings !== undefined &&
-      JSON.stringify(sanitized.sellerShippingSettings) !== JSON.stringify(patch.seller_shipping_settings)
+      submittedShippingSettings &&
+      JSON.stringify(sanitized.sellerShippingSettings) !==
+        JSON.stringify(submittedShippingSettings)
     ) {
       mismatches.push({
         field: 'sellerShippingSettings',
-        expected: patch.seller_shipping_settings,
+        expected: submittedShippingSettings,
         actual: sanitized.sellerShippingSettings,
       })
     }

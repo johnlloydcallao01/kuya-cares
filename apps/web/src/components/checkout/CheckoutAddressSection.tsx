@@ -12,9 +12,10 @@ import DeleteAddressDialog from '@/components/addresses/DeleteAddressDialog';
 
 interface CheckoutAddressSectionProps {
   className?: string;
+  disabled?: boolean;
 }
 
-export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectionProps) {
+export function CheckoutAddressSection({ className = '', disabled = false }: CheckoutAddressSectionProps) {
   const [userAddresses, setUserAddresses] = useState<any[]>([]);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
@@ -84,10 +85,12 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const handleDeleteAddress = async (addressId: string) => {
+    if (disabled) return;
     setPendingDeleteId(addressId);
   };
 
   const confirmDeleteAddress = async () => {
+    if (disabled) return;
     const addressId = pendingDeleteId;
     if (!addressId) return;
     setPendingDeleteId(null);
@@ -117,7 +120,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
   };
 
   const handleSetActiveAddress = async (addressId: string) => {
-    if (!user?.id) return;
+    if (!user?.id || disabled) return;
 
     setSettingActiveId(addressId);
     try {
@@ -195,9 +198,14 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
 
   return (
     <div className={`bg-white dark:bg-[#111111] rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-[#262626] space-y-3 ${className}`}>
-      <h2 className="text-sm font-semibold text-gray-900">
-        {currentStep === 'preview' ? 'Confirm Delivery Address' : 'Delivery Address'}
-      </h2>
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900">
+          {currentStep === 'preview' ? 'Confirm Delivery Address' : 'Delivery Address'}
+        </h2>
+        <p className="mt-1 text-xs text-gray-500 dark:text-[#a1a1aa]">
+          A saved delivery address is required for delivery. You can choose pickup without one.
+        </p>
+      </div>
       
       {currentStep === 'search' ? (
         <>
@@ -206,6 +214,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
             onAddressSelect={handleAddressSelect}
             inputClassName="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-[#1c1c1c] text-gray-900 dark:text-white border-0 rounded-xl text-base placeholder-gray-500 dark:placeholder:text-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#239459] focus:bg-white dark:focus:bg-[#262626] transition-all"
             fullPage={false}
+            disabled={disabled}
           />
 
           {user?.id && (
@@ -262,7 +271,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                         <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => handleSetActiveAddress(address.id)}
-                            disabled={settingActiveId === address.id || activeAddressId === address.id}
+                            disabled={disabled || settingActiveId === address.id || activeAddressId === address.id}
                             className={`px-2 py-1 text-[10px] font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${activeAddressId === address.id
                                 ? 'text-purple-600 dark:text-purple-300 bg-white dark:bg-[#262626] border border-purple-100 dark:border-purple-900'
                                 : 'text-blue-600 dark:text-blue-300 bg-white dark:bg-[#262626] border border-blue-100 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-[#333333]'
@@ -272,7 +281,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
                           </button>
                           <button
                             onClick={() => handleDeleteAddress(address.id)}
-                            disabled={deletingAddressId === address.id}
+                            disabled={disabled || deletingAddressId === address.id}
                             className="px-2 py-1 text-[10px] font-medium text-red-600 dark:text-red-300 bg-white dark:bg-[#262626] border border-red-100 dark:border-red-900 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {deletingAddressId === address.id ? '...' : 'Delete'}
@@ -300,13 +309,14 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
           <div className="flex gap-3">
             <button
               onClick={handleBackToSearch}
+              disabled={disabled}
               className="flex-1 px-4 py-2 bg-gray-100 dark:bg-[#262626] text-gray-700 dark:text-[#e4e4e7] rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-[#333333] transition-colors"
             >
               Back
             </button>
             <button
               onClick={handleSaveAddress}
-              disabled={isSaving}
+              disabled={disabled || isSaving}
               className="flex-1 px-4 py-2 bg-[#239459] text-white rounded-lg text-sm font-medium hover:bg-[#1c7a4a] transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSaving ? (
@@ -324,7 +334,7 @@ export function CheckoutAddressSection({ className = '' }: CheckoutAddressSectio
 
       {/* Professional delete confirmation (replaces window.confirm) */}
       <DeleteAddressDialog
-        open={!!pendingDeleteId}
+        open={!disabled && !!pendingDeleteId}
         addressText={
           userAddresses.find((a) => a.id === pendingDeleteId)?.formatted_address
         }

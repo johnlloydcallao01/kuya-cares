@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   getSellerShippingOptions,
+  loadSellerShippingSettings,
   parseSellerShippingSettings,
+  replaceSellerShippingZones,
   signShippingQuote,
   verifyShippingQuote,
 } from '../../src/services/SellerShippingService'
@@ -39,6 +41,94 @@ const settings = () => parseSellerShippingSettings({
 })
 
 describe('seller-managed shipping', () => {
+  it('loads dedicated zones in display order with pickup settings', async () => {
+    const payload = {
+      find: vi.fn(async () => ({
+        docs: [
+          {
+            id: 2,
+            zoneId: 'later',
+            name: 'Later zone',
+            enabled: true,
+            displayOrder: 1,
+            areas: [{ city: 'Cebu' }],
+            geometry: null,
+            deliveryFee: 80,
+            minimumOrderAmount: 0,
+            freeDeliveryThreshold: null,
+            estimatedDeliveryMinMinutes: 0,
+            estimatedDeliveryMaxMinutes: 0,
+          },
+          {
+            id: 1,
+            zoneId: 'first',
+            name: '',
+            enabled: true,
+            displayOrder: 0,
+            areas: [{ city: 'Manila' }],
+            geometry: null,
+            deliveryFee: 50,
+            minimumOrderAmount: 0,
+            freeDeliveryThreshold: null,
+            estimatedDeliveryMinMinutes: 0,
+            estimatedDeliveryMaxMinutes: 0,
+          },
+        ],
+      })),
+    }
+
+    const loaded = await loadSellerShippingSettings(payload as never, {
+      id: 7,
+      seller_pickup_enabled: true,
+      seller_pickup_instructions: 'Use the side entrance.',
+    })
+
+    expect(loaded.pickup).toEqual({
+      enabled: true,
+      instructions: 'Use the side entrance.',
+    })
+    expect(loaded.zones.map((zone) => zone.id)).toEqual(['first', 'later'])
+  })
+
+  it('upserts submitted zones and removes zones omitted from the saved settings', async () => {
+    const payload = {
+      find: vi.fn(async () => ({
+        docs: [
+          { id: 3, zoneId: 'keep' },
+          { id: 4, zoneId: 'remove' },
+        ],
+      })),
+      update: vi.fn(async () => ({})),
+      create: vi.fn(async () => ({})),
+      delete: vi.fn(async () => ({})),
+    }
+    const settings = parseSellerShippingSettings({
+      zones: [
+        { id: 'keep', areas: [{ city: 'Manila' }], deliveryFee: 10 },
+        { id: 'add', areas: [{ city: 'Cebu' }], deliveryFee: 20 },
+      ],
+    })
+
+    await replaceSellerShippingZones(payload as never, 7, settings)
+
+    expect(payload.update).toHaveBeenCalledWith(expect.objectContaining({
+      id: 3,
+      collection: 'seller-shipping-zones',
+      data: expect.objectContaining({ merchant: 7, zoneId: 'keep', displayOrder: 0 }),
+      overrideAccess: true,
+    }))
+    expect(payload.create).toHaveBeenCalledWith(expect.objectContaining({
+      collection: 'seller-shipping-zones',
+      data: expect.objectContaining({ merchant: 7, zoneId: 'add', displayOrder: 1 }),
+      overrideAccess: true,
+    }))
+    expect(payload.delete).toHaveBeenCalledWith({
+      collection: 'seller-shipping-zones',
+      id: 4,
+      overrideAccess: true,
+    })
+  })
+
   it('validates configuration and rejects empty or duplicate delivery zones', () => {
     expect(() => parseSellerShippingSettings({
       zones: [{ id: 'empty', name: 'Empty', areas: [{}], deliveryFee: 10 }],

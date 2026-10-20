@@ -10,6 +10,7 @@ interface AddressSearchInputProps {
   inputClassName?: string;
   dropdownClassName?: string;
   autoFocus?: boolean;
+  disabled?: boolean;
   fullPage?: boolean; // New prop to render predictions as page content instead of dropdown
 }
 
@@ -43,6 +44,7 @@ export function AddressSearchInput({
   inputClassName = "",
   dropdownClassName = "",
   autoFocus = false,
+  disabled = false,
   fullPage = false,
 }: AddressSearchInputProps) {
   const {
@@ -73,7 +75,7 @@ export function AddressSearchInput({
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          disabled={!isMapsReady}
+          disabled={disabled || !isMapsReady}
           className={`w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputClassName}`}
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
@@ -95,6 +97,7 @@ export function AddressSearchInput({
               <button
                 key={prediction.place_id}
                 onClick={() => handleAddressSelect(prediction.place_id)}
+                disabled={disabled}
                 className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border border-gray-200 rounded-lg flex items-center space-x-3"
               >
                 <LocationIcon />
@@ -118,6 +121,7 @@ export function AddressSearchInput({
               <button
                 key={prediction.place_id}
                 onClick={() => handleAddressSelect(prediction.place_id)}
+                disabled={disabled}
                 className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
               >
                 <LocationIcon />
