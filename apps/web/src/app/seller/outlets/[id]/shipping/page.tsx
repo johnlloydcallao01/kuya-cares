@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
@@ -116,6 +117,8 @@ function ShippingZonesPageContent() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [deletingZone, setDeletingZone] = useState<ShippingZone | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -141,7 +144,24 @@ function ShippingZonesPageContent() {
     void load()
   }, [load])
 
-  const persist = async (nextSettings: ShippingSettings) => {
+  useEffect(() => {
+    if (!deletingZone) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !saving) {
+        setDeletingZone(null)
+        setDeleteError(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [deletingZone, saving])
+
+  const persist = async (nextSettings: ShippingSettings, reportError = true): Promise<string | null> => {
     const submittedSettings: ShippingSettings = {
       ...nextSettings,
       pickup: {
@@ -175,8 +195,11 @@ function ShippingZonesPageContent() {
       setOutlet(doc)
       setSettings(persisted)
       setSuccess(true)
+      return null
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to save shipping settings.')
+      const message = cause instanceof Error ? cause.message : 'Unable to save shipping settings.'
+      if (reportError) setError(message)
+      return message
     } finally {
       setSaving(false)
     }
@@ -191,8 +214,22 @@ function ShippingZonesPageContent() {
   }
 
   const deleteZone = (zone: ShippingZone) => {
-    if (saving || !window.confirm(`Delete "${zone.name || 'Seller delivery'}"? This cannot be undone.`)) return
-    void persist({ ...settings, zones: settings.zones.filter((item) => item.id !== zone.id) })
+    if (saving) return
+    setDeleteError(null)
+    setDeletingZone(zone)
+  }
+
+  const confirmDeleteZone = async () => {
+    if (!deletingZone || saving) return
+    const message = await persist(
+      { ...settings, zones: settings.zones.filter((item) => item.id !== deletingZone.id) },
+      false,
+    )
+    if (message) {
+      setDeleteError(message)
+    } else {
+      setDeletingZone(null)
+    }
   }
 
   if (loading) return <ShippingZoneEditorSkeleton />
@@ -356,6 +393,58 @@ function ShippingZonesPageContent() {
         )}
       </section>
       <p className="text-xs text-gray-500 dark:text-[#a1a1aa]">Shipping fees go to your seller payout. Your delivery arrangement is your responsibility.</p>
+
+      {deletingZone && typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (!saving) {
+                setDeletingZone(null)
+                setDeleteError(null)
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-shipping-zone-title"
+              className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-[#262626] dark:bg-[#171717]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h2 id="delete-shipping-zone-title" className="font-bold text-gray-900 dark:text-white">Delete shipping zone?</h2>
+              <p className="mt-1 text-sm text-gray-600 dark:text-[#a1a1aa]">
+                This will permanently delete <span className="font-semibold text-gray-900 dark:text-white">{deletingZone.name || 'Seller delivery'}</span>. This action cannot be undone.
+              </p>
+              {deleteError && <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{deleteError}</p>}
+              <div className="mt-6 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeletingZone(null)
+                    setDeleteError(null)
+                  }}
+                  disabled={saving}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#262626] dark:bg-[#171717] dark:hover:bg-[#262626]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmDeleteZone()}
+                  disabled={saving}
+                  className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving ? 'Deleting…' : 'Confirm delete'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
