@@ -760,18 +760,25 @@ export class GeospatialService {
 
   /**
    * Find merchants within radius using PostGIS distance calculation
-   * This method uses PostGIS ST_Distance for accurate spatial queries
-   * Designed specifically for location-based display (not delivery calculations)
+   * Uses business-zone or seller-shipping-zone coverage for homepage eligibility.
+   * Distance is retained for nearest-first ordering and merchant card metadata.
    */
-  async findMerchantsWithinRadiusPostGIS(params: {
+  async findMerchantsByCoveragePostGIS(params: {
     latitude: number
     longitude: number
-    radiusMeters: number
+    address: {
+      country?: string | null
+      administrative_area_level_1?: string | null
+      administrative_area_level_2?: string | null
+      locality?: string | null
+      barangay?: string | null
+      postal_code?: string | null
+    }
     limit?: number
     offset?: number
     categoryId?: number
   }) {
-    const { latitude, longitude, radiusMeters, limit = 20, offset = 0, categoryId } = params
+    const { latitude, longitude, address, limit = 20, offset = 0, categoryId } = params
     const startTime = Date.now()
 
     // Validate coordinates
@@ -779,18 +786,139 @@ export class GeospatialService {
       throw new Error('Invalid coordinates provided')
     }
 
-    // Validate search radius (max 100km for performance)
-    if (radiusMeters > 100000) {
-      throw new Error('Search radius cannot exceed 100km')
-    }
-
     try {
       // Create customer point for PostGIS query
       const customerPoint = `ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)`
+      const sqlText = (value: string | null | undefined) => `'${(value ?? '').replace(/'/g, "''")}'`
+      const normalizedLocation = (expression: string) =>
+        `regexp_replace(regexp_replace(regexp_replace(lower(normalize(trim(COALESCE(${expression}, '')), NFKD)), U&'[\\0300-\\036F]', '', 'g'), '[.,]', '', 'g'), '\\s+', ' ', 'g')`
+      const addressValues = {
+        country: normalizedLocation(sqlText(address.country)),
+        region: normalizedLocation(sqlText(address.administrative_area_level_1)),
+        province: normalizedLocation(sqlText(address.administrative_area_level_2 || address.administrative_area_level_1)),
+        city: normalizedLocation(sqlText(address.locality)),
+        barangay: normalizedLocation(sqlText(address.barangay)),
+        postalCode: `regexp_replace(${sqlText(address.postal_code)}, '[^0-9]', '', 'g')`,
+      }
+      const safeJsonArray = (expression: string) =>
+        `CASE WHEN jsonb_typeof(${expression}) = 'array' THEN ${expression} ELSE '[]'::jsonb END`
+      const validRing = (expression: string) => `
+        jsonb_typeof(${expression}) = 'array'
+        AND jsonb_array_length(${safeJsonArray(expression)}) >= 4
+        AND ${expression}->0 = ${expression}->(jsonb_array_length(${safeJsonArray(expression)}) - 1)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${safeJsonArray(expression)}) AS coordinate(value)
+          WHERE jsonb_typeof(coordinate.value) <> 'array'
+            OR jsonb_array_length(${safeJsonArray('coordinate.value')}) < 2
+            OR jsonb_typeof(coordinate.value->0) <> 'number'
+            OR jsonb_typeof(coordinate.value->1) <> 'number'
+        )
+      `
+      const validPolygon = (expression: string) => `
+        jsonb_typeof(${expression}) = 'array'
+        AND jsonb_array_length(${safeJsonArray(expression)}) > 0
+        AND NOT EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${safeJsonArray(expression)}) AS ring(value)
+          WHERE NOT (${validRing('ring.value')})
+        )
+      `
+      const validGeoJson = (expression: string) => `
+        jsonb_typeof(${expression}) = 'object'
+        AND ${expression}->>'type' IN ('Polygon', 'MultiPolygon')
+        AND CASE
+          WHEN ${expression}->>'type' = 'Polygon'
+            THEN ${validPolygon(`${expression}->'coordinates'`)}
+          WHEN ${expression}->>'type' = 'MultiPolygon'
+            THEN jsonb_typeof(${expression}->'coordinates') = 'array'
+              AND jsonb_array_length(${safeJsonArray(`${expression}->'coordinates'`)}) > 0
+              AND NOT EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(${safeJsonArray(`${expression}->'coordinates'`)}) AS polygon(value)
+                WHERE NOT (${validPolygon('polygon.value')})
+              )
+          ELSE false
+        END
+      `
+      const businessGeometry = `COALESCE(NULLIF(bz.boundary_geometry, 'null'::jsonb), bz.boundary)`
+      const coveragePredicate = `
+        (
+          CASE
+            WHEN ${validGeoJson(businessGeometry)}
+              THEN ST_Covers(
+                ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(${businessGeometry}::text), 4326)),
+                ${customerPoint}
+              )
+            ELSE false
+          END
+          OR EXISTS (
+            SELECT 1
+            FROM seller_shipping_zones ssz
+            WHERE ssz.merchant_id = m.id
+              AND ssz.enabled = true
+              AND (
+                CASE
+                  WHEN ${validGeoJson('ssz.geometry')}
+                    THEN ST_Covers(
+                      ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(ssz.geometry::text), 4326)),
+                      ${customerPoint}
+                    )
+                  ELSE false
+                END
+                OR (
+                  ${addressValues.country} IN ('ph', 'philippines')
+                  AND EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(
+                      CASE WHEN jsonb_typeof(ssz.areas) = 'array' THEN ssz.areas ELSE '[]'::jsonb END
+                    ) AS area(value)
+                    WHERE
+                      (NULLIF(${normalizedLocation("area.value->>'region'")}, '') IS NULL
+                        OR ${normalizedLocation("area.value->>'region'")} = ${addressValues.region})
+                      AND (NULLIF(${normalizedLocation("area.value->>'province'")}, '') IS NULL
+                        OR ${normalizedLocation("area.value->>'province'")} = ${addressValues.province})
+                      AND (NULLIF(${normalizedLocation("area.value->>'city'")}, '') IS NULL
+                        OR ${normalizedLocation("area.value->>'city'")} = ${addressValues.city})
+                      AND (
+                        jsonb_typeof(area.value->'barangays') IS DISTINCT FROM 'array'
+                        OR jsonb_array_length(
+                          CASE WHEN jsonb_typeof(area.value->'barangays') = 'array'
+                            THEN area.value->'barangays' ELSE '[]'::jsonb END
+                        ) = 0
+                        OR EXISTS (
+                          SELECT 1
+                          FROM jsonb_array_elements_text(
+                            CASE WHEN jsonb_typeof(area.value->'barangays') = 'array'
+                              THEN area.value->'barangays' ELSE '[]'::jsonb END
+                          ) AS barangay(value)
+                          WHERE ${normalizedLocation('barangay.value')} = ${addressValues.barangay}
+                        )
+                      )
+                      AND (
+                        jsonb_typeof(area.value->'postalCodes') IS DISTINCT FROM 'array'
+                        OR jsonb_array_length(
+                          CASE WHEN jsonb_typeof(area.value->'postalCodes') = 'array'
+                            THEN area.value->'postalCodes' ELSE '[]'::jsonb END
+                        ) = 0
+                        OR EXISTS (
+                          SELECT 1
+                          FROM jsonb_array_elements_text(
+                            CASE WHEN jsonb_typeof(area.value->'postalCodes') = 'array'
+                              THEN area.value->'postalCodes' ELSE '[]'::jsonb END
+                          ) AS postal_code(value)
+                          WHERE regexp_replace(postal_code.value, '[^0-9]', '', 'g') = ${addressValues.postalCode}
+                        )
+                      )
+                  )
+                )
+              )
+          )
+        )
+      `
 
       console.log(`🔍 PostGIS Query Debug:`, {
         customerPoint,
-        radiusMeters,
         limit,
         offset
       })
@@ -868,11 +996,7 @@ export class GeospatialService {
           AND v.is_active = true
           AND v.verification_status = 'verified'
           AND (m.business_zone_id IS NULL OR bz.is_active = true)
-          AND ST_DWithin(
-            ST_Transform(ST_GeomFromGeoJSON(m.merchant_coordinates::text), 3857),
-            ST_Transform(${customerPoint}, 3857),
-            ${radiusMeters}
-          )
+          AND ${coveragePredicate}
           ${categoryId ? `AND EXISTS (
             SELECT 1 FROM merchants_rels mr2
             WHERE mr2.parent_id = m.id
@@ -1002,11 +1126,7 @@ export class GeospatialService {
           AND v.is_active = true
           AND v.verification_status = 'verified'
           AND (m.business_zone_id IS NULL OR bz.is_active = true)
-          AND ST_DWithin(
-            ST_Transform(ST_GeomFromGeoJSON(m.merchant_coordinates::text), 3857),
-            ST_Transform(${customerPoint}, 3857),
-            ${radiusMeters}
-          )
+          AND ${coveragePredicate}
           ${categoryId ? `AND EXISTS (
             SELECT 1 FROM merchants_rels mr2
             WHERE mr2.parent_id = m.id
@@ -1035,8 +1155,8 @@ export class GeospatialService {
         },
         performance: {
           queryTimeMs: queryTime,
-          searchRadius: radiusMeters,
-          withinSearchRadius: visibleMerchants.length,
+          searchRadius: null,
+          eligibleMerchantCount: visibleMerchants.length,
           proximityScore: visibleMerchants.length > 0
             ? visibleMerchants.reduce((sum, m) => sum + (1 / (m.distanceKm + 1)), 0) / visibleMerchants.length
             : 0,
@@ -1045,11 +1165,11 @@ export class GeospatialService {
       }
 
     } catch (error) {
-      console.error('🚨 Error in findMerchantsWithinRadiusPostGIS:', error)
+      console.error('🚨 Error in findMerchantsByCoveragePostGIS:', error)
       console.error('🔍 Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
-        params: { latitude, longitude, radiusMeters, limit, offset }
+        params: { latitude, longitude, limit, offset }
       })
       throw new Error(`Failed to find merchants using PostGIS: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

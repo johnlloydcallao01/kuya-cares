@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter, notFound } from 'next/navigation'
 import { ClientOnly } from '@/components/ClientOnly'
 import {
-  Store, ArrowLeft, Pencil, Building, MapPin, Phone, Mail, Clock, Tag, Image as ImageIcon, AlertCircle, CalendarDays
+  Store, ArrowLeft, Pencil, Building, MapPin, Phone, Mail, Clock, Tag, Image as ImageIcon, AlertCircle, CalendarDays, Truck
 } from '@/components/ui/IconWrapper'
 
 type MerchantDoc = {
@@ -84,7 +84,7 @@ function MerchantViewContent(){
   if(error||!doc){
     return (
       <div className="space-y-6 py-5 px-2.5">
-        <button onClick={() => (typeof window !== 'undefined' && window.history.length > 1 ? router.back() : router.push('/merchants'))} className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-[#a1a1aa] hover:text-gray-900"><ArrowLeft className="w-4 h-4" /> Back</button>
+        <button onClick={() => router.push('/merchants')} className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-[#a1a1aa] hover:text-gray-900"><ArrowLeft className="w-4 h-4" /> Back</button>
         <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#262626]">
           <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4"><AlertCircle className="h-7 w-7 text-red-500" /></div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Failed to load outlet</h3><p className="text-sm text-gray-500 mt-1">{error}</p>
@@ -96,7 +96,7 @@ function MerchantViewContent(){
 
   return (
     <div className="space-y-6 py-5 px-2.5">
-      <button onClick={() => (typeof window !== 'undefined' && window.history.length > 1 ? router.back() : router.push('/merchants'))} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">
+      <button onClick={() => router.push('/merchants')} className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
@@ -111,8 +111,11 @@ function MerchantViewContent(){
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link href={`/merchants/${doc.id}/shipping`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#262626] transition-colors">
+            <Truck className="w-4 h-4" /> Shipping
+          </Link>
           <Link href={`/merchants/${doc.id}/edit`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#239459] hover:bg-[#215035] text-white rounded-xl text-sm font-semibold shadow-sm transition"><Pencil className="w-4 h-4" /> Edit</Link>
-          <Link href="/merchants" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50">Close</Link>
+          <Link href="/merchants" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#262626] rounded-xl text-sm font-medium text-gray-700 dark:text-[#a1a1aa] hover:bg-gray-50 dark:hover:bg-[#262626] transition-colors">Close</Link>
         </div>
       </div>
 

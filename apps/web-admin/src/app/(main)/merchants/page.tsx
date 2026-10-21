@@ -11,7 +11,7 @@ import { useVendors } from '@/hooks/useVendors'
 import { ClientOnly } from '@/components/ClientOnly'
 import {
   Store, Search, X, SlidersHorizontal, ChevronDown, Plus, RefreshCw, AlertCircle,
-  Building, Clock, CheckCircle, Eye, Pencil, Trash2, MapPin, Phone, Mail, Tag
+  Building, Clock, CheckCircle, Eye, Pencil, Trash2, MapPin, Phone, Mail, Tag, Truck
 } from '@/components/ui/IconWrapper'
 
 const OPERATIONAL_OPTS = [
@@ -433,6 +433,7 @@ const [sort,setSort]=useState('-createdAt')
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-1">
                           <Link href={`/merchants/${m.id}`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-[#262626] text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white" title="View"><Eye className="w-4 h-4" /></Link>
+                          <Link href={`/merchants/${m.id}/shipping`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-[#239459]" title="Shipping settings" aria-label={`Shipping settings for ${m.outletName}`}><Truck className="w-4 h-4" /></Link>
                           <Link href={`/merchants/${m.id}/edit`} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-blue-600" title="Edit"><Pencil className="w-4 h-4" /></Link>
                           <button onClick={()=>setDeleting(m)} className="h-7 w-7 inline-flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 dark:text-[#a1a1aa] hover:text-red-600" title="Delete"><Trash2 className="w-4 h-4" /></button>
                         </div>

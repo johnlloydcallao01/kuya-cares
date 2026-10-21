@@ -2,7 +2,7 @@
 
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api'
+import { GoogleMap } from '@react-google-maps/api'
 import {
   TerraDraw,
   TerraDrawCircleMode,
@@ -37,18 +37,15 @@ type SearchPlace = {
 
 type MapMode = 'polygon' | 'rectangle' | 'circle' | 'select'
 
-type ShippingZoneMapProps = {
+export type ShippingZoneMapProps = {
   value: ShippingZoneGeometry | null
   onChange: (geometry: ShippingZoneGeometry | null) => void
+  isLoaded: boolean
+  loadError?: Error | null
 }
 
 type MenuPosition = { x: number; y: number } | null
 
-const GOOGLE_KEY =
-  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-  process.env.NEXT_PUBLIC_MAPS_BACKEND_KEY ||
-  ''
-const MAP_LIBRARIES: ('places' | 'geometry')[] = ['places', 'geometry']
 const DEFAULT_CENTER = { lat: 14.5995, lng: 120.9842 }
 const MAP_CONTAINER_STYLE = { width: '100%', height: '420px' }
 
@@ -107,12 +104,7 @@ function focusMapOnPlace(map: google.maps.Map, place: SearchPlace): boolean {
   return true
 }
 
-export default function ShippingZoneMap({ value, onChange }: ShippingZoneMapProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'seller-shipping-zone-map',
-    googleMapsApiKey: GOOGLE_KEY,
-    libraries: MAP_LIBRARIES,
-  })
+export default function ShippingZoneMap({ value, onChange, isLoaded, loadError }: ShippingZoneMapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [mode, setMode] = useState<MapMode>(value ? 'select' : 'polygon')
   const [searchInput, setSearchInput] = useState('')
@@ -389,15 +381,6 @@ export default function ShippingZoneMap({ value, onChange }: ShippingZoneMapProp
     } finally {
       setSearchBusy(false)
     }
-  }
-
-  if (!GOOGLE_KEY) {
-    return (
-      <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        Add <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to the web app environment to
-        draw delivery zones on the map.
-      </div>
-    )
   }
 
   if (loadError) {

@@ -7,7 +7,8 @@
     "./card": "./src/card.tsx",
     "./table": "./src/table.tsx",
     "./sidebar": "./src/sidebar.tsx",
-    "./stats-card": "./src/stats-card.tsx"
+    "./stats-card": "./src/stats-card.tsx",
+    "./shipping-zones": "./src/shipping/index.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -21,6 +22,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/google.maps": "^3.58.1",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
     "eslint": "^9",
@@ -28,7 +30,11 @@
   },
   "peerDependencies": {
     "@types/react": "^19",
-    "react": "^19.1.0"
+    "react": "^19.1.0",
+    "@react-google-maps/api": "^2.20.0",
+    "terra-draw": "^1.32.0",
+    "terra-draw-google-maps-adapter": "^1.6.0",
+    "lucide-react": "^0.263.1"
   },
   "dependencies": {
     "echarts": "6.1.0",

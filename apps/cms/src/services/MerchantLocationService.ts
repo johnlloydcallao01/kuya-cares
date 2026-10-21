@@ -89,7 +89,7 @@ export class MerchantLocationService {
       throw new Error('Address not found')
     }
 
-    if (!address.latitude || !address.longitude) {
+    if (address.latitude == null || address.longitude == null) {
       throw new Error('Address missing coordinates')
     }
 
@@ -114,10 +114,17 @@ export class MerchantLocationService {
     }
 
     const parsedCategoryId = categoryId ? parseInt(String(categoryId), 10) : undefined
-    const result = await this.geospatialService.findMerchantsWithinRadiusPostGIS({
+    const result = await this.geospatialService.findMerchantsByCoveragePostGIS({
       latitude: lat,
       longitude: lng,
-      radiusMeters: 50000,
+      address: {
+        country: address.country,
+        administrative_area_level_1: address.administrative_area_level_1,
+        administrative_area_level_2: address.administrative_area_level_2,
+        locality: address.locality,
+        barangay: address.barangay,
+        postal_code: address.postal_code,
+      },
       limit: 50,
       offset: 0,
       categoryId: typeof parsedCategoryId === 'number' && !isNaN(parsedCategoryId) ? parsedCategoryId : undefined

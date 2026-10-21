@@ -16,7 +16,10 @@ import { useEffect, useState } from 'react';
  */
 
 const SCRIPT_ID = 'google-maps-shared';
-const API_KEY = process.env.NEXT_PUBLIC_MAPS_BACKEND_KEY || '';
+const API_KEY =
+  process.env.NEXT_PUBLIC_MAPS_BACKEND_KEY ||
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  '';
 
 function apiReady(): boolean {
   return (
@@ -37,6 +40,9 @@ export function ensureGoogleMapsLoaded(): Promise<void> {
   }
   if (apiReady()) return Promise.resolve();
   if (loadPromise) return loadPromise;
+  if (!API_KEY) {
+    return Promise.reject(new Error('Google Maps API key is not configured'));
+  }
 
   loadPromise = new Promise<void>((resolve, reject) => {
     // Another bootstrap (legacy tag, HMR remnant) already present — wait for it
@@ -82,22 +88,31 @@ export function ensureGoogleMapsLoaded(): Promise<void> {
   return loadPromise;
 }
 
-export function useGoogleMapsApiReady(): boolean {
-  const [ready, setReady] = useState<boolean>(() => isGoogleMapsApiReadySync());
+export function useGoogleMapsApi(): { isLoaded: boolean; loadError: Error | null } {
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => isGoogleMapsApiReadySync());
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
     let live = true;
     ensureGoogleMapsLoaded()
       .then(() => {
-        if (live) setReady(true);
+        if (live) {
+          setIsLoaded(true);
+          setLoadError(null);
+        }
       })
       .catch((error) => {
         console.error('Failed to load Google Maps:', error);
+        if (live) setLoadError(error instanceof Error ? error : new Error('Failed to load Google Maps API'));
       });
     return () => {
       live = false;
     };
   }, []);
 
-  return ready;
+  return { isLoaded, loadError };
+}
+
+export function useGoogleMapsApiReady(): boolean {
+  return useGoogleMapsApi().isLoaded;
 }

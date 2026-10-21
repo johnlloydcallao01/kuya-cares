@@ -1273,15 +1273,27 @@ importers:
 
   packages/ui:
     dependencies:
+      '@react-google-maps/api':
+        specifier: ^2.20.0
+        version: 2.20.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       echarts:
         specifier: 6.1.0
         version: 6.1.0
       echarts-for-react:
         specifier: 3.0.6
         version: 3.0.6(echarts@6.1.0)(react@19.2.3)
+      lucide-react:
+        specifier: ^0.263.1
+        version: 0.263.1(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
+      terra-draw:
+        specifier: ^1.32.0
+        version: 1.32.3
+      terra-draw-google-maps-adapter:
+        specifier: ^1.6.0
+        version: 1.6.1(@googlemaps/js-api-loader@1.16.8)(terra-draw@1.32.3)
     devDependencies:
       '@encreasl/eslint-config':
         specifier: workspace:*
@@ -1292,6 +1304,9 @@ importers:
       '@eslint/js':
         specifier: ^9
         version: 9.39.2
+      '@types/google.maps':
+        specifier: ^3.58.1
+        version: 3.58.1
       '@types/minimatch':
         specifier: ^6.0.0
         version: 6.0.0
