@@ -1382,6 +1382,9 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@kuyacares.com';
                       request_three_d_secure: 'any',
                     },
                   },
+                  ...(orderId !== undefined && orderId !== null && String(orderId) !== ''
+                    ? { metadata: { order_id: String(orderId), user_id: String(req.user.id) } }
+                    : {}),
                   currency
                 }
               }

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { z } from 'zod'
 
 const locationField = z.string().trim().min(1).max(120)
@@ -316,6 +316,7 @@ export function emptySellerShippingSettings(): SellerShippingSettings {
 export async function loadSellerShippingSettings(
   payload: Payload,
   merchant: Record<string, unknown>,
+  req?: Partial<PayloadRequest>,
 ): Promise<SellerShippingSettings> {
   const result = await payload.find({
     collection: 'seller-shipping-zones',
@@ -325,6 +326,7 @@ export async function loadSellerShippingSettings(
     sort: 'displayOrder',
     depth: 0,
     overrideAccess: true,
+    req,
   })
 
   return parseSellerShippingSettings({
@@ -356,6 +358,7 @@ export async function replaceSellerShippingZones(
   payload: Payload,
   merchantId: number,
   settings: SellerShippingSettings,
+  req?: Partial<PayloadRequest>,
 ): Promise<void> {
   const existingResult = await payload.find({
     collection: 'seller-shipping-zones',
@@ -364,6 +367,7 @@ export async function replaceSellerShippingZones(
     pagination: false,
     depth: 0,
     overrideAccess: true,
+    req,
   })
   const existingByZoneId = new Map(
     existingResult.docs.map((doc) => [String(doc.zoneId), doc]),
@@ -392,12 +396,14 @@ export async function replaceSellerShippingZones(
         id: existing.id,
         data,
         overrideAccess: true,
+        req,
       })
     } else {
       await payload.create({
         collection: 'seller-shipping-zones',
         data,
         overrideAccess: true,
+        req,
       })
     }
   }
@@ -408,6 +414,7 @@ export async function replaceSellerShippingZones(
         collection: 'seller-shipping-zones',
         id: doc.id,
         overrideAccess: true,
+        req,
       })
     }
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
@@ -37,6 +37,7 @@ function ShippingSettingsPageContent() {
   const [settings, setSettings] = useState<ShippingSettings>(() => normalizeShippingSettings(null))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<ShippingZone | null>(null)
 
@@ -74,6 +75,8 @@ function ShippingSettingsPageContent() {
   }, [deleting])
 
   const persist = async (nextSettings: ShippingSettings) => {
+    if (savingRef.current) return false
+    savingRef.current = true
     setSaving(true)
     setError(null)
     try {
@@ -94,6 +97,7 @@ function ShippingSettingsPageContent() {
       setError(cause instanceof Error ? cause.message : 'Unable to save outlet shipping settings.')
       return false
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -173,6 +177,7 @@ function ShippingSettingsPageContent() {
               {settings.pickup.enabled && (
                 <textarea
                   value={settings.pickup.instructions ?? ''}
+                  disabled={saving}
                   onChange={(event) => setSettings((current) => ({ ...current, pickup: { ...current.pickup, instructions: event.target.value || null } }))}
                   maxLength={1000}
                   rows={2}

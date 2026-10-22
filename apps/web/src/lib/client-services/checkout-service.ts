@@ -291,26 +291,29 @@ export async function createPendingOrder(args: {
 }
 
 export async function createPendingTransaction(args: {
+  accessToken: string;
   orderId: string | number;
   paymentIntentId: string;
   paymentMethod: string;
   amount: number;
 }): Promise<{ transactionId?: string | number }> {
-  const res = await fetch(`${API_BASE}/transactions`, {
+  const res = await fetch(`${API_BASE}/customer/checkout/transaction`, {
     method: 'POST',
-    headers: cmsHeaders(),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `JWT ${args.accessToken}`,
+    },
     body: JSON.stringify({
-      order: args.orderId,
-      payment_intent_id: args.paymentIntentId,
-      payment_method: args.paymentMethod,
+      orderId: args.orderId,
+      paymentIntentId: args.paymentIntentId,
+      paymentMethod: args.paymentMethod,
       amount: args.amount,
       currency: 'PHP',
-      status: 'pending',
     }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Failed to record transaction');
-  return { transactionId: data?.doc?.id };
+  return { transactionId: data?.transactionId ?? data?.doc?.id };
 }
 
 // ---------- pending session (recovery across refresh/close) ----------

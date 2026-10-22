@@ -2,11 +2,12 @@
  * @file apps/cms/src/app/api/admin/merchants/route.ts
  * @description BFF aggregation for web-admin /merchants — enterprise outlet management.
  * Backend owns: vendor join, address/category joins, search/filter, pagination, stats, sanitization with overrideAccess.
- * GET  /api/admin/merchants?page=1&limit=10&search=&isActive=true&operationalStatus=open&vendor=<id> etc
+ * GET  /api/admin/merchants?page=1&limit=10&search=&isActive=true&operationalStatus=open&vendor=<id>&hasShippingZone=true|false etc
  * POST /api/admin/merchants — create outlet (admin-only)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { sql } from '@payloadcms/db-postgres'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateAdmin } from '@/utils/mediaLibrary'
@@ -103,10 +104,21 @@ export async function GET(request: NextRequest) {
     const vendorIdFilter = vendorParam ? Number(vendorParam) : null
     const verificationCsv = parseCsv(searchParams.get('verificationStatus'))
     const businessTypeCsv = parseCsv(searchParams.get('businessType'))
+    const hasShippingZoneParam = searchParams.get('hasShippingZone')
+    const hasShippingZoneFilter =
+      hasShippingZoneParam === 'true' ? true : hasShippingZoneParam === 'false' ? false : null
 
     if (vendorParam && (!Number.isSafeInteger(vendorIdFilter) || Number(vendorIdFilter) <= 0)) {
       return badRequest('A valid vendor ID is required')
     }
+
+    const shippingZoneMerchantIds = hasShippingZoneFilter === null
+      ? []
+      : ((await payload.db.drizzle.execute(sql`
+          SELECT DISTINCT "merchant_id"
+          FROM "seller_shipping_zones"
+        `)) as { rows: { merchant_id: number | string }[] }).rows
+        .map(({ merchant_id }) => Number(merchant_id))
 
     // Build where for direct merchant fields
     const where: Record<string, any> = {}
@@ -124,6 +136,13 @@ export async function GET(request: NextRequest) {
     if(isAcceptingFilter!==null) where.isAcceptingOrders = { equals: isAcceptingFilter }
     if(operationalCsv.length) where.operationalStatus = { in: operationalCsv.filter(v=>OPERATIONAL_STATUSES.has(v)) }
     if(vendorIdFilter && !Number.isNaN(vendorIdFilter)) where.vendor = { equals: vendorIdFilter }
+    if (hasShippingZoneFilter === true) {
+      where.id = shippingZoneMerchantIds.length
+        ? { in: shippingZoneMerchantIds }
+        : { equals: -1 }
+    } else if (hasShippingZoneFilter === false && shippingZoneMerchantIds.length) {
+      where.id = { not_in: shippingZoneMerchantIds }
+    }
 
     const finalWhere = and.length ? { and: [...and, where] } : where
 

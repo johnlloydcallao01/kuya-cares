@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
+import { commitTransaction, createLocalReq, getPayload, initTransaction, killTransaction } from 'payload'
+import type { PayloadRequest, TypedUser } from 'payload'
 import configPromise from '@payload-config'
 import { authenticateAdmin } from '@/utils/mediaLibrary'
 import {
@@ -17,7 +18,11 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value)
 }
 
-async function getAdminMerchant(payload: Awaited<ReturnType<typeof getPayload>>, id: string) {
+async function getAdminMerchant(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  id: string,
+  req?: Partial<PayloadRequest>,
+) {
   if (!/^[1-9]\d*$/.test(id)) return null
   const numericId = Number(id)
   if (!Number.isSafeInteger(numericId)) return null
@@ -27,6 +32,7 @@ async function getAdminMerchant(payload: Awaited<ReturnType<typeof getPayload>>,
     limit: 1,
     depth: 0,
     overrideAccess: true,
+    req,
   })
   return (result.docs[0] as unknown as Record<string, unknown> | undefined) ?? null
 }
@@ -84,21 +90,38 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const merchantId = Number(merchant.id)
-    await replaceSellerShippingZones(payload, merchantId, settings)
-    await payload.update({
-      collection: 'merchants',
-      id: merchantId,
-      data: {
-        seller_pickup_enabled: settings.pickup.enabled,
-        seller_pickup_instructions: settings.pickup.instructions,
-      },
-      overrideAccess: true,
-    })
-
-    const persisted = await loadSellerShippingSettings(payload, { ...merchant, id: merchantId })
-    if (stableStringify(persisted) !== stableStringify(settings)) {
-      return NextResponse.json({ error: 'Shipping settings save verification failed' }, { status: 500 })
+    const req = await createLocalReq({ user: admin as TypedUser }, payload)
+    if (!await initTransaction(req)) {
+      throw new Error('Unable to start a transaction for saving outlet shipping settings')
     }
+
+    let persisted: ReturnType<typeof parseSellerShippingSettings>
+    try {
+      // Updating the merchant first takes a row lock, serializing full settings replacements for this outlet.
+      await payload.update({
+        collection: 'merchants',
+        id: merchantId,
+        data: {
+          seller_pickup_enabled: settings.pickup.enabled,
+          seller_pickup_instructions: settings.pickup.instructions,
+        },
+        overrideAccess: true,
+        req,
+      })
+      await replaceSellerShippingZones(payload, merchantId, settings, req)
+
+      const updatedMerchant = await getAdminMerchant(payload, String(merchantId), req)
+      if (!updatedMerchant) throw new Error('Outlet disappeared while saving shipping settings')
+      persisted = await loadSellerShippingSettings(payload, updatedMerchant, req)
+      if (stableStringify(persisted) !== stableStringify(settings)) {
+        throw new Error('Shipping settings save verification failed')
+      }
+      await commitTransaction(req)
+    } catch (error) {
+      await killTransaction(req)
+      throw error
+    }
+
     return NextResponse.json({
       outlet: {
         id: merchant.id,

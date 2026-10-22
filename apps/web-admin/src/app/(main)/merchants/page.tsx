@@ -98,6 +98,7 @@ function MerchantsPageContent(){
   const [operationalFilter,setOperationalFilter]=useState<string[]>([])
   const [isActiveFilter,setIsActiveFilter]=useState<boolean|null>(null)
   const [isAcceptingFilter,setIsAcceptingFilter]=useState<boolean|null>(null)
+  const [shippingZoneFilter,setShippingZoneFilter]=useState<'true'|'false'|''>('')
   const [verificationFilter,setVerificationFilter]=useState<string[]>([])
   const [showFilters,setShowFilters]=useState(false)
   const [page,setPage]=useState(1)
@@ -145,7 +146,7 @@ const [sort,setSort]=useState('-createdAt')
   const {data:vendorOptionsData,isFetching:vendorsLoading,isError:vendorsError}=useVendors(vendorSearchQs,debouncedVendorSearch.length>=2)
   const vendorOptions=vendorOptionsData?.docs||[]
 
-  const activeFilterCount=useMemo(()=> operationalFilter.length + verificationFilter.length + (isActiveFilter!==null?1:0) + (isAcceptingFilter!==null?1:0) + (debouncedQ?1:0) + (vendorId?1:0),[operationalFilter,verificationFilter,isActiveFilter,isAcceptingFilter,debouncedQ,vendorId])
+  const activeFilterCount=useMemo(()=> operationalFilter.length + verificationFilter.length + (isActiveFilter!==null?1:0) + (isAcceptingFilter!==null?1:0) + (shippingZoneFilter?1:0) + (debouncedQ?1:0) + (vendorId?1:0),[operationalFilter,verificationFilter,isActiveFilter,isAcceptingFilter,shippingZoneFilter,debouncedQ,vendorId])
 
   const qs=useMemo(()=>{
     const p=new URLSearchParams()
@@ -155,9 +156,10 @@ const [sort,setSort]=useState('-createdAt')
     if(operationalFilter.length) p.set('operationalStatus',operationalFilter.join(','))
     if(isActiveFilter!==null) p.set('isActive',String(isActiveFilter))
     if(isAcceptingFilter!==null) p.set('isAcceptingOrders',String(isAcceptingFilter))
+    if(shippingZoneFilter) p.set('hasShippingZone',shippingZoneFilter)
     if(verificationFilter.length) p.set('verificationStatus',verificationFilter.join(','))
     return p.toString()
-  },[page,limit,sort,debouncedQ,vendorId,operationalFilter,isActiveFilter,isAcceptingFilter,verificationFilter])
+  },[page,limit,sort,debouncedQ,vendorId,operationalFilter,isActiveFilter,isAcceptingFilter,shippingZoneFilter,verificationFilter])
 
   const queryClient=useQueryClient()
   const [hardRefreshing,setHardRefreshing]=useState(false)
@@ -286,7 +288,7 @@ const [sort,setSort]=useState('-createdAt')
             <button onClick={()=>setShowFilters(v=>!v)} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${activeFilterCount?'bg-[#239459] hover:bg-[#215035] text-white border-[#239459]':'bg-white dark:bg-[#171717] text-gray-700 dark:text-[#a1a1aa] border-gray-200 dark:border-[#262626] hover:bg-gray-50 dark:hover:bg-[#262626]'}`}>
               <SlidersHorizontal className="w-4 h-4" /> Filters {activeFilterCount>0 && <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#239459]">{activeFilterCount}</span>} <ChevronDown className={`w-4 h-4 transition ${showFilters?'rotate-180':''}`} />
             </button>
-            {activeFilterCount>0 && <button onClick={()=>{ setQ(''); setDebouncedQ(''); setVendorFilter(''); setVendorSearch(''); setOperationalFilter([]); setVerificationFilter([]); setIsActiveFilter(null); setIsAcceptingFilter(null)}} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
+            {activeFilterCount>0 && <button onClick={()=>{ setQ(''); setDebouncedQ(''); setVendorFilter(''); setVendorSearch(''); setOperationalFilter([]); setVerificationFilter([]); setIsActiveFilter(null); setIsAcceptingFilter(null); setShippingZoneFilter('') }} className="text-sm font-medium text-gray-500 dark:text-[#a1a1aa] hover:text-gray-900 dark:hover:text-white">Clear</button>}
           </div>
         </div>
         {showFilters && (
@@ -336,6 +338,23 @@ const [sort,setSort]=useState('-createdAt')
               </div>
               <FilterPills label="Operational Status" options={OPERATIONAL_OPTS} value={operationalFilter} onToggle={(v)=>{setPage(1); setOperationalFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])}} />
               <FilterPills label="Vendor Verification" options={VERIFICATION_OPTS} value={verificationFilter} onToggle={(v)=>{setPage(1); setVerificationFilter(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v])}} />
+              <div>
+                <label htmlFor="shipping-zone-filter" className="mb-2 block text-xs font-semibold text-gray-700 dark:text-[#a1a1aa]">Shipping Zones</label>
+                <select
+                  id="shipping-zone-filter"
+                  value={shippingZoneFilter}
+                  onChange={(event)=>{
+                    setPage(1)
+                    const value=event.target.value
+                    setShippingZoneFilter(value==='true'||value==='false'?value:'')
+                  }}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-[#333] dark:bg-[#0a0a0a] dark:text-white"
+                >
+                  <option value="">All merchants</option>
+                  <option value="true">Has shipping zone</option>
+                  <option value="false">No shipping zone</option>
+                </select>
+              </div>
               <div>
                 <p className="text-xs font-semibold text-gray-700 dark:text-[#a1a1aa] mb-2">Toggles</p>
                 <div className="flex flex-wrap gap-1.5">

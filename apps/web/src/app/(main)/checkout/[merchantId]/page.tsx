@@ -722,6 +722,7 @@ export default function CheckoutPage() {
 
       // 4. Record the transaction and pending-payment recovery state.
       await createPendingTransaction({
+        accessToken,
         orderId: checkout.orderId,
         paymentIntentId: intentId,
         paymentMethod: paymentMethod as string,
